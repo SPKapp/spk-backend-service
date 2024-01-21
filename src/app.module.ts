@@ -1,8 +1,12 @@
 import { Module } from '@nestjs/common';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 
-import { TestResolver } from './test/test.resolver';
+import { RegionModule } from './common/modules/region/region.module';
+
+import databaseConfig from './config/database.config';
 
 @Module({
   imports: [
@@ -11,7 +15,19 @@ import { TestResolver } from './test/test.resolver';
       playground: true,
       autoSchemaFile: true,
     }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: [`.env/${process.env.NODE_ENV}.env`],
+      load: [databaseConfig],
+    }),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) =>
+        config.get<TypeOrmModuleOptions>('database'),
+    }),
+
+    RegionModule,
   ],
-  providers: [TestResolver],
 })
 export class AppModule {}
