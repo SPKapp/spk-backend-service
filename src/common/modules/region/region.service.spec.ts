@@ -7,7 +7,18 @@ describe('RegionService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [RegionService],
+      providers: [
+        RegionService,
+        {
+          provide: 'RegionRepository',
+          useValue: {
+            save: jest.fn(),
+            find: jest.fn(),
+            findOneOrFail: jest.fn(),
+            delete: jest.fn(),
+          },
+        },
+      ],
     }).compile();
 
     service = module.get<RegionService>(RegionService);

@@ -8,7 +8,19 @@ describe('RegionResolver', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [RegionResolver, RegionService],
+      providers: [
+        RegionResolver,
+        {
+          provide: RegionService,
+          useFactory: () => ({
+            create: jest.fn(() => true),
+            findAll: jest.fn(() => true),
+            findOne: jest.fn(() => true),
+            update: jest.fn(() => true),
+            remove: jest.fn(() => true),
+          }),
+        },
+      ],
     }).compile();
 
     resolver = module.get<RegionResolver>(RegionResolver);
