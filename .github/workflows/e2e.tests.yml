@@ -1,4 +1,4 @@
-name: NestJs Unit Tests
+name: NestJs e2e Tests
 
 on:
   push:
@@ -26,5 +26,5 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Run Unit Tests
-        run: npm test:e2e
+      - name: Run e2e Tests
+        run: npm run test:e2e
