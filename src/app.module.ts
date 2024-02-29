@@ -5,6 +5,7 @@ import { ConfigModule, ConfigType } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { RegionModule } from './common/modules/region/region.module';
+import { FirebaseModule } from './common/modules/firebase/firebase.module';
 
 import databaseConfig from './config/database.config';
 
@@ -26,6 +27,8 @@ import databaseConfig from './config/database.config';
     }),
 
     RegionModule,
+
+    FirebaseModule,
   ],
 })
 export class AppModule {}
