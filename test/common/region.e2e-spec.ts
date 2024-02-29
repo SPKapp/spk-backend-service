@@ -5,6 +5,7 @@ import { AppModule } from '../../src/app.module';
 import { DataSource, Repository } from 'typeorm';
 
 import { Region } from '../../src/common/modules/region/entities/region.entity';
+import { FirebaseAuthGuard } from '../../src/common/modules/auth/firebase-auth/firebase-auth.guard';
 
 describe('Region tests', () => {
   let app: INestApplication;
@@ -25,7 +26,10 @@ describe('Region tests', () => {
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideGuard(FirebaseAuthGuard)
+      .useValue({ canActivate: jest.fn(() => true) })
+      .compile();
 
     app = moduleFixture.createNestApplication();
     await app.init();

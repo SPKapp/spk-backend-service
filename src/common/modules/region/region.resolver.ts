@@ -6,36 +6,39 @@ import { Region } from './entities/region.entity';
 import { CreateRegionInput } from './dto/create-region.input';
 import { UpdateRegionInput } from './dto/update-region.input';
 import { EntityWithId } from '../../types/remove.entity';
+import { FirebaseAuth } from '../auth/firebase-auth/firebase-auth.decorator';
+import { Role } from '../auth/roles.eum';
 
+// TODO: Check if the correct permissions are granted
 @Resolver(() => Region)
 export class RegionResolver {
   constructor(private readonly regionService: RegionService) {}
 
-  // TODO: Add authorization
+  @FirebaseAuth(Role.Admin)
   @Mutation(() => Region)
   async createRegion(@Args('input') input: CreateRegionInput) {
     return await this.regionService.create(input);
   }
 
-  // TODO: Add authorization
+  @FirebaseAuth(Role.Admin)
   @Query(() => [Region], { name: 'regions' })
   async findAll() {
     return await this.regionService.findAll();
   }
 
-  // TODO: Add authorization
+  @FirebaseAuth(Role.Admin)
   @Query(() => Region, { name: 'region' })
   async findOne(@Args('id', { type: () => Int }) id: number) {
     return await this.regionService.findOne(id);
   }
 
-  // TODO: Add authorization
+  @FirebaseAuth(Role.Admin)
   @Mutation(() => Region)
   async updateRegion(@Args('input') input: UpdateRegionInput) {
     return await this.regionService.update(input);
   }
 
-  // TODO: Add authorization
+  @FirebaseAuth(Role.Admin)
   @Mutation(() => EntityWithId)
   async removeRegion(@Args('id', { type: () => Int }) id: number) {
     return new EntityWithId(await this.regionService.remove(id));

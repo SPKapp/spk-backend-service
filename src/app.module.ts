@@ -6,6 +6,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { RegionModule } from './common/modules/region/region.module';
 import { FirebaseModule } from './common/modules/firebase/firebase.module';
+import { AuthModule } from './common/modules/auth/auth.module';
 
 import databaseConfig from './config/database.config';
 
@@ -29,6 +30,8 @@ import databaseConfig from './config/database.config';
     RegionModule,
 
     FirebaseModule,
+
+    AuthModule,
   ],
 })
 export class AppModule {}

@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 import { RegionResolver } from './region.resolver';
 import { RegionService } from './region.service';
+import { FirebaseAuthGuard } from '../auth/firebase-auth/firebase-auth.guard';
 
 describe('RegionResolver', () => {
   let resolver: RegionResolver;
@@ -21,7 +22,10 @@ describe('RegionResolver', () => {
           }),
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(FirebaseAuthGuard)
+      .useValue({ canActivate: jest.fn(() => true) })
+      .compile();
 
     resolver = module.get<RegionResolver>(RegionResolver);
   });
