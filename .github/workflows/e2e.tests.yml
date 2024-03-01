@@ -28,3 +28,5 @@ jobs:
 
       - name: Run e2e Tests
         run: npm run test:e2e
+        env:
+          FIREBASE_CONFIG: ${{ secrets.FIREBASE_CONFIG }}
