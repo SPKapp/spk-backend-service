@@ -1,14 +1,14 @@
+import { ConfigType } from '@nestjs/config';
 import * as admin from 'firebase-admin';
 
-import * as firebaseConfigFile from '../../../config/firebaseSeviceAccountKey.json';
-const firebaseConfig = firebaseConfigFile as admin.ServiceAccount;
+import firebaseConfig from '../../../config/firebase.config';
 
 export const Firebase = {
   provide: 'FIREBASE_APP',
-  inject: [],
-  useFactory: () => {
+  inject: [firebaseConfig.KEY],
+  useFactory: (config: ConfigType<typeof firebaseConfig>) => {
     return admin.initializeApp({
-      credential: admin.credential.cert(firebaseConfig),
+      credential: admin.credential.cert(config),
     });
   },
 };
