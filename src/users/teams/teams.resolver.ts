@@ -1,4 +1,5 @@
 import { Args, Parent, Query, ResolveField, Resolver } from '@nestjs/graphql';
+import { NotFoundException } from '@nestjs/common';
 
 import { TeamsService } from './teams.service';
 
@@ -28,8 +29,11 @@ export class TeamsResolver {
    */
   @Query(() => Team, { name: 'team' })
   findOne(@Args('id', { type: () => Number }) id: number) {
-    // TODO: Throw NotFoundException if team not found
-    return this.teamsService.findOne(id);
+    const team = this.teamsService.findOne(id);
+    if (!team) {
+      throw new NotFoundException('Team with the provided id does not exist');
+    }
+    return team;
   }
 
   @ResolveField('users')

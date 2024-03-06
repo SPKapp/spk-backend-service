@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotImplementedException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -40,9 +44,7 @@ export class TeamsService {
   // TODO: Add pagination
   async findAll(region?: string): Promise<Team[]> {
     if (region) {
-      return await this.teamRepository.find({
-        where: { region: { name: region } },
-      });
+      return await this.teamRepository.findBy({ region: { name: region } });
     }
     return await this.teamRepository.find();
   }
@@ -58,11 +60,26 @@ export class TeamsService {
   }
 
   // TODO: Add update method
+  async update(id: number, region_id: number): Promise<Team> {
+    // Try Remove and Recreate with same users in new region
+    console.log(`Update team ${id} to region ${region_id}`);
+    throw new NotImplementedException();
+  }
 
-  // TODO: Add remove method
-  async remove(id: number) {
-    await this.teamRepository.findOneOrFail({ where: { id } });
-    await this.teamRepository.delete(id);
-    return id;
+  /**
+   * Removes a team by its ID.
+   * @param id - The ID of the team to be removed.
+   * @returns A Promise that resolves to the removed team.
+   * @throws {BadRequestException} if the team with the provided ID does not exist.
+   */
+  // TODO: Check if there are any users in the team
+  // TODO: Check if there are active rabbits connected to the team
+  async remove(id: number): Promise<Team> {
+    const team = await this.teamRepository.findOneBy({ id });
+    if (!team) {
+      throw new BadRequestException('Team with the provided id does not exist');
+    }
+    await this.teamRepository.remove(team);
+    return team;
   }
 }

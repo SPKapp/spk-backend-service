@@ -1,4 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
+
+import { RegionService } from '../../common/modules/region/region.service';
 import { TeamsService } from './teams.service';
 
 describe('TeamsService', () => {
@@ -7,14 +9,22 @@ describe('TeamsService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        TeamsService,
+        {
+          provide: RegionService,
+          useValue: {
+            findOne: jest.fn(),
+          },
+        },
         {
           provide: 'TeamRepository',
           useValue: {
-            find: jest.fn(),
-            findOneByOrFail: jest.fn(),
+            findBy: jest.fn(),
+            findOneBy: jest.fn(),
+            save: jest.fn(),
+            remove: jest.fn(),
           },
         },
+        TeamsService,
       ],
     }).compile();
 
