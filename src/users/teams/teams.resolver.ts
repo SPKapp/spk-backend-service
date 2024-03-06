@@ -54,16 +54,16 @@ export class TeamsResolver {
    * If the user is an Admin, team is always returned.
    * If the user is a Region Manager, only teams from his regions are returned.
    *
-   * @param id - The ID of the team to retrieve.
    * @param user - The current user details.
+   * @param id - The ID of the team to retrieve.
    * @returns The team with the provided ID.
    * @throws {NotFoundException} if the team with the provided ID does not exist.
    */
   @FirebaseAuth(Role.Admin, Role.RegionManager)
   @Query(() => Team, { name: 'team' })
   async findOne(
-    @Args('id', { type: () => ID }) id: number,
     @CurrentUser() user: UserDetails,
+    @Args('id', { type: () => ID }) id: number,
   ): Promise<Team> {
     let team: Team | null = null;
 

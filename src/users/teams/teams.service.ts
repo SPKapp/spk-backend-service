@@ -36,9 +36,10 @@ export class TeamsService {
   }
 
   /**
-   * Retrieves all teams from the database.
+   * Retrieves all teams based on the provided regions IDs.
+   * If regions IDs are not provided, retrieves all teams.
    *
-   * @param region - Optional region name to filter teams by.
+   * @param regions_id - An optional array of regions IDs.
    * @returns A promise that resolves to an array of Team objects.
    */
   // TODO: Add pagination
@@ -52,6 +53,7 @@ export class TeamsService {
    * Retrieves a single team from the database by its ID.
    *
    * @param id - The ID of the team to retrieve.
+   * @param regions_id - Optional array of region IDs to filter the team by.
    * @returns A promise that resolves to a Team object, or null if not found.
    */
   async findOne(id: number, regions_id?: number[]): Promise<Team | null> {
