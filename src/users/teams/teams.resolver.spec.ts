@@ -8,7 +8,16 @@ describe('TeamsResolver', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [TeamsResolver, TeamsService],
+      providers: [
+        TeamsResolver,
+        {
+          provide: TeamsService,
+          useFactory: () => ({
+            findAll: jest.fn(() => true),
+            findOne: jest.fn(() => true),
+          }),
+        },
+      ],
     }).compile();
 
     resolver = module.get<TeamsResolver>(TeamsResolver);
@@ -18,3 +27,5 @@ describe('TeamsResolver', () => {
     expect(resolver).toBeDefined();
   });
 });
+
+// TODO: Add tests

@@ -6,7 +6,16 @@ describe('TeamsService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [TeamsService],
+      providers: [
+        TeamsService,
+        {
+          provide: 'TeamRepository',
+          useValue: {
+            find: jest.fn(),
+            findOneByOrFail: jest.fn(),
+          },
+        },
+      ],
     }).compile();
 
     service = module.get<TeamsService>(TeamsService);
@@ -16,3 +25,5 @@ describe('TeamsService', () => {
     expect(service).toBeDefined();
   });
 });
+
+// TODO: Add tests

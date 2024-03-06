@@ -1,5 +1,7 @@
 import { ObjectType, Field, ID } from '@nestjs/graphql';
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+
+import { Team } from './team.entity';
 
 @Entity()
 @ObjectType()
@@ -35,5 +37,9 @@ export class User {
   firebaseUid: string;
 
   // TODO: Add Adress field
-  // TODO: Add Team field
+
+  // TODO: Eagar or lazy?
+  @ManyToOne(() => Team, (team) => team.users)
+  @Field(() => Team)
+  team: Team;
 }
