@@ -8,9 +8,10 @@ import { TeamsService } from './teams/teams.service';
 
 import { User } from './entities/user.entity';
 import { Team } from './entities/team.entity';
+import { RegionModule } from 'src/common/modules/region/region.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, Team])],
+  imports: [TypeOrmModule.forFeature([User, Team]), RegionModule],
   providers: [UsersResolver, UsersService, TeamsResolver, TeamsService],
 })
 export class UsersModule {}

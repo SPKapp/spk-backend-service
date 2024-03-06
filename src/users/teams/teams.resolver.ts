@@ -28,6 +28,7 @@ export class TeamsResolver {
    */
   @Query(() => Team, { name: 'team' })
   findOne(@Args('id', { type: () => Number }) id: number) {
+    // TODO: Throw NotFoundException if team not found
     return this.teamsService.findOne(id);
   }
 

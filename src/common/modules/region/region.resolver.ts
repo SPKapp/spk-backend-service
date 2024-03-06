@@ -29,6 +29,7 @@ export class RegionResolver {
   @FirebaseAuth(Role.Admin)
   @Query(() => Region, { name: 'region' })
   async findOne(@Args('id', { type: () => Int }) id: number) {
+    //TODO: Throw NotFoundException if team not found
     return await this.regionService.findOne(id);
   }
 

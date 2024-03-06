@@ -13,6 +13,8 @@ export class UsersResolver {
   async createUser(
     @Args('createUserInput') createUserInput: CreateUserInput,
   ): Promise<User> {
+    // TODO: Add authentication
+    // TODO: Add authorization with role_id and team_id verification
     return await this.usersService.create(createUserInput);
   }
 

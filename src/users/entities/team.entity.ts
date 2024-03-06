@@ -7,6 +7,10 @@ import { Region } from '../../common/modules/region/entities/region.entity';
 @Entity()
 @ObjectType()
 export class Team {
+  constructor(partial: Partial<Team>) {
+    Object.assign(this, partial);
+  }
+
   @PrimaryGeneratedColumn()
   @Field(() => ID)
   id: number;

@@ -1,4 +1,4 @@
-import { InputType, Field } from '@nestjs/graphql';
+import { InputType, Field, ID } from '@nestjs/graphql';
 import { IsEmail, IsPhoneNumber } from 'class-validator';
 
 @InputType()
@@ -18,5 +18,13 @@ export class CreateUserInput {
   phone: string;
 
   // TODO: Add Adress field
-  // TODO: Add Team field
+
+  @Field(() => ID, { nullable: true })
+  team_id?: number;
+
+  @Field(() => ID, {
+    nullable: true,
+    description: 'Required when run as Admin.',
+  })
+  region_id?: number;
 }

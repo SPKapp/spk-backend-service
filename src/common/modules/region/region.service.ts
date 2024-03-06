@@ -21,8 +21,8 @@ export class RegionService {
     return await this.regionRepository.find();
   }
 
-  async findOne(id: number): Promise<Region> {
-    return await this.regionRepository.findOneOrFail({ where: { id } });
+  async findOne(id: number): Promise<Region | null> {
+    return await this.regionRepository.findOneBy({ id });
   }
 
   async update(input: UpdateRegionInput): Promise<Region> {
