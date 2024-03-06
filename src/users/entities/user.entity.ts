@@ -38,8 +38,7 @@ export class User {
 
   // TODO: Add Adress field
 
-  // TODO: Eagar or lazy?
-  @ManyToOne(() => Team, (team) => team.users)
+  @ManyToOne(() => Team, (team) => team.users, { eager: true })
   @Field(() => Team)
   team: Team;
 }

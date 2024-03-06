@@ -6,13 +6,15 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { GqlExecutionContext } from '@nestjs/graphql';
 import { Request } from 'express';
 import { DecodedIdToken } from 'firebase-admin/lib/auth/token-verifier';
+
+import { getGqlRequest } from '../../../functions/gql.functions';
 
 import { FirebaseService } from '../../firebase/firebase.service';
 import { Role } from '../roles.eum';
 import { ROLES_KEY } from './firebase-auth.decorator';
+import { UserDetails } from '../current-user/current-user';
 
 @Injectable()
 export class FirebaseAuthGuard implements CanActivate {
@@ -22,15 +24,26 @@ export class FirebaseAuthGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = getGqlRequest(context);
     let claims: DecodedIdToken;
 
     try {
       claims = await this.firebaseService.auth.verifyIdToken(
-        this.extractTokenFromHeader(this.getRequest(context)),
+        this.extractTokenFromHeader(request),
       );
     } catch {
       throw new UnauthorizedException();
     }
+    claims.roles = claims.roles || [Role.RegionManager]; //TODO: Remove testing data
+    // claims.roles = claims.roles || [Role.Admin]; //TODO: Remove testing data
+
+    request.user = {
+      uid: claims.uid,
+      email: claims.email,
+      roles: claims.roles || [],
+      phone: claims.phone_number,
+      regions: claims.regions || [2, 10], //TODO: Remove testing data
+    } as UserDetails;
 
     const requiredRoles: Role[] = this.reflector.getAllAndOverride<Role[]>(
       ROLES_KEY,
@@ -45,11 +58,6 @@ export class FirebaseAuthGuard implements CanActivate {
       throw new ForbiddenException();
     }
     return true;
-  }
-
-  private getRequest(context: ExecutionContext) {
-    const ctx = GqlExecutionContext.create(context);
-    return ctx.getContext().req;
   }
 
   private extractTokenFromHeader(request: Request): string | undefined {

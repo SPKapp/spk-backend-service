@@ -4,7 +4,7 @@ import {
   NotImplementedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 
 import { RegionService } from '../../common/modules/region/region.service';
 
@@ -42,11 +42,10 @@ export class TeamsService {
    * @returns A promise that resolves to an array of Team objects.
    */
   // TODO: Add pagination
-  async findAll(region?: string): Promise<Team[]> {
-    if (region) {
-      return await this.teamRepository.findBy({ region: { name: region } });
-    }
-    return await this.teamRepository.find();
+  async findAll(regions_id?: number[]): Promise<Team[]> {
+    return await this.teamRepository.findBy({
+      region: { id: regions_id ? In(regions_id) : undefined },
+    });
   }
 
   /**
@@ -55,8 +54,11 @@ export class TeamsService {
    * @param id - The ID of the team to retrieve.
    * @returns A promise that resolves to a Team object, or null if not found.
    */
-  async findOne(id: number): Promise<Team | null> {
-    return await this.teamRepository.findOneBy({ id });
+  async findOne(id: number, regions_id?: number[]): Promise<Team | null> {
+    return await this.teamRepository.findOneBy({
+      id,
+      region: regions_id ? { id: In(regions_id) } : undefined,
+    });
   }
 
   // TODO: Add update method

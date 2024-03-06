@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
+import { FirebaseAuthGuard } from '../../common/modules/auth/firebase-auth/firebase-auth.guard';
 import { TeamsResolver } from './teams.resolver';
 import { TeamsService } from './teams.service';
 
@@ -18,7 +19,10 @@ describe('TeamsResolver', () => {
           }),
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(FirebaseAuthGuard)
+      .useValue({ canActivate: jest.fn(() => true) })
+      .compile();
 
     resolver = module.get<TeamsResolver>(TeamsResolver);
   });
