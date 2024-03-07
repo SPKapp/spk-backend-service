@@ -9,7 +9,8 @@ import { User } from '../entities/user.entity';
 import { CreateUserInput } from '../dto/create-user.input';
 import { UpdateUserInput } from '../dto/update-user.input';
 import { Role } from '../../common/modules/auth/roles.eum';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import { EntityWithId } from '../../common/types/remove.entity';
 
 @Resolver(() => User)
 export class UsersResolver {
@@ -21,7 +22,8 @@ export class UsersResolver {
    * @param user - The current user details.
    * @param createUserInput - The input data for creating a user.
    * @returns A Promise that resolves to the created user.
-   * @throws {BadRequestException} if the region ID is missing or invalid for the user's role.
+   * @throws {BadRequestException} if the region ID is missing
+   * @throws {ForbiddenException} if the region ID does not match the Region Manager permissions.
    */
   @FirebaseAuth(Role.Admin, Role.RegionManager)
   @Mutation(() => User)
@@ -46,7 +48,7 @@ export class UsersResolver {
         createUserInput.region_id = user.regions[0];
       } else {
         if (!user.regions.includes(createUserInput.region_id)) {
-          throw new BadRequestException(
+          throw new ForbiddenException(
             'Region ID does not match the Region Manager permissions.',
           );
         }
@@ -74,9 +76,31 @@ export class UsersResolver {
     return this.usersService.update(updateUserInput.id, updateUserInput);
   }
 
-  // TODO: Implement function
-  @Mutation(() => User)
-  removeUser(@Args('id', { type: () => Int }) id: number) {
-    return this.usersService.remove(id);
+  @FirebaseAuth(Role.Admin, Role.RegionManager)
+  @Mutation(() => EntityWithId)
+  /**
+   * Removes a user with the specified ID.
+   *
+   * @param user - The current user details.
+   * @param id - The ID of the user to be removed.
+   * @returns An object containing the ID of the removed user.
+   * @throws {ForbiddenException} if the user region ID does not match the Region Manager permissions.
+   */
+  @FirebaseAuth(Role.Admin, Role.RegionManager)
+  @Mutation(() => EntityWithId)
+  async removeUser(
+    @CurrentUser() user: UserDetails,
+    @Args('id', { type: () => Int }) id: number,
+  ) {
+    if (user.roles.includes(Role.RegionManager)) {
+      const userToRemove = await this.usersService.findOne(id);
+      if (!user.regions.includes(userToRemove.team.region.id)) {
+        throw new ForbiddenException(
+          'User does not belong to the Region Manager permissions.',
+        );
+      }
+    }
+
+    return { id: await this.usersService.remove(id) };
   }
 }

@@ -38,7 +38,7 @@ export class FirebaseAuthService {
    * @returns A Promise that resolves when the user is successfully deleted.
    */
   async deleteUser(uid: string): Promise<void> {
-    this.firebaseService.auth.deleteUser(uid);
+    await this.firebaseService.auth.deleteUser(uid);
   }
 
   /**

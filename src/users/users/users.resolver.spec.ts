@@ -1,15 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 
 import { FirebaseAuthGuard } from '../../common/modules/auth/firebase-auth/firebase-auth.guard';
 import { UserDetails } from '../../common/modules/auth/current-user/current-user';
 import { Role } from '../../common/modules/auth/roles.eum';
+import { Region } from '../../common/modules/region/entities/region.entity';
 
 import { UsersResolver } from './users.resolver';
 import { UsersService } from './users.service';
 
 import { CreateUserInput } from '../dto/create-user.input';
 import { User } from '../entities/user.entity';
+import { Team } from '../entities/team.entity';
 
 describe('UsersResolver', () => {
   let resolver: UsersResolver;
@@ -31,6 +33,10 @@ describe('UsersResolver', () => {
           provide: UsersService,
           useValue: {
             create: jest.fn(),
+            findAll: jest.fn(),
+            findOne: jest.fn(),
+            update: jest.fn(),
+            remove: jest.fn(() => 1),
           },
         },
       ],
@@ -116,7 +122,7 @@ describe('UsersResolver', () => {
             { ...user, region_id: 1 },
           ),
         ).rejects.toThrow(
-          new BadRequestException(
+          new ForbiddenException(
             'Region ID does not match the Region Manager permissions.',
           ),
         );
@@ -145,6 +151,70 @@ describe('UsersResolver', () => {
       });
     });
   });
-});
 
-// TODO: Add tests
+  describe('findAll', () => {
+    it('should be defined', () => {
+      expect(resolver.findAll).toBeDefined();
+    });
+
+    // TODO: Add tests
+  });
+
+  describe('findOne', () => {
+    it('should be defined', () => {
+      expect(resolver.findOne).toBeDefined();
+    });
+
+    // TODO: Add tests
+  });
+
+  describe('updateUser', () => {
+    it('should be defined', () => {
+      expect(resolver.updateUser).toBeDefined();
+    });
+
+    // TODO: Add tests
+  });
+
+  describe('removeUser', () => {
+    it('should be defined', () => {
+      expect(resolver.removeUser).toBeDefined();
+    });
+
+    it('should throw bad permissions error', async () => {
+      const userDetails: UserDetails = {
+        ...userDetailsTeplate,
+        roles: [Role.RegionManager],
+        regions: [2],
+      };
+
+      jest.spyOn(usersService, 'findOne').mockImplementation(
+        async () =>
+          new User({
+            id: 1,
+            team: new Team({
+              id: 1,
+              region: new Region({ id: 1 }),
+            }),
+          }),
+      );
+
+      await expect(resolver.removeUser(userDetails, 1)).rejects.toThrow(
+        new ForbiddenException(
+          'User does not belong to the Region Manager permissions.',
+        ),
+      );
+    });
+
+    it('should remove user', async () => {
+      const userDetails: UserDetails = {
+        ...userDetailsTeplate,
+        roles: [Role.Admin],
+      };
+
+      await expect(resolver.removeUser(userDetails, 1)).resolves.toEqual({
+        id: 1,
+      });
+    });
+  });
+});

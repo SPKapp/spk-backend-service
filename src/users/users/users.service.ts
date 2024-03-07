@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -121,10 +122,45 @@ export class UsersService {
   }
 
   update(id: number, updateUserInput: UpdateUserInput) {
-    return `This action updates a #${id} user`;
+    return `This action updates a #${id} user with ${JSON.stringify(updateUserInput)}`;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  /**
+   * Removes a user by their ID.
+   * If the user is the last member of their team, the team will also be removed.
+   * @param id - The ID of the user to be removed.
+   * @returns The ID of the removed user.
+   * @throws {BadRequestException} if the user cannot be removed.
+   * @throws {NotFoundException} if the user with the provided ID does not exist.
+   */
+  async remove(id: number): Promise<number> {
+    const user = await this.userRepository.findOneBy({ id });
+    if (!user) {
+      throw new NotFoundException('User with the provided id does not exist.');
+    }
+
+    const team = user.team;
+
+    if ((await team.users).length === 1) {
+      if (!(await this.teamsSerivce.canRemove(user.team.id, user.id))) {
+        throw new BadRequestException(
+          'User cannot be removed. Last member of the team.',
+        );
+      }
+      user.team = null;
+      await this.userRepository.save(user);
+      await this.teamsSerivce.remove(team.id);
+    }
+
+    try {
+      await this.firebaseAuthService.deleteUser(user.firebaseUid);
+    } catch (e) {
+      this.logger.error(`FirebaseError: ${e}`);
+    }
+
+    await this.userRepository.remove(user);
+
+    this.logger.log(`Removed user ${user.email}`);
+    return id;
   }
 }

@@ -73,17 +73,27 @@ export class TeamsService {
   /**
    * Removes a team by its ID.
    * @param id - The ID of the team to be removed.
-   * @returns A Promise that resolves to the removed team.
-   * @throws {BadRequestException} if the team with the provided ID does not exist.
+   * @returns A Promise that resolves to the removed team id.
+   * @throws {BadRequestException} if the team with the provided ID does not exist or cannot be removed.
    */
+  async remove(id: number): Promise<number> {
+    if (!(await this.canRemove(id))) {
+      throw new BadRequestException('Team cannot be removed');
+    }
+    await this.teamRepository.delete({ id });
+    return id;
+  }
+
+  // TODO: Implement this method
   // TODO: Check if there are any users in the team
   // TODO: Check if there are active rabbits connected to the team
-  async remove(id: number): Promise<Team> {
+  async canRemove(id: number, user_id?: number): Promise<boolean> {
     const team = await this.teamRepository.findOneBy({ id });
     if (!team) {
       throw new BadRequestException('Team with the provided id does not exist');
     }
-    await this.teamRepository.remove(team);
-    return team;
+
+    console.log(`Check if team ${id} can be removed with user ${user_id}`);
+    return true;
   }
 }
