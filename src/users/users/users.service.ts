@@ -34,8 +34,6 @@ export class UsersService {
    * @throws {ConflictException} If a user with the provided email or phone already exists.
    * @throws {BadRequestException} If the team with the provided id does not exist.
    */
-  // TODO: Add authentication
-  // TODO: RegionManager powinien mieć możliwość tworzenia użytkowników ptzypisanych tylko do swojego regionu
   async create(createUserInput: CreateUserInput): Promise<User> {
     if (!createUserInput.phone.startsWith('+48')) {
       createUserInput.phone = `+48${createUserInput.phone}`;
@@ -63,7 +61,9 @@ export class UsersService {
     if (!createUserInput.team_id) {
       team = await this.teamsSerivce.create(createUserInput.region_id);
     } else {
-      team = await this.teamsSerivce.findOne(createUserInput.team_id);
+      team = await this.teamsSerivce.findOne(createUserInput.team_id, [
+        createUserInput.region_id,
+      ]);
       if (!team) {
         throw new BadRequestException(
           'Team with the provided id does not exist',
