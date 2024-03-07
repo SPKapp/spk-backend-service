@@ -66,7 +66,7 @@ describe('UsersResolver', () => {
     beforeEach(() => {
       createSpy = jest
         .spyOn(usersService, 'create')
-        .mockImplementation(async () => new User(user));
+        .mockResolvedValue(new User(user));
     });
 
     it('should be defined', () => {
@@ -80,7 +80,9 @@ describe('UsersResolver', () => {
       };
 
       it('should throw no region_id error', async () => {
-        await expect(resolver.createUser(userDetails, user)).rejects.toThrow(
+        await expect(
+          resolver.createUser(userDetails, { ...user }),
+        ).rejects.toThrow(
           new BadRequestException(
             'Region ID is required for Admin and Region Manager with more than 1 region.',
           ),
@@ -106,7 +108,7 @@ describe('UsersResolver', () => {
 
       it('should throw no region_id error', async () => {
         await expect(
-          resolver.createUser({ ...userDetails, regions: [1, 2] }, user),
+          resolver.createUser({ ...userDetails, regions: [1, 2] }, { ...user }),
         ).rejects.toThrow(
           new BadRequestException(
             'Region ID is required for Admin and Region Manager with more than 1 region.',
@@ -142,10 +144,12 @@ describe('UsersResolver', () => {
       });
 
       it('should create user - one region', async () => {
+        console.log(user);
         const result = await resolver.createUser(
           { ...userDetails, regions: [2] },
-          user,
+          { ...user },
         );
+        console.log(user, result);
         expect(result).toEqual(new User(user));
         expect(createSpy).toHaveBeenCalled();
       });
@@ -188,15 +192,14 @@ describe('UsersResolver', () => {
         regions: [2],
       };
 
-      jest.spyOn(usersService, 'findOne').mockImplementation(
-        async () =>
-          new User({
+      jest.spyOn(usersService, 'findOne').mockResolvedValue(
+        new User({
+          id: 1,
+          team: new Team({
             id: 1,
-            team: new Team({
-              id: 1,
-              region: new Region({ id: 1 }),
-            }),
+            region: new Region({ id: 1 }),
           }),
+        }),
       );
 
       await expect(resolver.removeUser(userDetails, 1)).rejects.toThrow(

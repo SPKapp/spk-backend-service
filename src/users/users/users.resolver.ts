@@ -58,26 +58,24 @@ export class UsersResolver {
     return await this.usersService.create(createUserInput);
   }
 
-  // TODO: Implement function
+  // TODO: Implement this method
   @Query(() => [User], { name: 'users' })
   findAll() {
     return this.usersService.findAll();
   }
 
-  // TODO: Implement function
+  // TODO: Implement this method
   @Query(() => User, { name: 'user' })
   async findOne(@Args('id', { type: () => Int }) id: number) {
     return await this.usersService.findOne(id);
   }
 
-  // TODO: Implement function
+  // TODO: Implement this method
   @Mutation(() => User)
   updateUser(@Args('updateUserInput') updateUserInput: UpdateUserInput) {
     return this.usersService.update(updateUserInput.id, updateUserInput);
   }
 
-  @FirebaseAuth(Role.Admin, Role.RegionManager)
-  @Mutation(() => EntityWithId)
   /**
    * Removes a user with the specified ID.
    *

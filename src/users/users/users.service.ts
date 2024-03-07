@@ -113,14 +113,17 @@ export class UsersService {
     return user;
   }
 
+  // TODO: Implement this method
   findAll() {
     return `This action returns all users`;
   }
 
+  // TODO: Implement this method
   async findOne(id: number) {
     return await this.userRepository.findOneBy({ id });
   }
 
+  // TODO: Implement this method
   update(id: number, updateUserInput: UpdateUserInput) {
     return `This action updates a #${id} user with ${JSON.stringify(updateUserInput)}`;
   }
