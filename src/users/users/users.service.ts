@@ -7,32 +7,35 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { randomBytes } from 'crypto';
 
-import { FirebaseService } from '../../common/modules/firebase/firebase.service';
+import { FirebaseAuthService } from '../../common/modules/auth/firebase-auth/firebase-auth.service';
 import { TeamsService } from '../teams/teams.service';
 
 import { Team } from '../entities/team.entity';
 import { User } from '../entities/user.entity';
 import { CreateUserInput } from '../dto/create-user.input';
 import { UpdateUserInput } from '../dto/update-user.input';
+import { Role } from '../../common/modules/auth/roles.eum';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     private readonly teamsSerivce: TeamsService,
-    private readonly firebaseService: FirebaseService,
+    private readonly firebaseAuthService: FirebaseAuthService,
   ) {}
 
   /**
    * Creates a new user and register him in Firebase Auth
    * It also creates a new team for the user, if 'team_id' is not provided
-   * Default role for the user is ''// TODO: Add default role here
+   * Default role for the user is 'Role.Volunteer'
    *
    * @param createUserInput - The input data for creating a user.
    * @returns A promise that resolves to the created user.
    * @throws {ConflictException} If a user with the provided email or phone already exists.
    * @throws {BadRequestException} If the team with the provided id does not exist.
    */
+  // TODO: Add authentication
+  // TODO: RegionManager powinien mieć możliwość tworzenia użytkowników ptzypisanych tylko do swojego regionu
   async create(createUserInput: CreateUserInput): Promise<User> {
     if (!createUserInput.phone.startsWith('+48')) {
       createUserInput.phone = `+48${createUserInput.phone}`;
@@ -70,13 +73,13 @@ export class UsersService {
 
     const password = randomBytes(8).toString('hex');
 
-    const firebaseUser = await this.firebaseService.auth.createUser({
-      email: createUserInput.email,
-      phoneNumber: createUserInput.phone,
-      displayName: `${createUserInput.firstname} ${createUserInput.lastname}`,
-      password: password,
-    });
-    // TODO: Add default role here
+    const firebaseUid = await this.firebaseAuthService.createUser(
+      createUserInput.email,
+      createUserInput.phone,
+      `${createUserInput.firstname} ${createUserInput.lastname}`,
+      password,
+    );
+    await this.firebaseAuthService.addRoleToUser(firebaseUid, Role.Volunteer);
 
     // TODO: Add email sending
     console.log(`User ${createUserInput.email} password: ${password}`);
@@ -85,7 +88,7 @@ export class UsersService {
       return await this.userRepository.save(
         new User({
           ...createUserInput,
-          firebaseUid: firebaseUser.uid,
+          firebaseUid: firebaseUid,
           team,
         }),
       );
@@ -96,7 +99,7 @@ export class UsersService {
         } finally {
         }
       }
-      await this.firebaseService.auth.deleteUser(firebaseUser.uid);
+      await this.firebaseAuthService.deleteUser(firebaseUid);
       throw e;
     }
   }

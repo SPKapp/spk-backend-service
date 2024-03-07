@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
+import { FirebaseAuthService } from './firebase-auth/firebase-auth.service';
 
-@Module({})
+@Module({
+  providers: [FirebaseAuthService],
+  exports: [FirebaseAuthService],
+})
 export class AuthModule {}
-
-// TODO: Add CurrentUser Decorator
-// TODO: Add authService with roles management
