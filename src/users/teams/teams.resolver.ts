@@ -39,10 +39,12 @@ export class TeamsResolver {
     region_id = region_id ? Number(region_id) : undefined;
 
     if (user.roles.includes(Role.Admin)) {
-      return await this.teamsService.findAll([region_id]);
+      return await this.teamsService.findAll(
+        region_id ? [region_id] : undefined,
+      );
     } else if (user.roles.includes(Role.RegionManager)) {
       return await this.teamsService.findAll(
-        user.regions.filter((r) => r === region_id),
+        region_id ? user.regions.filter((r) => r === region_id) : user.regions,
       );
     }
 
