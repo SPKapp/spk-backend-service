@@ -1,11 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 
 import { FirebaseAuthService } from '../../common/modules/auth/firebase-auth/firebase-auth.service';
 import { UsersService } from './users.service';
 import { TeamsService } from '../teams/teams.service';
+
 import { CreateUserInput } from '../dto/create-user.input';
 import { User } from '../entities/user.entity';
-import { ConflictException } from '@nestjs/common';
 import { Team } from '../entities/team.entity';
 
 describe('UsersService', () => {
@@ -99,7 +100,7 @@ describe('UsersService', () => {
       jest.spyOn(teamsService, 'findOne').mockImplementation(async () => null);
 
       await expect(service.create({ ...user, team_id: 1 })).rejects.toThrow(
-        new ConflictException('Team with the provided id does not exist'),
+        new BadRequestException('Team with the provided id does not exist'),
       );
     });
 
