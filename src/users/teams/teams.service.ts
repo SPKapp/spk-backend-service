@@ -63,7 +63,7 @@ export class TeamsService {
     });
   }
 
-  // TODO: Add update method
+  // TODO: Implement this method
   async update(id: number, region_id: number): Promise<Team> {
     // Try Remove and Recreate with same users in new region
     console.log(`Update team ${id} to region ${region_id}`);
@@ -84,16 +84,28 @@ export class TeamsService {
     return id;
   }
 
-  // TODO: Implement this method
-  // TODO: Check if there are any users in the team
-  // TODO: Check if there are active rabbits connected to the team
+  /**
+   * Checks if a team can be removed.
+   * A team can be removed if it has no users and no active rabbits connected to it.
+   *
+   * @param id - The ID of the team to be checked.
+   * @param user_id - The ID of the user that should be excluded from the check.
+   * @returns A Promise that resolves to a boolean value indicating if the team can be removed.
+   */
   async canRemove(id: number, user_id?: number): Promise<boolean> {
     const team = await this.teamRepository.findOneBy({ id });
     if (!team) {
       throw new BadRequestException('Team with the provided id does not exist');
     }
 
-    console.log(`Check if team ${id} can be removed with user ${user_id}`);
+    let users = await team.users;
+    users = users.filter((user) => user.id !== user_id);
+    console.log(users);
+    if (users.length > 0) {
+      return false;
+    }
+
+    // TODO: Check if there are active rabbits connected to the team
     return true;
   }
 }
