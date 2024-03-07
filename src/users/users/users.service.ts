@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -18,6 +19,8 @@ import { Role } from '../../common/modules/auth/roles.eum';
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     private readonly teamsSerivce: TeamsService,
@@ -81,11 +84,9 @@ export class UsersService {
     );
     await this.firebaseAuthService.addRoleToUser(firebaseUid, Role.Volunteer);
 
-    // TODO: Add email sending
-    console.log(`User ${createUserInput.email} password: ${password}`);
-
+    let user: User;
     try {
-      return await this.userRepository.save(
+      user = await this.userRepository.save(
         new User({
           ...createUserInput,
           firebaseUid: firebaseUid,
@@ -93,6 +94,7 @@ export class UsersService {
         }),
       );
     } catch (e) {
+      this.logger.error(e);
       if (!createUserInput.team_id) {
         try {
           await this.teamsSerivce.remove(team.id);
@@ -102,6 +104,12 @@ export class UsersService {
       await this.firebaseAuthService.deleteUser(firebaseUid);
       throw e;
     }
+
+    // TODO: Add email sending
+    console.log(`User ${createUserInput.email} password: ${password}`);
+
+    this.logger.log(`Created user ${user.email}`);
+    return user;
   }
 
   findAll() {
