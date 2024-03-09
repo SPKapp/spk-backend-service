@@ -98,9 +98,22 @@ export class UsersService {
     return `This action returns all users`;
   }
 
-  // TODO: Implement this method
-  async findOne(id: number) {
+  /**
+   * Finds a user by their ID.
+   * @param id - The ID of the user to find.
+   * @returns A promise that resolves to the found user, or null if no user is found.
+   */
+  async findOne(id: number): Promise<User | null> {
     return await this.userRepository.findOneBy({ id });
+  }
+
+  /**
+   * Finds a user by their UID.
+   * @param id - The ID of the user to find.
+   * @returns A promise that resolves to the found user, or null if no user is found.
+   */
+  async findOneByUid(uid: string): Promise<User | null> {
+    return await this.userRepository.findOneBy({ firebaseUid: uid });
   }
 
   /**
@@ -113,7 +126,7 @@ export class UsersService {
    * @throws {BadRequestException} If the user cannot be removed because they are the last member of the team.
    * @throws {BadRequestException} if the team with the provided id does not exist.
    */
-  async update(id: number, updateUserInput: UpdateUserInput) {
+  async update(id: number, updateUserInput: UpdateUserInput): Promise<User> {
     const user = await this.userRepository.findOneBy({ id });
     if (!user) {
       throw new NotFoundException('User with the provided id does not exist.');

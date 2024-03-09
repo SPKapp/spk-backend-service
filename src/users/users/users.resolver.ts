@@ -1,5 +1,9 @@
 import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 
 import { FirebaseAuth } from '../../common/modules/auth/firebase-auth/firebase-auth.decorator';
 import { AuthService } from '../../common/modules/auth/auth.service';
@@ -12,6 +16,7 @@ import { CreateUserInput } from '../dto/create-user.input';
 import { UpdateUserInput } from '../dto/update-user.input';
 import { Role } from '../../common/modules/auth/roles.eum';
 import { EntityWithId } from '../../common/types/remove.entity';
+import { UpdateProfileInput } from '../dto/update-profile.input';
 
 @Resolver(() => User)
 export class UsersResolver {
@@ -64,10 +69,28 @@ export class UsersResolver {
     return this.usersService.findAll();
   }
 
-  // TODO: Implement this method
+  /**
+   * Finds a user by their ID.
+   *
+   * @param user - The current user details.
+   * @param id - The ID of the user to find.
+   * @returns A promise that resolves to the found user.
+   * @throws {ForbiddenException} if the user region ID does not match the Region Manager permissions.
+   * @throws {NotFoundException} - If the user with the provided ID does not exist.
+   */
+  @FirebaseAuth(Role.Admin, Role.RegionManager)
   @Query(() => User, { name: 'user' })
-  async findOne(@Args('id', { type: () => Int }) id: number) {
-    return await this.usersService.findOne(id);
+  async findOne(
+    @CurrentUser() user: UserDetails,
+    @Args('id', { type: () => Int }) id: number,
+  ) {
+    await this.checkRegionManagerPermissions(user, id);
+
+    const foundUser = await this.usersService.findOne(id);
+    if (!foundUser) {
+      throw new NotFoundException('User with the provided id does not exist.');
+    }
+    return foundUser;
   }
 
   /**
@@ -115,6 +138,37 @@ export class UsersResolver {
   }
 
   /**
+   * Retrieves the profile of the currently authenticated user.
+   *
+   * @param user - The details of the currently authenticated user.
+   * @returns A Promise that resolves to the user's profile.
+   */
+  @Query(() => User)
+  async myProfile(@CurrentUser() user: UserDetails): Promise<User> {
+    return await this.usersService.findOneByUid(user.uid);
+  }
+
+  /**
+   * Updates the profile of the currently authenticated user.
+   *
+   * @param user - The currently authenticated user.
+   * @param updateProfileInput - The input data for updating the user's profile.
+   * @returns The updated user profile.
+   */
+  @Mutation(() => User)
+  async updateMyProfile(
+    @CurrentUser() user: UserDetails,
+    @Args('updateUserInput') updateProfileInput: UpdateProfileInput,
+  ): Promise<User> {
+    const userToUpdate = await this.usersService.findOneByUid(user.uid);
+
+    return await this.usersService.update(userToUpdate.id, {
+      ...updateProfileInput,
+      id: userToUpdate.id,
+    });
+  }
+
+  /**
    * Checks if the current user has permissions to manage user with specyfied ID.
    * @param user - The Current user details.
    * @param userId - The ID of the user for manage.
@@ -129,13 +183,13 @@ export class UsersResolver {
       await this.authService.checkRegionManagerPermissions(
         user,
         async () => {
-          const userToRemove = await this.usersService.findOne(userId);
+          const userToCheck = await this.usersService.findOne(userId);
           if (!user) {
-            throw new NotFoundException(
-              'User with the provided id does not exist.',
+            throw new ForbiddenException(
+              'User does not belong to the Region Manager permissions.',
             );
           }
-          return userToRemove.team.region.id;
+          return userToCheck.team.region.id;
         },
         'User does not belong to the Region Manager permissions.',
       );

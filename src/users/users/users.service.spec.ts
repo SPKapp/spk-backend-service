@@ -138,7 +138,49 @@ describe('UsersService', () => {
       expect(service.findOne).toBeDefined();
     });
 
-    // TODO: Add tests
+    it('should return user', async () => {
+      jest.spyOn(userRepository, 'findOneBy').mockResolvedValue({
+        id: 1,
+        ...user,
+      });
+
+      const result = await service.findOne(1);
+      expect(result).toEqual({
+        id: 1,
+        ...user,
+      });
+    });
+
+    it('should return null', async () => {
+      const result = await service.findOne(1);
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('findOneByUid', () => {
+    it('should be defined', () => {
+      expect(service.findOneByUid).toBeDefined();
+    });
+
+    it('should return user', async () => {
+      jest.spyOn(userRepository, 'findOneBy').mockResolvedValue({
+        id: 1,
+        firebaseUid: '123',
+        ...user,
+      });
+
+      const result = await service.findOneByUid('123');
+      expect(result).toEqual({
+        id: 1,
+        firebaseUid: '123',
+        ...user,
+      });
+    });
+
+    it('should return null', async () => {
+      const result = await service.findOneByUid('123');
+      expect(result).toBeNull();
+    });
   });
 
   describe('update', () => {
