@@ -28,7 +28,7 @@ export class UsersResolver {
   /**
    * Creates a new user.
    *
-   * @param user - The current user details.
+   * @param currentUser - The current user details.
    * @param createUserInput - The input data for creating a user.
    * @returns A Promise that resolves to the created user.
    * @throws {BadRequestException} if the region ID is missing
@@ -37,11 +37,12 @@ export class UsersResolver {
   @FirebaseAuth(Role.Admin, Role.RegionManager)
   @Mutation(() => User)
   async createUser(
-    @CurrentUser() user: UserDetails,
+    @CurrentUser() currentUser: UserDetails,
     @Args('createUserInput') createUserInput: CreateUserInput,
   ): Promise<User> {
     if (
-      (user.roles.includes(Role.Admin) || user.regions.length > 1) &&
+      (currentUser.roles.includes(Role.Admin) ||
+        currentUser.regions.length > 1) &&
       !createUserInput.regionId
     ) {
       throw new BadRequestException(
@@ -49,12 +50,12 @@ export class UsersResolver {
       );
     }
 
-    if (!user.roles.includes(Role.Admin)) {
+    if (!currentUser.roles.includes(Role.Admin)) {
       if (!createUserInput.regionId) {
-        createUserInput.regionId = user.regions[0];
+        createUserInput.regionId = currentUser.regions[0];
       } else {
         await this.authService.checkRegionManagerPermissions(
-          user,
+          currentUser,
           async () => createUserInput.regionId,
         );
       }
@@ -78,17 +79,17 @@ export class UsersResolver {
    */
   // TODO: Add pagination
   async findAll(
-    @CurrentUser() user: UserDetails,
+    @CurrentUser() currentUser: UserDetails,
     @Args('regionId', { nullable: true }) regionId?: number,
   ): Promise<User[]> {
-    if (!user.roles.includes(Role.Admin)) {
+    if (!currentUser.roles.includes(Role.Admin)) {
       if (regionId) {
         await this.authService.checkRegionManagerPermissions(
-          user,
+          currentUser,
           async () => regionId,
         );
       } else {
-        return await this.usersService.findAll(user.regions);
+        return await this.usersService.findAll(currentUser.regions);
       }
     }
 
@@ -98,7 +99,7 @@ export class UsersResolver {
   /**
    * Finds a user by their ID.
    *
-   * @param user - The current user details.
+   * @param currentUser - The current user details.
    * @param id - The ID of the user to find.
    * @returns A promise that resolves to the found user.
    * @throws {ForbiddenException} if the user region ID does not match the Region Manager permissions.
@@ -107,10 +108,10 @@ export class UsersResolver {
   @FirebaseAuth(Role.Admin, Role.RegionManager)
   @Query(() => User, { name: 'user' })
   async findOne(
-    @CurrentUser() user: UserDetails,
+    @CurrentUser() currentUser: UserDetails,
     @Args('id', { type: () => Int }) id: number,
   ) {
-    await this.checkRegionManagerPermissions(user, id);
+    await this.checkRegionManagerPermissions(currentUser, id);
 
     const foundUser = await this.usersService.findOne(id);
     if (!foundUser) {
@@ -122,7 +123,7 @@ export class UsersResolver {
   /**
    * Updates a user.
    *
-   * @param user - The current user details.
+   * @param currentUser - The current user details.
    * @param updateUserInput - The input data for updating the user.
    * @returns A Promise that resolves to the updated user.
    * @throws {ForbiddenException} if the user region ID does not match the Region Manager permissions.
@@ -134,10 +135,10 @@ export class UsersResolver {
   @FirebaseAuth(Role.Admin, Role.RegionManager)
   @Mutation(() => User)
   async updateUser(
-    @CurrentUser() user: UserDetails,
+    @CurrentUser() currentUser: UserDetails,
     @Args('updateUserInput') updateUserInput: UpdateUserInput,
   ) {
-    await this.checkRegionManagerPermissions(user, updateUserInput.id);
+    await this.checkRegionManagerPermissions(currentUser, updateUserInput.id);
 
     return await this.usersService.update(updateUserInput.id, updateUserInput);
   }
@@ -145,7 +146,7 @@ export class UsersResolver {
   /**
    * Removes a user with the specified ID.
    *
-   * @param user - The current user details.
+   * @param currentUser - The current user details.
    * @param id - The ID of the user to be removed.
    * @returns An object containing the ID of the removed user.
    * @throws {ForbiddenException} if the user region ID does not match the Region Manager permissions.
@@ -155,10 +156,10 @@ export class UsersResolver {
   @FirebaseAuth(Role.Admin, Role.RegionManager)
   @Mutation(() => EntityWithId)
   async removeUser(
-    @CurrentUser() user: UserDetails,
+    @CurrentUser() currentUser: UserDetails,
     @Args('id', { type: () => Int }) id: number,
   ) {
-    await this.checkRegionManagerPermissions(user, id);
+    await this.checkRegionManagerPermissions(currentUser, id);
 
     return { id: await this.usersService.remove(id) };
   }
@@ -166,27 +167,27 @@ export class UsersResolver {
   /**
    * Retrieves the profile of the currently authenticated user.
    *
-   * @param user - The details of the currently authenticated user.
+   * @param currentUser - The details of the currently authenticated user.
    * @returns A Promise that resolves to the user's profile.
    */
   @Query(() => User)
-  async myProfile(@CurrentUser() user: UserDetails): Promise<User> {
-    return await this.usersService.findOneByUid(user.uid);
+  async myProfile(@CurrentUser() currentUser: UserDetails): Promise<User> {
+    return await this.usersService.findOneByUid(currentUser.uid);
   }
 
   /**
    * Updates the profile of the currently authenticated user.
    *
-   * @param user - The currently authenticated user.
+   * @param currentUser - The currently authenticated user.
    * @param updateProfileInput - The input data for updating the user's profile.
    * @returns The updated user profile.
    */
   @Mutation(() => User)
   async updateMyProfile(
-    @CurrentUser() user: UserDetails,
+    @CurrentUser() currentUser: UserDetails,
     @Args('updateUserInput') updateProfileInput: UpdateProfileInput,
   ): Promise<User> {
-    const userToUpdate = await this.usersService.findOneByUid(user.uid);
+    const userToUpdate = await this.usersService.findOneByUid(currentUser.uid);
 
     return await this.usersService.update(userToUpdate.id, {
       ...updateProfileInput,

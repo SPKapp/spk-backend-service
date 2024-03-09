@@ -28,15 +28,15 @@ export class TeamsResolver {
    * Retrieves all teams.
    * If the user is an Admin, all teams are returned.
    * If the user is a Region Manager, only teams from his regions are returned.
-   * @param user - The current user details.
+   * @param currentUser - The current user details.
    * @returns A promise that resolves to an array of teams.
    */
   // TODO: Add pagination
   @FirebaseAuth(Role.Admin, Role.RegionManager)
   @Query(() => [Team], { name: 'teams' })
-  async findAll(@CurrentUser() user: UserDetails): Promise<Team[]> {
-    if (!user.roles.includes(Role.Admin)) {
-      return await this.teamsService.findAll(user.regions);
+  async findAll(@CurrentUser() currentUser: UserDetails): Promise<Team[]> {
+    if (!currentUser.roles.includes(Role.Admin)) {
+      return await this.teamsService.findAll(currentUser.regions);
     }
     return await this.teamsService.findAll(undefined);
   }
@@ -46,7 +46,7 @@ export class TeamsResolver {
    * If the user is an Admin, team is always returned.
    * If the user is a Region Manager, only teams from his regions are returned.
    *
-   * @param user - The current user details.
+   * @param currentUser - The current user details.
    * @param id - The ID of the team to retrieve.
    * @returns The team with the provided ID.
    * @throws {NotFoundException} if the team with the provided ID does not exist.
@@ -54,14 +54,14 @@ export class TeamsResolver {
   @FirebaseAuth(Role.Admin, Role.RegionManager)
   @Query(() => Team, { name: 'team' })
   async findOne(
-    @CurrentUser() user: UserDetails,
+    @CurrentUser() currentUser: UserDetails,
     @Args('id', { type: () => ID }) id: number,
   ): Promise<Team> {
     let team: Team | null = null;
 
-    if (!user.roles.includes(Role.Admin)) {
+    if (!currentUser.roles.includes(Role.Admin)) {
       await this.authService.checkRegionManagerPermissions(
-        user,
+        currentUser,
         async () => {
           await findTeam();
           return team.region.id;
