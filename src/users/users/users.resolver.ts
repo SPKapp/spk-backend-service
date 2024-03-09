@@ -199,7 +199,6 @@ export class UsersResolver {
    * @param user - The Current user details.
    * @param userId - The ID of the user for manage.
    * @throws {ForbiddenException} if the user region ID does not match the Region Manager permissions.
-   * @throws {NotFoundException} - If the user with the provided ID does not exist.
    */
   private async checkRegionManagerPermissions(
     user: UserDetails,
