@@ -63,10 +63,36 @@ export class UsersResolver {
     return await this.usersService.create(createUserInput);
   }
 
-  // TODO: Implement this method
+  @FirebaseAuth(Role.Admin, Role.RegionManager)
   @Query(() => [User], { name: 'users' })
-  findAll() {
-    return this.usersService.findAll();
+  /**
+   * Retrieves a list of users based on the provided regionId.
+   * If the user is not an admin, the method checks for region manager permissions.
+   * If regionId is provided, it retrieves users for that specific region.
+   * If regionId is not provided, it retrieves users for all regions associated with the user.
+   *
+   * @param user - The current user details.
+   * @param regionId - The ID of the region to filter users by (optional).
+   * @returns A promise that resolves to an array of User objects.
+   * @throws {ForbiddenException} if the user region ID does not match the Region Manager permissions.
+   */
+  // TODO: Add pagination
+  async findAll(
+    @CurrentUser() user: UserDetails,
+    @Args('regionId', { nullable: true }) regionId?: number,
+  ): Promise<User[]> {
+    if (!user.roles.includes(Role.Admin)) {
+      if (regionId) {
+        await this.authService.checkRegionManagerPermissions(
+          user,
+          async () => regionId,
+        );
+      } else {
+        return await this.usersService.findAll(user.regions);
+      }
+    }
+
+    return await this.usersService.findAll(regionId ? [regionId] : undefined);
   }
 
   /**

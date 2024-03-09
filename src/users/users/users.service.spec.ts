@@ -4,6 +4,7 @@ import {
   ConflictException,
   NotFoundException,
 } from '@nestjs/common';
+import { In } from 'typeorm';
 
 import { FirebaseAuthService } from '../../common/modules/auth/firebase-auth/firebase-auth.service';
 import { UsersService } from './users.service';
@@ -58,6 +59,7 @@ describe('UsersService', () => {
           provide: 'UserRepository',
           useValue: {
             find: jest.fn(async () => []),
+            findBy: jest.fn(async () => []),
             findOneBy: jest.fn(async () => null),
             save: jest.fn(async (user) => ({ ...user, id: 1 })),
             remove: jest.fn(),
@@ -130,7 +132,40 @@ describe('UsersService', () => {
       expect(service.findAll).toBeDefined();
     });
 
-    // TODO: Add tests
+    it('should return all users', async () => {
+      const users = [new User({ id: 1 }), new User({ id: 2 })];
+      jest.spyOn(userRepository, 'findBy').mockResolvedValue(users);
+
+      await expect(service.findAll()).resolves.toEqual(users);
+
+      expect(userRepository.findBy).toHaveBeenCalledWith({
+        team: {
+          region: { id: undefined },
+        },
+      });
+    });
+
+    it('should return users by regionId', async () => {
+      const users = [
+        new User({
+          id: 1,
+          team: new Team({ id: 1, region: new Region({ id: 1 }) }),
+        }),
+        new User({
+          id: 2,
+          team: new Team({ id: 2, region: new Region({ id: 1 }) }),
+        }),
+      ];
+      jest.spyOn(userRepository, 'findBy').mockResolvedValue(users);
+
+      await expect(service.findAll([1])).resolves.toEqual(users);
+
+      expect(userRepository.findBy).toHaveBeenCalledWith({
+        team: {
+          region: { id: In([1]) },
+        },
+      });
+    });
   });
 
   describe('findOne', () => {

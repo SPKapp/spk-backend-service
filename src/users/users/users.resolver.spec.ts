@@ -162,7 +162,45 @@ describe('UsersResolver', () => {
       expect(resolver.findAll).toBeDefined();
     });
 
-    // TODO: Add tests
+    it('should throw bad permissions error', async () => {
+      const userDetails: UserDetails = {
+        ...userDetailsTeplate,
+        roles: [Role.RegionManager],
+        regions: [2],
+      };
+
+      await expect(resolver.findAll(userDetails, 1)).rejects.toThrow(
+        new ForbiddenException(
+          'Region ID does not match the Region Manager permissions.',
+        ),
+      );
+    });
+
+    it('should find all users from Region', async () => {
+      const userDetails: UserDetails = {
+        ...userDetailsTeplate,
+        roles: [Role.Admin],
+      };
+
+      const users = [new User({ id: 1 })];
+      jest.spyOn(usersService, 'findAll').mockResolvedValue(users);
+
+      await expect(resolver.findAll(userDetails, 1)).resolves.toEqual(users);
+      expect(usersService.findAll).toHaveBeenCalledWith([1]);
+    });
+
+    it('should find all users', async () => {
+      const userDetails: UserDetails = {
+        ...userDetailsTeplate,
+        roles: [Role.Admin],
+      };
+
+      const users = [new User({ id: 1 })];
+      jest.spyOn(usersService, 'findAll').mockResolvedValue(users);
+
+      await expect(resolver.findAll(userDetails)).resolves.toEqual(users);
+      expect(usersService.findAll).toHaveBeenCalledWith(undefined);
+    });
   });
 
   describe('findOne', () => {

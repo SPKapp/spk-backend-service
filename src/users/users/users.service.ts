@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { randomBytes } from 'crypto';
 
 import { FirebaseAuthService } from '../../common/modules/auth/firebase-auth/firebase-auth.service';
@@ -93,9 +93,18 @@ export class UsersService {
     return user;
   }
 
-  // TODO: Implement this method
-  findAll() {
-    return `This action returns all users`;
+  /**
+   * Finds all users.
+   * @param regionsIds - (optional) The IDs of the regions to filter by.
+   * @param teamsIds - (optional) The IDs of the teams to filter by.
+   * @returns A promise that resolves to the found users.
+   */
+  async findAll(regionsIds?: number[]): Promise<User[]> {
+    return await this.userRepository.findBy({
+      team: {
+        region: { id: regionsIds ? In(regionsIds) : undefined },
+      },
+    });
   }
 
   /**
