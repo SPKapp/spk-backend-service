@@ -22,12 +22,10 @@ export class User {
   @Field()
   lastname: string;
 
-  // TODO: Validate email
   @Column({ unique: true })
   @Field({})
   email: string;
 
-  // TODO: Validate phone
   @Column({ unique: true })
   @Field()
   phone: string;

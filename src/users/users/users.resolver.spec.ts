@@ -211,8 +211,6 @@ describe('UsersResolver', () => {
         resolver.updateUser(userDetails, { id: 1, firstname: 'John' }),
       ).resolves.toEqual({ id: 1, firstname: 'John' });
     });
-
-    // TODO: Add tests
   });
 
   describe('removeUser', () => {
