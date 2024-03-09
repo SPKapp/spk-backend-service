@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
 import { FirebaseService } from '../../firebase/firebase.service';
 
@@ -6,6 +6,8 @@ import { Role } from '../roles.eum';
 
 @Injectable()
 export class FirebaseAuthService {
+  logger = new Logger(FirebaseAuthService.name);
+
   constructor(private readonly firebaseService: FirebaseService) {}
 
   /**
@@ -22,14 +24,46 @@ export class FirebaseAuthService {
     displayName: string,
     password: string,
   ): Promise<string> {
-    const user = await this.firebaseService.auth.createUser({
-      email,
-      phoneNumber,
-      displayName,
-      password,
-    });
+    try {
+      const user = await this.firebaseService.auth.createUser({
+        email,
+        phoneNumber,
+        displayName,
+        password,
+      });
 
-    return user.uid;
+      return user.uid;
+    } catch (err) {
+      this.logger.error(err);
+      throw err;
+    }
+  }
+
+  /**
+   * Updates the user information in Firebase.
+   *
+   * @param uid - The unique identifier of the user.
+   * @param email - The new email address of the user.
+   * @param phoneNumber - The new phone number of the user.
+   * @param displayName - The new display name of the user.
+   * @returns A Promise that resolves when the user information is updated successfully.
+   */
+  async updateUser(
+    uid: string,
+    email: string,
+    phoneNumber: string,
+    displayName: string,
+  ): Promise<void> {
+    try {
+      await this.firebaseService.auth.updateUser(uid, {
+        email,
+        phoneNumber,
+        displayName,
+      });
+    } catch (err) {
+      this.logger.error(err);
+      throw err;
+    }
   }
 
   /**
@@ -38,7 +72,12 @@ export class FirebaseAuthService {
    * @returns A Promise that resolves when the user is successfully deleted.
    */
   async deleteUser(uid: string): Promise<void> {
-    await this.firebaseService.auth.deleteUser(uid);
+    try {
+      await this.firebaseService.auth.deleteUser(uid);
+    } catch (err) {
+      this.logger.error(err);
+      throw err;
+    }
   }
 
   /**

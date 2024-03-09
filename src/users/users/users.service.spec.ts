@@ -12,6 +12,7 @@ import { TeamsService } from '../teams/teams.service';
 import { CreateUserInput } from '../dto/create-user.input';
 import { User } from '../entities/user.entity';
 import { Team } from '../entities/team.entity';
+import { Region } from '../../common/modules/region/entities/region.entity';
 
 describe('UsersService', () => {
   let service: UsersService;
@@ -49,6 +50,7 @@ describe('UsersService', () => {
           useValue: {
             createUser: jest.fn(async () => '123'),
             addRoleToUser: jest.fn(),
+            updateUser: jest.fn(),
             deleteUser: jest.fn(),
           },
         },
@@ -82,7 +84,7 @@ describe('UsersService', () => {
       jest
         .spyOn(userRepository, 'find')
         .mockResolvedValue([
-          new User({ email: user.email, phone: '000000000' }),
+          new User({ id: 1, email: user.email, phone: '000000000' }),
         ]);
 
       await expect(service.create(user)).rejects.toThrow(
@@ -91,11 +93,13 @@ describe('UsersService', () => {
     });
 
     it('should throw an error when user with the provided phone already exists', async () => {
-      jest
-        .spyOn(userRepository, 'find')
-        .mockResolvedValue([
-          new User({ email: 'different@example.com', phone: user.phone }),
-        ]);
+      jest.spyOn(userRepository, 'find').mockResolvedValue([
+        new User({
+          id: 1,
+          email: 'different@example.com',
+          phone: user.phone,
+        }),
+      ]);
 
       await expect(service.create(user)).rejects.toThrow(
         new ConflictException('User with the provided phone already exists'),
@@ -142,7 +146,81 @@ describe('UsersService', () => {
       expect(service.update).toBeDefined();
     });
 
-    // TODO: Add tests
+    it('should throw user not found error', async () => {
+      await expect(service.update(1, { id: 1 })).rejects.toThrow(
+        new NotFoundException('User with the provided id does not exist.'),
+      );
+    });
+
+    it('should throw an error when user with the provided email already exists', async () => {
+      jest
+        .spyOn(userRepository, 'findOneBy')
+        .mockResolvedValue(new User({ id: 1, ...user }));
+      jest
+        .spyOn(userRepository, 'find')
+        .mockResolvedValue([
+          new User({ id: 2, email: 'new@example.com', phone: '+48000000000' }),
+        ]);
+
+      await expect(
+        service.update(1, {
+          id: 1,
+          email: 'new@example.com',
+        }),
+      ).rejects.toThrow(
+        new ConflictException('User with the provided email already exists'),
+      );
+    });
+
+    it('should throw an error when team with the provided id does not exist', async () => {
+      jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(
+        new User({
+          id: 1,
+          ...user,
+          team: new Team({
+            id: 1,
+            region: new Region({ id: 1 }),
+            users: new Promise((res) => res([new User()])),
+          }),
+        }),
+      );
+
+      jest.spyOn(teamsService, 'findOne').mockResolvedValue(null);
+      await expect(service.update(1, { id: 1, team_id: 1 })).rejects.toThrow(
+        new BadRequestException('Team with the provided id does not exist.'),
+      );
+    });
+
+    it('should update user', async () => {
+      jest.spyOn(userRepository, 'findOneBy').mockResolvedValue({
+        id: 1,
+        ...user,
+        team: new Team({
+          id: 1,
+          region: new Region({ id: 1 }),
+          users: new Promise((res) => res([new User()])),
+        }),
+      });
+
+      jest
+        .spyOn(teamsService, 'findOne')
+        .mockResolvedValue(new Team({ id: 2 }));
+
+      const newUserData = {
+        id: 1,
+        firstname: 'Ed',
+        lastname: 'Ward',
+        email: 'new@example.com',
+        phone: '+48000000000',
+      };
+      const result = await service.update(1, { ...newUserData, team_id: 2 });
+
+      expect(result).toEqual({
+        ...user,
+        ...newUserData,
+        team: new Team({ id: 2 }),
+      });
+    });
   });
 
   describe('remove', () => {

@@ -12,6 +12,7 @@ import { UsersService } from './users.service';
 import { CreateUserInput } from '../dto/create-user.input';
 import { User } from '../entities/user.entity';
 import { Team } from '../entities/team.entity';
+import { AuthService } from '../../common/modules/auth/auth.service';
 
 describe('UsersResolver', () => {
   let resolver: UsersResolver;
@@ -35,10 +36,11 @@ describe('UsersResolver', () => {
             create: jest.fn(),
             findAll: jest.fn(),
             findOne: jest.fn(),
-            update: jest.fn(),
+            update: jest.fn(() => ({ id: 1, firstname: 'John' })),
             remove: jest.fn(() => 1),
           },
         },
+        AuthService,
       ],
     })
       .overrideGuard(FirebaseAuthGuard)
@@ -144,12 +146,10 @@ describe('UsersResolver', () => {
       });
 
       it('should create user - one region', async () => {
-        console.log(user);
         const result = await resolver.createUser(
           { ...userDetails, regions: [2] },
           { ...user },
         );
-        console.log(user, result);
         expect(result).toEqual(new User(user));
         expect(createSpy).toHaveBeenCalled();
       });
@@ -175,6 +175,41 @@ describe('UsersResolver', () => {
   describe('updateUser', () => {
     it('should be defined', () => {
       expect(resolver.updateUser).toBeDefined();
+    });
+
+    it('should throw bad permissions error', async () => {
+      const userDetails: UserDetails = {
+        ...userDetailsTeplate,
+        roles: [Role.RegionManager],
+        regions: [2],
+      };
+
+      jest.spyOn(usersService, 'findOne').mockResolvedValue(
+        new User({
+          id: 1,
+          team: new Team({
+            id: 1,
+            region: new Region({ id: 1 }),
+          }),
+        }),
+      );
+
+      await expect(resolver.updateUser(userDetails, { id: 1 })).rejects.toThrow(
+        new ForbiddenException(
+          'User does not belong to the Region Manager permissions.',
+        ),
+      );
+    });
+
+    it('should update user', async () => {
+      const userDetails: UserDetails = {
+        ...userDetailsTeplate,
+        roles: [Role.Admin],
+      };
+
+      await expect(
+        resolver.updateUser(userDetails, { id: 1, firstname: 'John' }),
+      ).resolves.toEqual({ id: 1, firstname: 'John' });
     });
 
     // TODO: Add tests

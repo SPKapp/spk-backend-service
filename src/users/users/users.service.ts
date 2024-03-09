@@ -39,27 +39,7 @@ export class UsersService {
    * @throws {BadRequestException} If the team with the provided id does not exist.
    */
   async create(createUserInput: CreateUserInput): Promise<User> {
-    if (!createUserInput.phone.startsWith('+48')) {
-      createUserInput.phone = `+48${createUserInput.phone}`;
-    }
-
-    const existingUsers = await this.userRepository.find({
-      select: ['email', 'phone'],
-      where: [
-        { email: createUserInput.email },
-        { phone: createUserInput.phone },
-      ],
-    });
-    if (existingUsers.some((user) => user.email === createUserInput.email)) {
-      throw new ConflictException(
-        'User with the provided email already exists',
-      );
-    }
-    if (existingUsers.some((user) => user.phone === createUserInput.phone)) {
-      throw new ConflictException(
-        'User with the provided phone already exists',
-      );
-    }
+    await this.checkAvailability(createUserInput.email, createUserInput.phone);
 
     let team: Team;
     if (!createUserInput.team_id) {
@@ -123,9 +103,76 @@ export class UsersService {
     return await this.userRepository.findOneBy({ id });
   }
 
-  // TODO: Implement this method
-  update(id: number, updateUserInput: UpdateUserInput) {
-    return `This action updates a #${id} user with ${JSON.stringify(updateUserInput)}`;
+  /**
+   * Updates a user with the provided id.
+   * @param id - The id of the user to update.
+   * @param updateUserInput - The updated user data.
+   * @returns The updated user.
+   * @throws {NotFoundException} if the user with the provided id does not exist.
+   * @throws {ConflictException} If a user with the provided email or phone already exists.
+   * @throws {BadRequestException} If the user cannot be removed because they are the last member of the team.
+   * @throws {BadRequestException} if the team with the provided id does not exist.
+   */
+  async update(id: number, updateUserInput: UpdateUserInput) {
+    const user = await this.userRepository.findOneBy({ id });
+    if (!user) {
+      throw new NotFoundException('User with the provided id does not exist.');
+    }
+
+    if (updateUserInput.email || updateUserInput.phone) {
+      await this.checkAvailability(
+        updateUserInput.email,
+        updateUserInput.phone,
+        id,
+      );
+    }
+
+    if (updateUserInput.firstname) {
+      user.firstname = updateUserInput.firstname;
+    }
+    if (updateUserInput.lastname) {
+      user.lastname = updateUserInput.lastname;
+    }
+    if (updateUserInput.email) {
+      // TODO: Add email sending
+      user.email = updateUserInput.email;
+    }
+    if (updateUserInput.phone) {
+      user.phone = updateUserInput.phone;
+    }
+
+    if (updateUserInput.team_id) {
+      const regionId = user.team.region.id;
+      await this.leaveTeam(user);
+
+      const team = await this.teamsSerivce.findOne(updateUserInput.team_id, [
+        regionId,
+      ]);
+      if (!team) {
+        throw new BadRequestException(
+          'Team with the provided id does not exist.',
+        );
+      }
+      user.team = team;
+    }
+
+    if (updateUserInput.newTeam) {
+      const regionId = user.team.region.id;
+      await this.leaveTeam(user);
+
+      user.team = await this.teamsSerivce.create(regionId);
+    }
+
+    await this.userRepository.save(user);
+
+    await this.firebaseAuthService.updateUser(
+      user.firebaseUid,
+      user.email,
+      user.phone,
+      `${user.firstname} ${user.lastname}`,
+    );
+
+    return user;
   }
 
   /**
@@ -142,6 +189,24 @@ export class UsersService {
       throw new NotFoundException('User with the provided id does not exist.');
     }
 
+    await this.leaveTeam(user);
+
+    await this.firebaseAuthService.deleteUser(user.firebaseUid);
+
+    await this.userRepository.remove(user);
+
+    this.logger.log(`Removed user ${user.email}`);
+    return id;
+  }
+
+  /**
+   * Removes the user from their team.
+   * If the user is the last member of the team, the team is also removed.
+   *
+   * @param user - The user to remove from the team.
+   * @throws {BadRequestException} If the user cannot be removed because they are the last member of the team.
+   */
+  private async leaveTeam(user: User): Promise<void> {
     const team = user.team;
 
     if ((await team.users).length === 1) {
@@ -154,16 +219,35 @@ export class UsersService {
       await this.userRepository.save(user);
       await this.teamsSerivce.remove(team.id);
     }
+  }
 
-    try {
-      await this.firebaseAuthService.deleteUser(user.firebaseUid);
-    } catch (e) {
-      this.logger.error(`FirebaseError: ${e}`);
+  /**
+   * Checks the availability of an email and phone number for a user.
+   *
+   * @param email - The email to check availability for.
+   * @param phone - The phone number to check availability for.
+   * @param id - (optional) The ID of the user to exclude from the check.
+   * @throws {ConflictException} If a user with the provided email or phone already exists.
+   */
+  private async checkAvailability(
+    email: string,
+    phone: string,
+    id?: number,
+  ): Promise<void> {
+    const existingUsers = await this.userRepository.find({
+      select: ['id', 'email', 'phone'],
+      where: [{ email }, { phone }],
+    });
+
+    if (existingUsers.some((user) => user.email === email && user.id !== id)) {
+      throw new ConflictException(
+        'User with the provided email already exists',
+      );
     }
-
-    await this.userRepository.remove(user);
-
-    this.logger.log(`Removed user ${user.email}`);
-    return id;
+    if (existingUsers.some((user) => user.phone === phone && user.id !== id)) {
+      throw new ConflictException(
+        'User with the provided phone already exists',
+      );
+    }
   }
 }

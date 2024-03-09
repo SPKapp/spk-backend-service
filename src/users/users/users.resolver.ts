@@ -1,6 +1,8 @@
 import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 import { FirebaseAuth } from '../../common/modules/auth/firebase-auth/firebase-auth.decorator';
+import { AuthService } from '../../common/modules/auth/auth.service';
 import { CurrentUser } from '../../common/modules/auth/current-user/current-user.decorator';
 import { UserDetails } from '../../common/modules/auth/current-user/current-user';
 import { UsersService } from './users.service';
@@ -9,12 +11,14 @@ import { User } from '../entities/user.entity';
 import { CreateUserInput } from '../dto/create-user.input';
 import { UpdateUserInput } from '../dto/update-user.input';
 import { Role } from '../../common/modules/auth/roles.eum';
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { EntityWithId } from '../../common/types/remove.entity';
 
 @Resolver(() => User)
 export class UsersResolver {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly authService: AuthService,
+  ) {}
 
   /**
    * Creates a new user.
@@ -40,18 +44,14 @@ export class UsersResolver {
       );
     }
 
-    if (
-      !user.roles.includes(Role.Admin) &&
-      user.roles.includes(Role.RegionManager)
-    ) {
+    if (!user.roles.includes(Role.Admin)) {
       if (!createUserInput.region_id) {
         createUserInput.region_id = user.regions[0];
       } else {
-        if (!user.regions.includes(createUserInput.region_id)) {
-          throw new ForbiddenException(
-            'Region ID does not match the Region Manager permissions.',
-          );
-        }
+        await this.authService.checkRegionManagerPermissions(
+          user,
+          async () => createUserInput.region_id,
+        );
       }
     }
 
@@ -70,10 +70,27 @@ export class UsersResolver {
     return await this.usersService.findOne(id);
   }
 
-  // TODO: Implement this method
+  /**
+   * Updates a user.
+   *
+   * @param user - The current user details.
+   * @param updateUserInput - The input data for updating the user.
+   * @returns A Promise that resolves to the updated user.
+   * @throws {ForbiddenException} if the user region ID does not match the Region Manager permissions.
+   * @throws {NotFoundException} if the user with the provided id does not exist.
+   * @throws {ConflictException} If a user with the provided email or phone already exists.
+   * @throws {BadRequestException} If the user cannot be removed because they are the last member of the team.
+   * @throws {BadRequestException} if the team with the provided id does not exist.
+   */
+  @FirebaseAuth(Role.Admin, Role.RegionManager)
   @Mutation(() => User)
-  updateUser(@Args('updateUserInput') updateUserInput: UpdateUserInput) {
-    return this.usersService.update(updateUserInput.id, updateUserInput);
+  async updateUser(
+    @CurrentUser() user: UserDetails,
+    @Args('updateUserInput') updateUserInput: UpdateUserInput,
+  ) {
+    await this.checkRegionManagerPermissions(user, updateUserInput.id);
+
+    return await this.usersService.update(updateUserInput.id, updateUserInput);
   }
 
   /**
@@ -83,6 +100,8 @@ export class UsersResolver {
    * @param id - The ID of the user to be removed.
    * @returns An object containing the ID of the removed user.
    * @throws {ForbiddenException} if the user region ID does not match the Region Manager permissions.
+   * @throws {BadRequestException} if the user cannot be removed.
+   * @throws {NotFoundException} if the user with the provided ID does not exist.
    */
   @FirebaseAuth(Role.Admin, Role.RegionManager)
   @Mutation(() => EntityWithId)
@@ -90,15 +109,36 @@ export class UsersResolver {
     @CurrentUser() user: UserDetails,
     @Args('id', { type: () => Int }) id: number,
   ) {
-    if (user.roles.includes(Role.RegionManager)) {
-      const userToRemove = await this.usersService.findOne(id);
-      if (!user.regions.includes(userToRemove.team.region.id)) {
-        throw new ForbiddenException(
-          'User does not belong to the Region Manager permissions.',
-        );
-      }
-    }
+    await this.checkRegionManagerPermissions(user, id);
 
     return { id: await this.usersService.remove(id) };
+  }
+
+  /**
+   * Checks if the current user has permissions to manage user with specyfied ID.
+   * @param user - The Current user details.
+   * @param userId - The ID of the user for manage.
+   * @throws {ForbiddenException} if the user region ID does not match the Region Manager permissions.
+   * @throws {NotFoundException} - If the user with the provided ID does not exist.
+   */
+  private async checkRegionManagerPermissions(
+    user: UserDetails,
+    userId: number,
+  ) {
+    if (!user.roles.includes(Role.Admin)) {
+      await this.authService.checkRegionManagerPermissions(
+        user,
+        async () => {
+          const userToRemove = await this.usersService.findOne(userId);
+          if (!user) {
+            throw new NotFoundException(
+              'User with the provided id does not exist.',
+            );
+          }
+          return userToRemove.team.region.id;
+        },
+        'User does not belong to the Region Manager permissions.',
+      );
+    }
   }
 }
