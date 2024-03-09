@@ -81,7 +81,7 @@ describe('UsersResolver', () => {
         roles: [Role.Admin],
       };
 
-      it('should throw no region_id error', async () => {
+      it('should throw no regionId error', async () => {
         await expect(
           resolver.createUser(userDetails, { ...user }),
         ).rejects.toThrow(
@@ -95,7 +95,7 @@ describe('UsersResolver', () => {
       it('should create user', async () => {
         const result = await resolver.createUser(userDetails, {
           ...user,
-          region_id: 1,
+          regionId: 1,
         });
         expect(result).toEqual(new User(user));
         expect(createSpy).toHaveBeenCalled();
@@ -108,7 +108,7 @@ describe('UsersResolver', () => {
         roles: [Role.RegionManager],
       };
 
-      it('should throw no region_id error', async () => {
+      it('should throw no regionId error', async () => {
         await expect(
           resolver.createUser({ ...userDetails, regions: [1, 2] }, { ...user }),
         ).rejects.toThrow(
@@ -119,11 +119,11 @@ describe('UsersResolver', () => {
         expect(createSpy).not.toHaveBeenCalled();
       });
 
-      it('should throw wrong region_id error', async () => {
+      it('should throw wrong regionId error', async () => {
         await expect(
           resolver.createUser(
             { ...userDetails, regions: [2] },
-            { ...user, region_id: 1 },
+            { ...user, regionId: 1 },
           ),
         ).rejects.toThrow(
           new ForbiddenException(
@@ -138,7 +138,7 @@ describe('UsersResolver', () => {
           { ...userDetails, regions: [1, 2] },
           {
             ...user,
-            region_id: 1,
+            regionId: 1,
           },
         );
         expect(result).toEqual(new User(user));

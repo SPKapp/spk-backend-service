@@ -37,7 +37,7 @@ export class UsersResolver {
   ): Promise<User> {
     if (
       (user.roles.includes(Role.Admin) || user.regions.length > 1) &&
-      !createUserInput.region_id
+      !createUserInput.regionId
     ) {
       throw new BadRequestException(
         'Region ID is required for Admin and Region Manager with more than 1 region.',
@@ -45,12 +45,12 @@ export class UsersResolver {
     }
 
     if (!user.roles.includes(Role.Admin)) {
-      if (!createUserInput.region_id) {
-        createUserInput.region_id = user.regions[0];
+      if (!createUserInput.regionId) {
+        createUserInput.regionId = user.regions[0];
       } else {
         await this.authService.checkRegionManagerPermissions(
           user,
-          async () => createUserInput.region_id,
+          async () => createUserInput.regionId,
         );
       }
     }

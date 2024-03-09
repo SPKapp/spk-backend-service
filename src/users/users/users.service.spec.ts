@@ -24,7 +24,7 @@ describe('UsersService', () => {
     lastname: 'Doe',
     email: 'email1@example.com',
     phone: '123456789',
-    region_id: 1,
+    regionId: 1,
   };
 
   beforeEach(async () => {
@@ -109,7 +109,7 @@ describe('UsersService', () => {
     it('should throw an error when team with the provided id does not exist', async () => {
       jest.spyOn(teamsService, 'findOne').mockResolvedValue(null);
 
-      await expect(service.create({ ...user, team_id: 1 })).rejects.toThrow(
+      await expect(service.create({ ...user, teamId: 1 })).rejects.toThrow(
         new BadRequestException('Team with the provided id does not exist'),
       );
     });
@@ -186,7 +186,7 @@ describe('UsersService', () => {
       );
 
       jest.spyOn(teamsService, 'findOne').mockResolvedValue(null);
-      await expect(service.update(1, { id: 1, team_id: 1 })).rejects.toThrow(
+      await expect(service.update(1, { id: 1, teamId: 1 })).rejects.toThrow(
         new BadRequestException('Team with the provided id does not exist.'),
       );
     });
@@ -213,7 +213,7 @@ describe('UsersService', () => {
         email: 'new@example.com',
         phone: '+48000000000',
       };
-      const result = await service.update(1, { ...newUserData, team_id: 2 });
+      const result = await service.update(1, { ...newUserData, teamId: 2 });
 
       expect(result).toEqual({
         ...user,

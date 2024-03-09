@@ -30,7 +30,7 @@ export class UsersService {
 
   /**
    * Creates a new user and register him in Firebase Auth
-   * It also creates a new team for the user, if 'team_id' is not provided
+   * It also creates a new team for the user, if 'teamId' is not provided
    * Default role for the user is 'Role.Volunteer'
    *
    * @param createUserInput - The input data for creating a user.
@@ -42,11 +42,11 @@ export class UsersService {
     await this.checkAvailability(createUserInput.email, createUserInput.phone);
 
     let team: Team;
-    if (!createUserInput.team_id) {
-      team = await this.teamsSerivce.create(createUserInput.region_id);
+    if (!createUserInput.teamId) {
+      team = await this.teamsSerivce.create(createUserInput.regionId);
     } else {
-      team = await this.teamsSerivce.findOne(createUserInput.team_id, [
-        createUserInput.region_id,
+      team = await this.teamsSerivce.findOne(createUserInput.teamId, [
+        createUserInput.regionId,
       ]);
       if (!team) {
         throw new BadRequestException(
@@ -76,7 +76,7 @@ export class UsersService {
       );
     } catch (e) {
       this.logger.error(e);
-      if (!createUserInput.team_id) {
+      if (!createUserInput.teamId) {
         try {
           await this.teamsSerivce.remove(team.id);
         } finally {
@@ -141,11 +141,11 @@ export class UsersService {
       user.phone = updateUserInput.phone;
     }
 
-    if (updateUserInput.team_id) {
+    if (updateUserInput.teamId) {
       const regionId = user.team.region.id;
       await this.leaveTeam(user);
 
-      const team = await this.teamsSerivce.findOne(updateUserInput.team_id, [
+      const team = await this.teamsSerivce.findOne(updateUserInput.teamId, [
         regionId,
       ]);
       if (!team) {

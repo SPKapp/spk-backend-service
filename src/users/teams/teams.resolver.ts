@@ -25,7 +25,7 @@ export class TeamsResolver {
    * If the user is an Admin, all teams are returned.
    * If the user is a Region Manager, only teams from his regions are returned.
    * @param user - The current user details.
-   * @param region_id - The ID of the region to filter teams by (optional).
+   * @param regionId - The ID of the region to filter teams by (optional).
    * @returns A promise that resolves to an array of teams.
    */
   // TODO: Add pagination
@@ -33,18 +33,16 @@ export class TeamsResolver {
   @Query(() => [Team], { name: 'teams' })
   async findAll(
     @CurrentUser() user: UserDetails,
-    @Args('region_id', { type: () => ID, nullable: true })
-    region_id?: number,
+    @Args('regionId', { type: () => ID, nullable: true })
+    regionId?: number,
   ): Promise<Team[]> {
-    region_id = region_id ? Number(region_id) : undefined;
+    regionId = regionId ? Number(regionId) : undefined;
 
     if (user.roles.includes(Role.Admin)) {
-      return await this.teamsService.findAll(
-        region_id ? [region_id] : undefined,
-      );
+      return await this.teamsService.findAll(regionId ? [regionId] : undefined);
     } else if (user.roles.includes(Role.RegionManager)) {
       return await this.teamsService.findAll(
-        region_id ? user.regions.filter((r) => r === region_id) : user.regions,
+        regionId ? user.regions.filter((r) => r === regionId) : user.regions,
       );
     }
 

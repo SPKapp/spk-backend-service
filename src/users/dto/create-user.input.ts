@@ -22,11 +22,11 @@ export class CreateUserInput {
   // TODO: Add Adress field
 
   @Field(() => ID, { nullable: true })
-  team_id?: number;
+  teamId?: number;
 
   @Field(() => ID, {
     nullable: true,
     description: 'Required when run as Admin.',
   })
-  region_id?: number;
+  regionId?: number;
 }

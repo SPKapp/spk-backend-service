@@ -85,13 +85,13 @@ export class FirebaseAuthService {
    *
    * @param uid - The ID of the user.
    * @param role - The role to be added to the user.
-   * @param regions_id - An optional array of region IDs to be assigned to the user (only applicable if the role is RegionManager).
+   * @param regionsIds - An optional array of region IDs to be assigned to the user (only applicable if the role is RegionManager).
    * @returns A Promise that resolves when the role and regions (if applicable) have been added to the user.
    */
   async addRoleToUser(
     uid: string,
     role: Role,
-    regions_id?: number[],
+    regionsIds?: number[],
   ): Promise<void> {
     const user = await this.firebaseService.auth.getUser(uid);
     const userRoles = user.customClaims?.roles || [];
@@ -104,11 +104,11 @@ export class FirebaseAuthService {
       });
     }
 
-    if (role === Role.RegionManager && regions_id) {
+    if (role === Role.RegionManager && regionsIds) {
       const userRegions = user.customClaims?.regions || [];
-      regions_id.forEach((region_id) => {
-        if (!userRegions.includes(region_id)) {
-          userRegions.push(region_id);
+      regionsIds.forEach((regionId) => {
+        if (!userRegions.includes(regionId)) {
+          userRegions.push(regionId);
         }
       });
 
@@ -125,7 +125,7 @@ export class FirebaseAuthService {
    *
    * @param uid - The ID of the user.
    * @param role - The role to be removed.
-   * @param regions_id - Optional. An array of region IDs. Used only when
+   * @param regionsIds - Optional. An array of region IDs. Used only when
    *  the role is a Region Manager.If provided, removes the specified regions,
    *  if not, removes all regions and role.
    * @returns A Promise that resolves when the role is successfully removed.
@@ -133,7 +133,7 @@ export class FirebaseAuthService {
   async removeRoleFromUser(
     uid: string,
     role: Role,
-    regions_id?: number[],
+    regionsIds?: number[],
   ): Promise<void> {
     const user = await this.firebaseService.auth.getUser(uid);
     const userRoles: Role[] = user.customClaims?.roles || [];
@@ -142,9 +142,9 @@ export class FirebaseAuthService {
     if (role === Role.RegionManager) {
       let userRegions = user.customClaims?.regions || [];
 
-      if (regions_id) {
-        regions_id.forEach((region_id) => {
-          const regionIndex = userRegions.indexOf(region_id);
+      if (regionsIds) {
+        regionsIds.forEach((regionId) => {
+          const regionIndex = userRegions.indexOf(regionId);
           if (regionIndex !== -1) {
             userRegions.splice(regionIndex, 1);
           }
