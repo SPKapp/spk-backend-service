@@ -4,21 +4,38 @@ import { RegionResolver } from './regions.resolver';
 import { RegionService } from './regions.service';
 import { FirebaseAuthGuard } from '../auth/firebase-auth/firebase-auth.guard';
 
+import { Region } from './entities/region.entity';
+import { Role } from '../auth/roles.eum';
+import { UserDetails } from '../auth/current-user/current-user';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { AuthService } from '../auth/auth.service';
+
 describe('RegionResolver', () => {
   let resolver: RegionResolver;
+  let regionService: RegionService;
+
+  const userDetailsTeplate: UserDetails = {
+    uid: '123',
+    email: 'email1@example.com',
+    phone: '123456789',
+    roles: [],
+    regions: [],
+  };
+
+  const regions = [new Region({ id: 1 }), new Region({ id: 2 })];
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RegionResolver,
+        AuthService,
         {
           provide: RegionService,
           useFactory: () => ({
-            create: jest.fn(() => true),
-            findAll: jest.fn(() => true),
-            findOne: jest.fn(() => true),
-            update: jest.fn(() => true),
-            remove: jest.fn(() => true),
+            create: jest.fn(() => regions[0]),
+            findOne: jest.fn(() => regions[0]),
+            update: jest.fn(() => regions[0]),
+            remove: jest.fn(() => regions[0].id),
           }),
         },
       ],
@@ -28,11 +45,92 @@ describe('RegionResolver', () => {
       .compile();
 
     resolver = module.get<RegionResolver>(RegionResolver);
+    regionService = module.get<RegionService>(RegionService);
   });
 
   it('should be defined', () => {
     expect(resolver).toBeDefined();
   });
-});
 
-// TODO: Add tests
+  describe('createRegion', () => {
+    it('should be defined', () => {
+      expect(resolver.createRegion).toBeDefined();
+    });
+
+    it('should create a region', async () => {
+      await expect(
+        resolver.createRegion({ name: regions[0].name }),
+      ).resolves.toEqual(regions[0]);
+    });
+  });
+
+  describe('findOne', () => {
+    it('should be defined', () => {
+      expect(resolver.findOne).toBeDefined();
+    });
+
+    it('should throw not found error', async () => {
+      const userDetails: UserDetails = {
+        ...userDetailsTeplate,
+        roles: [Role.Admin],
+      };
+
+      jest.spyOn(regionService, 'findOne').mockResolvedValue(null);
+
+      await expect(resolver.findOne(userDetails, 1)).rejects.toThrow(
+        new NotFoundException(`Region with ID 1 not found`),
+      );
+    });
+
+    it('should throw bad permissions error', async () => {
+      const userDetails: UserDetails = {
+        ...userDetailsTeplate,
+        roles: [Role.RegionManager],
+        regions: [regions[1].id],
+      };
+
+      await expect(
+        resolver.findOne(userDetails, regions[0].id),
+      ).rejects.toThrow(
+        new ForbiddenException(
+          'Region does not belong to the Region Manager permissions.',
+        ),
+      );
+    });
+
+    it('should return a region', async () => {
+      const userDetails: UserDetails = {
+        ...userDetailsTeplate,
+        roles: [Role.Admin],
+      };
+
+      await expect(
+        resolver.findOne(userDetails, regions[0].id),
+      ).resolves.toEqual(regions[0]);
+    });
+  });
+
+  describe('updateRegion', () => {
+    it('should be defined', () => {
+      expect(resolver.updateRegion).toBeDefined();
+    });
+
+    it('should update a region', async () => {
+      await expect(
+        resolver.updateRegion({ id: regions[0].id, name: regions[0].name }),
+      ).resolves.toEqual(regions[0]);
+    });
+  });
+
+  describe('removeRegion', () => {
+    it('should be defined', () => {
+      expect(resolver.removeRegion).toBeDefined();
+    });
+
+    it('should remove a region', async () => {
+      await expect(resolver.removeRegion(regions[0].id)).resolves.toEqual({
+        id: regions[0].id,
+      });
+    });
+  });
+});

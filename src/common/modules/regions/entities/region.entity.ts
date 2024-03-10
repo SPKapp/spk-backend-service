@@ -1,5 +1,13 @@
 import { ObjectType, Field, Int } from '@nestjs/graphql';
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  DeleteDateColumn,
+  Entity,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 import { Team } from '../../../../users/entities/team.entity';
 
@@ -23,4 +31,13 @@ export class Region {
   @OneToMany(() => Team, (team) => team.region)
   @Field(() => [Team], { nullable: true })
   teams: Promise<Team[]>;
+
+  @CreateDateColumn()
+  createdAt?: Date;
+
+  @UpdateDateColumn()
+  updatedAt?: Date;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }
