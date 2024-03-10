@@ -99,8 +99,31 @@ export class UsersService {
    * @param teamsIds - (optional) The IDs of the teams to filter by.
    * @returns A promise that resolves to the found users.
    */
-  async findAll(regionsIds?: number[]): Promise<User[]> {
-    return await this.userRepository.findBy({
+  async findAll(
+    regionsIds?: number[],
+    offset?: number,
+    limit?: number,
+  ): Promise<User[]> {
+    return await this.userRepository.find({
+      skip: offset,
+      take: limit,
+      where: {
+        team: {
+          region: { id: regionsIds ? In(regionsIds) : undefined },
+        },
+      },
+    });
+  }
+
+  /**
+   * Counts the number of users based on the provided region IDs.
+   * If no region IDs are provided, it counts all users.
+   *
+   * @param regionsIds - An optional array of region IDs.
+   * @returns A promise that resolves to the number of users.
+   */
+  async count(regionsIds?: number[]): Promise<number> {
+    return await this.userRepository.countBy({
       team: {
         region: { id: regionsIds ? In(regionsIds) : undefined },
       },

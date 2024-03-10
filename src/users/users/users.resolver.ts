@@ -14,9 +14,9 @@ import { UsersService } from './users.service';
 import { User } from '../entities/user.entity';
 import { CreateUserInput } from '../dto/create-user.input';
 import { UpdateUserInput } from '../dto/update-user.input';
+import { UpdateProfileInput } from '../dto/update-profile.input';
 import { Role } from '../../common/modules/auth/roles.eum';
 import { EntityWithId } from '../../common/types/remove.entity';
-import { UpdateProfileInput } from '../dto/update-profile.input';
 
 @Resolver(() => User)
 export class UsersResolver {
@@ -62,38 +62,6 @@ export class UsersResolver {
     }
 
     return await this.usersService.create(createUserInput);
-  }
-
-  @FirebaseAuth(Role.Admin, Role.RegionManager)
-  @Query(() => [User], { name: 'users' })
-  /**
-   * Retrieves a list of users based on the provided regionId.
-   * If the user is not an admin, the method checks for region manager permissions.
-   * If regionId is provided, it retrieves users for that specific region.
-   * If regionId is not provided, it retrieves users for all regions associated with the user.
-   *
-   * @param user - The current user details.
-   * @param regionId - The ID of the region to filter users by (optional).
-   * @returns A promise that resolves to an array of User objects.
-   * @throws {ForbiddenException} if the user region ID does not match the Region Manager permissions.
-   */
-  // TODO: Add pagination
-  async findAll(
-    @CurrentUser() currentUser: UserDetails,
-    @Args('regionId', { nullable: true }) regionId?: number,
-  ): Promise<User[]> {
-    if (!currentUser.roles.includes(Role.Admin)) {
-      if (regionId) {
-        await this.authService.checkRegionManagerPermissions(
-          currentUser,
-          async () => regionId,
-        );
-      } else {
-        return await this.usersService.findAll(currentUser.regions);
-      }
-    }
-
-    return await this.usersService.findAll(regionId ? [regionId] : undefined);
   }
 
   /**

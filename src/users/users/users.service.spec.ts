@@ -63,6 +63,7 @@ describe('UsersService', () => {
             findOneBy: jest.fn(async () => null),
             save: jest.fn(async (user) => ({ ...user, id: 1 })),
             remove: jest.fn(),
+            countBy: jest.fn(async () => 2),
           },
         },
       ],
@@ -134,13 +135,17 @@ describe('UsersService', () => {
 
     it('should return all users', async () => {
       const users = [new User({ id: 1 }), new User({ id: 2 })];
-      jest.spyOn(userRepository, 'findBy').mockResolvedValue(users);
+      jest.spyOn(userRepository, 'find').mockResolvedValue(users);
 
       await expect(service.findAll()).resolves.toEqual(users);
 
-      expect(userRepository.findBy).toHaveBeenCalledWith({
-        team: {
-          region: { id: undefined },
+      expect(userRepository.find).toHaveBeenCalledWith({
+        skip: undefined,
+        take: undefined,
+        where: {
+          team: {
+            region: { id: undefined },
+          },
         },
       });
     });
@@ -156,11 +161,39 @@ describe('UsersService', () => {
           team: new Team({ id: 2, region: new Region({ id: 1 }) }),
         }),
       ];
-      jest.spyOn(userRepository, 'findBy').mockResolvedValue(users);
+      jest.spyOn(userRepository, 'find').mockResolvedValue(users);
 
       await expect(service.findAll([1])).resolves.toEqual(users);
 
-      expect(userRepository.findBy).toHaveBeenCalledWith({
+      expect(userRepository.find).toHaveBeenCalledWith({
+        skip: undefined,
+        take: undefined,
+        where: {
+          team: {
+            region: { id: In([1]) },
+          },
+        },
+      });
+    });
+  });
+
+  describe('count', () => {
+    it('should be defined', () => {
+      expect(service.count).toBeDefined();
+    });
+
+    it('should return all users count', async () => {
+      await expect(service.count()).resolves.toBe(2);
+      expect(userRepository.countBy).toHaveBeenCalledWith({
+        team: {
+          region: { id: undefined },
+        },
+      });
+    });
+
+    it('should return users count by regionId', async () => {
+      await expect(service.count([1])).resolves.toBe(2);
+      expect(userRepository.countBy).toHaveBeenCalledWith({
         team: {
           region: { id: In([1]) },
         },

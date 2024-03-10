@@ -6,13 +6,13 @@ import { UserDetails } from '../../common/modules/auth/current-user/current-user
 import { Role } from '../../common/modules/auth/roles.eum';
 import { Region } from '../../common/modules/region/entities/region.entity';
 
+import { AuthService } from '../../common/modules/auth/auth.service';
 import { UsersResolver } from './users.resolver';
 import { UsersService } from './users.service';
 
 import { CreateUserInput } from '../dto/create-user.input';
 import { User } from '../entities/user.entity';
 import { Team } from '../entities/team.entity';
-import { AuthService } from '../../common/modules/auth/auth.service';
 
 describe('UsersResolver', () => {
   let resolver: UsersResolver;
@@ -34,7 +34,6 @@ describe('UsersResolver', () => {
           provide: UsersService,
           useValue: {
             create: jest.fn(),
-            findAll: jest.fn(),
             findOne: jest.fn(),
             findOneByUid: jest.fn(),
             update: jest.fn(() => ({ id: 1, firstname: 'John' })),
@@ -154,52 +153,6 @@ describe('UsersResolver', () => {
         expect(result).toEqual(new User(user));
         expect(createSpy).toHaveBeenCalled();
       });
-    });
-  });
-
-  describe('findAll', () => {
-    it('should be defined', () => {
-      expect(resolver.findAll).toBeDefined();
-    });
-
-    it('should throw bad permissions error', async () => {
-      const userDetails: UserDetails = {
-        ...userDetailsTeplate,
-        roles: [Role.RegionManager],
-        regions: [2],
-      };
-
-      await expect(resolver.findAll(userDetails, 1)).rejects.toThrow(
-        new ForbiddenException(
-          'Region ID does not match the Region Manager permissions.',
-        ),
-      );
-    });
-
-    it('should find all users from Region', async () => {
-      const userDetails: UserDetails = {
-        ...userDetailsTeplate,
-        roles: [Role.Admin],
-      };
-
-      const users = [new User({ id: 1 })];
-      jest.spyOn(usersService, 'findAll').mockResolvedValue(users);
-
-      await expect(resolver.findAll(userDetails, 1)).resolves.toEqual(users);
-      expect(usersService.findAll).toHaveBeenCalledWith([1]);
-    });
-
-    it('should find all users', async () => {
-      const userDetails: UserDetails = {
-        ...userDetailsTeplate,
-        roles: [Role.Admin],
-      };
-
-      const users = [new User({ id: 1 })];
-      jest.spyOn(usersService, 'findAll').mockResolvedValue(users);
-
-      await expect(resolver.findAll(userDetails)).resolves.toEqual(users);
-      expect(usersService.findAll).toHaveBeenCalledWith(undefined);
     });
   });
 
