@@ -20,8 +20,7 @@ export class Region {
   @Field()
   name: string;
 
-  // TODO: Eager or lazy?
   @OneToMany(() => Team, (team) => team.region)
-  @Field(() => [Team])
-  teams: Team[];
+  @Field(() => [Team], { nullable: true })
+  teams: Promise<Team[]>;
 }

@@ -21,12 +21,6 @@ export class RegionResolver {
   }
 
   @FirebaseAuth(Role.Admin)
-  @Query(() => [Region], { name: 'regions' })
-  async findAll() {
-    return await this.regionService.findAll();
-  }
-
-  @FirebaseAuth(Role.Admin)
   @Query(() => Region, { name: 'region' })
   async findOne(@Args('id', { type: () => Int }) id: number) {
     //TODO: Throw NotFoundException if team not found

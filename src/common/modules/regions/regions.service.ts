@@ -17,8 +17,15 @@ export class RegionService {
     return await this.regionRepository.save(new Region(input));
   }
 
-  async findAll(): Promise<Region[]> {
-    return await this.regionRepository.find();
+  async findAll(offset: number, limit: number): Promise<Region[]> {
+    return await this.regionRepository.find({
+      skip: offset,
+      take: limit,
+    });
+  }
+
+  async count(): Promise<number> {
+    return await this.regionRepository.count();
   }
 
   async findOne(id: number): Promise<Region | null> {
