@@ -138,6 +138,7 @@ export class UsersResolver {
    * @param currentUser - The details of the currently authenticated user.
    * @returns A Promise that resolves to the user's profile.
    */
+  @FirebaseAuth()
   @Query(() => User)
   async myProfile(@CurrentUser() currentUser: UserDetails): Promise<User> {
     return await this.usersService.findOneByUid(currentUser.uid);
@@ -150,6 +151,7 @@ export class UsersResolver {
    * @param updateProfileInput - The input data for updating the user's profile.
    * @returns The updated user profile.
    */
+  @FirebaseAuth()
   @Mutation(() => User)
   async updateMyProfile(
     @CurrentUser() currentUser: UserDetails,
