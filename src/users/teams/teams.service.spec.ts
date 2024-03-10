@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { In } from 'typeorm';
 
 import { RegionService } from '../../common/modules/regions/regions.service';
@@ -189,7 +189,7 @@ describe('TeamsService', () => {
 
     it('should throw an error if the team with the provided ID does not exist', async () => {
       await expect(service.remove(1)).rejects.toThrow(
-        new BadRequestException('Team with the provided id does not exist'),
+        new NotFoundException(`Team with ID 1 not found`),
       );
     });
 
@@ -215,7 +215,7 @@ describe('TeamsService', () => {
 
     it('should throw an error if the team with the provided ID does not exist', async () => {
       await expect(service.canRemove(1)).rejects.toThrow(
-        new BadRequestException('Team with the provided id does not exist'),
+        new NotFoundException(`Team with ID 1 not found`),
       );
     });
 

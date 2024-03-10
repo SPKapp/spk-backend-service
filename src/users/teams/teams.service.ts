@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  NotFoundException,
   NotImplementedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -96,7 +97,8 @@ export class TeamsService {
    * Removes a team by its ID.
    * @param id - The ID of the team to be removed.
    * @returns A Promise that resolves to the removed team id.
-   * @throws {BadRequestException} if the team with the provided ID does not exist or cannot be removed.
+   * @throws {NotFoundException} if the team with the provided ID does not exist.
+   * @throws {BadRequestException} if the team with the provided ID cannot be removed.
    */
   async remove(id: number): Promise<number> {
     if (!(await this.canRemove(id))) {
@@ -113,11 +115,12 @@ export class TeamsService {
    * @param id - The ID of the team to be checked.
    * @param userId - The ID of the user that should be excluded from the check.
    * @returns A Promise that resolves to a boolean value indicating if the team can be removed.
+   * @throws {NotFoundException} if the team with the provided ID does not exist.
    */
   async canRemove(id: number, userId?: number): Promise<boolean> {
     const team = await this.teamRepository.findOneBy({ id });
     if (!team) {
-      throw new BadRequestException('Team with the provided id does not exist');
+      throw new NotFoundException(`Team with ID ${id} not found`);
     }
 
     let users = await team.users;

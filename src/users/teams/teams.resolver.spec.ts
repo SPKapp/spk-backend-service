@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ForbiddenException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 
 import { AuthService } from '../../common/modules/auth/auth.service';
 import { FirebaseAuthGuard } from '../../common/modules/auth/firebase-auth/firebase-auth.guard';
@@ -14,6 +14,7 @@ import { Region } from '../../common/modules/regions/entities/region.entity';
 
 describe('TeamsResolver', () => {
   let resolver: TeamsResolver;
+  let teamsService: TeamsService;
 
   const userDetailsTeplate: UserDetails = {
     uid: '123',
@@ -42,6 +43,7 @@ describe('TeamsResolver', () => {
       .compile();
 
     resolver = module.get<TeamsResolver>(TeamsResolver);
+    teamsService = module.get<TeamsService>(TeamsService);
   });
 
   it('should be defined', () => {
@@ -51,6 +53,19 @@ describe('TeamsResolver', () => {
   describe('findOne', () => {
     it('should be defined', () => {
       expect(resolver.findOne).toBeDefined();
+    });
+
+    it('should throw an error if team does not exist', async () => {
+      const currentUser = {
+        ...userDetailsTeplate,
+        roles: [Role.Admin],
+      };
+
+      jest.spyOn(teamsService, 'findOne').mockResolvedValue(null);
+
+      await expect(resolver.findOne(currentUser, 1)).rejects.toThrow(
+        new NotFoundException(`Team with ID 1 not found`),
+      );
     });
 
     it('should throw an permission error', async () => {

@@ -1,12 +1,5 @@
-import {
-  Args,
-  ID,
-  Parent,
-  Query,
-  ResolveField,
-  Resolver,
-} from '@nestjs/graphql';
-import { ForbiddenException } from '@nestjs/common';
+import { Args, ID, Query, Resolver } from '@nestjs/graphql';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 
 import { TeamsService } from './teams.service';
 import { AuthService } from '../../common/modules/auth/auth.service';
@@ -33,6 +26,7 @@ export class TeamsResolver {
    * @param id - The ID of the team to retrieve.
    * @returns The team with the provided ID.
    * @throws {NotFoundException} if the team with the provided ID does not exist.
+   * @throws {ForbiddenException} if the team does not belong to the Region Manager permissions.
    */
   @FirebaseAuth(Role.Admin, Role.RegionManager)
   @Query(() => Team, { name: 'team' })
@@ -40,35 +34,28 @@ export class TeamsResolver {
     @CurrentUser() currentUser: UserDetails,
     @Args('id', { type: () => ID }) id: number,
   ): Promise<Team> {
-    const findTeam = async () => {
-      team = await this.teamsService.findOne(id);
-      if (!team) {
-        throw new ForbiddenException(
-          'Team does not belong to the Region Manager permissions.',
-        );
-      }
-    };
-
     let team: Team | null = null;
 
     if (!currentUser.roles.includes(Role.Admin)) {
       await this.authService.checkRegionManagerPermissions(
         currentUser,
         async () => {
-          await findTeam();
+          team = await this.teamsService.findOne(id);
+          if (!team) {
+            throw new ForbiddenException(
+              'Team does not belong to the Region Manager permissions.',
+            );
+          }
           return team.region.id;
         },
         'Team does not belong to the Region Manager permissions.',
       );
     } else {
-      await findTeam();
+      team = await this.teamsService.findOne(id);
+      if (!team) {
+        throw new NotFoundException(`Team with ID ${id} not found`);
+      }
     }
     return team;
-  }
-
-  @ResolveField('users')
-  users(@Parent() team: Team) {
-    // TODO: Czy wolontariusz będzie w stanie wyświetlić dowolne dane o innych wolontariuszach?
-    return team.users;
   }
 }
