@@ -97,6 +97,8 @@ export class UsersService {
    * Finds all users.
    * @param regionsIds - (optional) The IDs of the regions to filter by.
    * @param teamsIds - (optional) The IDs of the teams to filter by.
+   * @param offset - (optional) The number of users to skip.
+   * @param limit - (optional) The maximum number of users to return.
    * @returns A promise that resolves to the found users.
    */
   async findAll(
