@@ -24,7 +24,8 @@ describe('TeamsService', () => {
         {
           provide: 'TeamRepository',
           useValue: {
-            findBy: jest.fn(),
+            find: jest.fn(),
+            countBy: jest.fn(),
             findOneBy: jest.fn(() => null),
             save: jest.fn(),
             delete: jest.fn(),
@@ -75,7 +76,7 @@ describe('TeamsService', () => {
     const teams = [{ id: 1 }, { id: 2 }];
 
     beforeEach(() => {
-      jest.spyOn(teamRepository, 'findBy').mockResolvedValue(teams);
+      jest.spyOn(teamRepository, 'find').mockResolvedValue(teams);
     });
 
     it('shoud be defined', () => {
@@ -85,20 +86,62 @@ describe('TeamsService', () => {
     it('should retrieve all teams', async () => {
       await expect(service.findAll()).resolves.toEqual(teams);
 
-      expect(teamRepository.findBy).toHaveBeenCalledWith({
-        region: { id: undefined },
+      expect(teamRepository.find).toHaveBeenCalledWith({
+        skip: undefined,
+        take: undefined,
+        where: {
+          region: { id: undefined },
+        },
       });
     });
 
     it('should retrieve teams based on the provided regions IDs', async () => {
       await expect(service.findAll([1, 2])).resolves.toEqual(teams);
 
-      expect(teamRepository.findBy).toHaveBeenCalledWith({
-        region: { id: In([1, 2]) },
+      expect(teamRepository.find).toHaveBeenCalledWith({
+        skip: undefined,
+        take: undefined,
+        where: {
+          region: { id: In([1, 2]) },
+        },
       });
     });
 
-    // TODO: Correct tests with pagination
+    it('should retrieve teams based on the provided regions IDs and pagination params', async () => {
+      await expect(service.findAll([1, 2], 0, 10)).resolves.toEqual(teams);
+
+      expect(teamRepository.find).toHaveBeenCalledWith({
+        skip: 0,
+        take: 10,
+        where: {
+          region: { id: In([1, 2]) },
+        },
+      });
+    });
+  });
+
+  describe('count', () => {
+    it('shoud be defined', () => {
+      expect(service.count).toBeDefined();
+    });
+
+    it('should count all teams', async () => {
+      jest.spyOn(teamRepository, 'countBy').mockResolvedValue(2);
+
+      await expect(service.count()).resolves.toEqual(2);
+      expect(teamRepository.countBy).toHaveBeenCalledWith({
+        region: { id: undefined },
+      });
+    });
+
+    it('should count teams based on the provided regions IDs', async () => {
+      jest.spyOn(teamRepository, 'countBy').mockResolvedValue(2);
+
+      await expect(service.count([1, 2])).resolves.toEqual(2);
+      expect(teamRepository.countBy).toHaveBeenCalledWith({
+        region: { id: In([1, 2]) },
+      });
+    });
   });
 
   describe('findOne', () => {

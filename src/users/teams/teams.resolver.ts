@@ -9,13 +9,13 @@ import {
 import { ForbiddenException } from '@nestjs/common';
 
 import { TeamsService } from './teams.service';
+import { AuthService } from '../../common/modules/auth/auth.service';
 import { FirebaseAuth } from '../../common/modules/auth/firebase-auth/firebase-auth.decorator';
 import { CurrentUser } from '../../common/modules/auth/current-user/current-user.decorator';
 
 import { UserDetails } from '../../common/modules/auth/current-user/current-user';
 import { Team } from '../entities/team.entity';
 import { Role } from '../../common/modules/auth/roles.eum';
-import { AuthService } from '../../common/modules/auth/auth.service';
 
 @Resolver(() => Team)
 export class TeamsResolver {
@@ -23,23 +23,6 @@ export class TeamsResolver {
     private readonly teamsService: TeamsService,
     private readonly authService: AuthService,
   ) {}
-
-  /**
-   * Retrieves all teams.
-   * If the user is an Admin, all teams are returned.
-   * If the user is a Region Manager, only teams from his regions are returned.
-   * @param currentUser - The current user details.
-   * @returns A promise that resolves to an array of teams.
-   */
-  // TODO: Add pagination
-  @FirebaseAuth(Role.Admin, Role.RegionManager)
-  @Query(() => [Team], { name: 'teams' })
-  async findAll(@CurrentUser() currentUser: UserDetails): Promise<Team[]> {
-    if (!currentUser.roles.includes(Role.Admin)) {
-      return await this.teamsService.findAll(currentUser.regions);
-    }
-    return await this.teamsService.findAll(undefined);
-  }
 
   /**
    * Retrieves a team by its ID.
@@ -57,6 +40,15 @@ export class TeamsResolver {
     @CurrentUser() currentUser: UserDetails,
     @Args('id', { type: () => ID }) id: number,
   ): Promise<Team> {
+    const findTeam = async () => {
+      team = await this.teamsService.findOne(id);
+      if (!team) {
+        throw new ForbiddenException(
+          'Team does not belong to the Region Manager permissions.',
+        );
+      }
+    };
+
     let team: Team | null = null;
 
     if (!currentUser.roles.includes(Role.Admin)) {
@@ -72,15 +64,6 @@ export class TeamsResolver {
       await findTeam();
     }
     return team;
-
-    async function findTeam() {
-      team = await this.teamsService.findOne(id);
-      if (!team) {
-        throw new ForbiddenException(
-          'Team does not belong to the Region Manager permissions.',
-        );
-      }
-    }
   }
 
   @ResolveField('users')

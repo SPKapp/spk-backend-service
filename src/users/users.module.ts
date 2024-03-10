@@ -12,6 +12,7 @@ import { TeamsService } from './teams/teams.service';
 import { User } from './entities/user.entity';
 import { Team } from './entities/team.entity';
 import { PaginatedUsersResolver } from './users/paginated-users.resolver';
+import { PaginatedTeamsResolver } from './teams/paginated-teams.resolver';
 
 @Module({
   imports: [TypeOrmModule.forFeature([User, Team]), RegionModule, AuthModule],
@@ -21,6 +22,7 @@ import { PaginatedUsersResolver } from './users/paginated-users.resolver';
     TeamsResolver,
     TeamsService,
     PaginatedUsersResolver,
+    PaginatedTeamsResolver,
   ],
 })
 export class UsersModule {}

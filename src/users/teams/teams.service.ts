@@ -39,12 +39,34 @@ export class TeamsService {
    * Retrieves all teams based on the provided regions IDs.
    * If regions IDs are not provided, retrieves all teams.
    *
-   * @param regionsIds - An optional array of regions IDs.
+   * @param regionsIds - (optional) The IDs of the regions to filter by.
+   * @param offset - (optional) The number of teams to skip.
+   * @param limit - (optional) The maximum number of teams to retrieve.
    * @returns A promise that resolves to an array of Team objects.
    */
-  // TODO: Add pagination
-  async findAll(regionsIds?: number[]): Promise<Team[]> {
-    return await this.teamRepository.findBy({
+  async findAll(
+    regionsIds?: number[],
+    offset?: number,
+    limit?: number,
+  ): Promise<Team[]> {
+    return await this.teamRepository.find({
+      skip: offset,
+      take: limit,
+      where: {
+        region: { id: regionsIds ? In(regionsIds) : undefined },
+      },
+    });
+  }
+
+  /**
+   * Counts the number of teams based on the provided region IDs.
+   * If no region IDs are provided, it counts all teams.
+   *
+   * @param regionsIds - An optional array of region IDs.
+   * @returns A Promise that resolves to the number of teams.
+   */
+  async count(regionsIds?: number[]): Promise<number> {
+    return await this.teamRepository.countBy({
       region: { id: regionsIds ? In(regionsIds) : undefined },
     });
   }
