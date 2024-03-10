@@ -1,6 +1,7 @@
 import { ArgsType, Field, ID } from '@nestjs/graphql';
-import { PaginationArgs } from '../../common/functions/paginate.functions';
 import { Transform } from 'class-transformer';
+
+import { PaginationArgs } from '../../common/functions/paginate.functions';
 
 @ArgsType()
 export class FindAllUsersArgs extends PaginationArgs {

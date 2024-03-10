@@ -9,9 +9,9 @@ import { FirebaseAuth } from '../../common/modules/auth/firebase-auth/firebase-a
 import { Role } from '../../common/modules/auth/roles.eum';
 
 import { FindAllUsersArgs } from '../dto/find-all-users.args';
-import { PaginatedUser } from '../dto/paginated-user.output';
+import { PaginatedUsers } from '../dto/paginated-users.output';
 
-@Resolver(() => PaginatedUser)
+@Resolver(() => PaginatedUsers)
 export class PaginatedUsersResolver {
   constructor(
     private readonly usersService: UsersService,
@@ -30,7 +30,7 @@ export class PaginatedUsersResolver {
    * @throws {ForbiddenException} if the user region ID does not match the Region Manager permissions.
    */
   @FirebaseAuth(Role.Admin, Role.RegionManager)
-  @Query(() => PaginatedUser, { name: 'users' })
+  @Query(() => PaginatedUsers, { name: 'users' })
   /**
    * Retrieves a paginated list of users.
    *
@@ -41,7 +41,7 @@ export class PaginatedUsersResolver {
   async findAll(
     @CurrentUser() currentUser: UserDetails,
     @Args() args: FindAllUsersArgs,
-  ): Promise<PaginatedUser> {
+  ): Promise<PaginatedUsers> {
     let regionsIds = args.regionId ? [args.regionId] : undefined;
 
     if (!currentUser.roles.includes(Role.Admin)) {
@@ -71,7 +71,7 @@ export class PaginatedUsersResolver {
   }
 
   @ResolveField('totalCount', () => Number)
-  async totalCount(@Parent() paginatedUsers: PaginatedUser): Promise<number> {
+  async totalCount(@Parent() paginatedUsers: PaginatedUsers): Promise<number> {
     return await this.usersService.count(
       paginatedUsers.transferToFieds.regionsIds,
     );
