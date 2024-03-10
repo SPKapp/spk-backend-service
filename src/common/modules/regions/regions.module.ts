@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { RegionService } from './region.service';
-import { RegionResolver } from './region.resolver';
+import { RegionService } from './regions.service';
+import { RegionResolver } from './regions.resolver';
 
 import { Region } from './entities/region.entity';
 

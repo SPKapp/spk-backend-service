@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
-import { RegionService } from './region.service';
+import { RegionService } from './regions.service';
 
 describe('RegionService', () => {
   let service: RegionService;

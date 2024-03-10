@@ -2,7 +2,7 @@ import { ObjectType, Field, ID } from '@nestjs/graphql';
 import { Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
 import { User } from './user.entity';
-import { Region } from '../../common/modules/region/entities/region.entity';
+import { Region } from '../../common/modules/regions/entities/region.entity';
 
 @Entity()
 @ObjectType()

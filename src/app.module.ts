@@ -4,7 +4,7 @@ import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { ConfigModule, ConfigType } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { RegionModule } from './common/modules/region/region.module';
+import { RegionModule } from './common/modules/regions/regions.module';
 import { FirebaseModule } from './common/modules/firebase/firebase.module';
 import { AuthModule } from './common/modules/auth/auth.module';
 import { UsersModule } from './users/users.module';

@@ -13,7 +13,7 @@ import { TeamsService } from '../teams/teams.service';
 import { CreateUserInput } from '../dto/create-user.input';
 import { User } from '../entities/user.entity';
 import { Team } from '../entities/team.entity';
-import { Region } from '../../common/modules/region/entities/region.entity';
+import { Region } from '../../common/modules/regions/entities/region.entity';
 
 describe('UsersService', () => {
   let service: UsersService;

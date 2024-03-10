@@ -4,7 +4,7 @@ import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { FirebaseAuthGuard } from '../../common/modules/auth/firebase-auth/firebase-auth.guard';
 import { UserDetails } from '../../common/modules/auth/current-user/current-user';
 import { Role } from '../../common/modules/auth/roles.eum';
-import { Region } from '../../common/modules/region/entities/region.entity';
+import { Region } from '../../common/modules/regions/entities/region.entity';
 
 import { AuthService } from '../../common/modules/auth/auth.service';
 import { UsersResolver } from './users.resolver';

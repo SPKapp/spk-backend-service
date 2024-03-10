@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
-import { RegionResolver } from './region.resolver';
-import { RegionService } from './region.service';
+import { RegionResolver } from './regions.resolver';
+import { RegionService } from './regions.service';
 import { FirebaseAuthGuard } from '../auth/firebase-auth/firebase-auth.guard';
 
 describe('RegionResolver', () => {

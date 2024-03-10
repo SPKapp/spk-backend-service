@@ -2,10 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
 import { In } from 'typeorm';
 
-import { RegionService } from '../../common/modules/region/region.service';
+import { RegionService } from '../../common/modules/regions/regions.service';
 import { TeamsService } from './teams.service';
 
-import { Region } from '../../common/modules/region/entities/region.entity';
+import { Region } from '../../common/modules/regions/entities/region.entity';
 
 describe('TeamsService', () => {
   let service: TeamsService;

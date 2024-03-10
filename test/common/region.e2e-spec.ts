@@ -4,7 +4,7 @@ import * as request from 'supertest';
 import { AppModule } from '../../src/app.module';
 import { DataSource, Repository } from 'typeorm';
 
-import { Region } from '../../src/common/modules/region/entities/region.entity';
+import { Region } from '../../src/common/modules/regions/entities/region.entity';
 import { FirebaseAuthGuard } from '../../src/common/modules/auth/firebase-auth/firebase-auth.guard';
 
 describe('Region tests', () => {

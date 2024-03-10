@@ -10,7 +10,7 @@ import { TeamsResolver } from './teams.resolver';
 import { TeamsService } from './teams.service';
 
 import { Team } from '../entities/team.entity';
-import { Region } from '../../common/modules/region/entities/region.entity';
+import { Region } from '../../common/modules/regions/entities/region.entity';
 
 describe('TeamsResolver', () => {
   let resolver: TeamsResolver;

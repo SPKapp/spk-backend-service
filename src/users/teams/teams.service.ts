@@ -6,7 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 
-import { RegionService } from '../../common/modules/region/region.service';
+import { RegionService } from '../../common/modules/regions/regions.service';
 
 import { Team } from '../entities/team.entity';
 
