@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
-import { RegionResolver } from './regions.resolver';
-import { RegionService } from './regions.service';
+import { RegionsResolver } from './regions.resolver';
+import { RegionsService } from './regions.service';
 import { FirebaseAuthGuard } from '../auth/firebase-auth/firebase-auth.guard';
 
 import { Region } from './entities/region.entity';
@@ -11,8 +11,8 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { AuthService } from '../auth/auth.service';
 
 describe('RegionResolver', () => {
-  let resolver: RegionResolver;
-  let regionService: RegionService;
+  let resolver: RegionsResolver;
+  let regionsService: RegionsService;
 
   const userDetailsTeplate: UserDetails = {
     uid: '123',
@@ -27,10 +27,10 @@ describe('RegionResolver', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        RegionResolver,
+        RegionsResolver,
         AuthService,
         {
-          provide: RegionService,
+          provide: RegionsService,
           useFactory: () => ({
             create: jest.fn(() => regions[0]),
             findOne: jest.fn(() => regions[0]),
@@ -44,8 +44,8 @@ describe('RegionResolver', () => {
       .useValue({ canActivate: jest.fn(() => true) })
       .compile();
 
-    resolver = module.get<RegionResolver>(RegionResolver);
-    regionService = module.get<RegionService>(RegionService);
+    resolver = module.get<RegionsResolver>(RegionsResolver);
+    regionsService = module.get<RegionsService>(RegionsService);
   });
 
   it('should be defined', () => {
@@ -75,7 +75,7 @@ describe('RegionResolver', () => {
         roles: [Role.Admin],
       };
 
-      jest.spyOn(regionService, 'findOne').mockResolvedValue(null);
+      jest.spyOn(regionsService, 'findOne').mockResolvedValue(null);
 
       await expect(resolver.findOne(userDetails, 1)).rejects.toThrow(
         new NotFoundException(`Region with ID 1 not found`),

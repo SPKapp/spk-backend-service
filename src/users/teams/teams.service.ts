@@ -7,7 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 
-import { RegionService } from '../../common/modules/regions/regions.service';
+import { RegionsService } from '../../common/modules/regions/regions.service';
 
 import { Team } from '../entities/team.entity';
 
@@ -15,7 +15,7 @@ import { Team } from '../entities/team.entity';
 export class TeamsService {
   constructor(
     @InjectRepository(Team) private readonly teamRepository: Repository<Team>,
-    private readonly regionService: RegionService,
+    private readonly regionsService: RegionsService,
   ) {}
 
   /**
@@ -26,7 +26,7 @@ export class TeamsService {
    * @throws {BadRequestException} if the region with the provided ID does not exist.
    */
   async create(regionId: number): Promise<Team> {
-    const region = await this.regionService.findOne(regionId);
+    const region = await this.regionsService.findOne(regionId);
     if (!region) {
       throw new BadRequestException(
         'Region with the provided id does not exist',

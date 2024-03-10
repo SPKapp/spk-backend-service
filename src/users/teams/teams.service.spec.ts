@@ -2,21 +2,21 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { In } from 'typeorm';
 
-import { RegionService } from '../../common/modules/regions/regions.service';
+import { RegionsService } from '../../common/modules/regions/regions.service';
 import { TeamsService } from './teams.service';
 
 import { Region } from '../../common/modules/regions/entities/region.entity';
 
 describe('TeamsService', () => {
   let service: TeamsService;
-  let regionService: RegionService;
+  let regionsService: RegionsService;
   let teamRepository: any;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         {
-          provide: RegionService,
+          provide: RegionsService,
           useValue: {
             findOne: jest.fn(() => null),
           },
@@ -36,7 +36,7 @@ describe('TeamsService', () => {
     }).compile();
 
     service = module.get<TeamsService>(TeamsService);
-    regionService = module.get<RegionService>(RegionService);
+    regionsService = module.get<RegionsService>(RegionsService);
     teamRepository = module.get('TeamRepository');
   });
 
@@ -63,7 +63,7 @@ describe('TeamsService', () => {
         region: new Region(region),
       };
       jest
-        .spyOn(regionService, 'findOne')
+        .spyOn(regionsService, 'findOne')
         .mockResolvedValue(new Region(region));
       jest.spyOn(teamRepository, 'save').mockResolvedValue(team);
 

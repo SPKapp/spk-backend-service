@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PaginatedRegionsResolver } from './paginated-regions.resolver';
 import { Region } from './entities/region.entity';
-import { RegionService } from './regions.service';
+import { RegionsService } from './regions.service';
 import { FirebaseAuthGuard } from '../auth/firebase-auth/firebase-auth.guard';
 
 describe('PaginatedRegionsResolver', () => {
   let resolver: PaginatedRegionsResolver;
-  let regionsService: RegionService;
+  let regionsService: RegionsService;
 
   const regions = [new Region({ id: 1 }), new Region({ id: 2 })];
 
@@ -15,7 +15,7 @@ describe('PaginatedRegionsResolver', () => {
       providers: [
         PaginatedRegionsResolver,
         {
-          provide: RegionService,
+          provide: RegionsService,
           useValue: {
             findAll: jest.fn(() => regions),
           },
@@ -27,7 +27,7 @@ describe('PaginatedRegionsResolver', () => {
       .compile();
 
     resolver = module.get<PaginatedRegionsResolver>(PaginatedRegionsResolver);
-    regionsService = module.get<RegionService>(RegionService);
+    regionsService = module.get<RegionsService>(RegionsService);
   });
 
   it('should be defined', () => {

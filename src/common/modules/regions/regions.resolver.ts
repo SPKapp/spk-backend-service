@@ -8,16 +8,16 @@ import { UserDetails } from '../auth/current-user/current-user';
 import { Role } from '../auth/roles.eum';
 import { EntityWithId } from '../../types/remove.entity';
 
-import { RegionService } from './regions.service';
+import { RegionsService } from './regions.service';
 
 import { Region } from './entities/region.entity';
 import { CreateRegionInput } from './dto/create-region.input';
 import { UpdateRegionInput } from './dto/update-region.input';
 
 @Resolver(() => Region)
-export class RegionResolver {
+export class RegionsResolver {
   constructor(
-    private readonly regionService: RegionService,
+    private readonly regionsService: RegionsService,
     private readonly authService: AuthService,
   ) {}
 
@@ -30,7 +30,7 @@ export class RegionResolver {
   @FirebaseAuth(Role.Admin)
   @Mutation(() => Region)
   async createRegion(@Args('input') input: CreateRegionInput) {
-    return await this.regionService.create(input);
+    return await this.regionsService.create(input);
   }
 
   /**
@@ -54,7 +54,7 @@ export class RegionResolver {
       await this.authService.checkRegionManagerPermissions(
         currentUser,
         async () => {
-          region = await this.regionService.findOne(id);
+          region = await this.regionsService.findOne(id);
           if (!region) {
             throw new ForbiddenException(
               'Region does not belong to the Region Manager permissions.',
@@ -65,7 +65,7 @@ export class RegionResolver {
         'Region does not belong to the Region Manager permissions.',
       );
     } else {
-      region = await this.regionService.findOne(id);
+      region = await this.regionsService.findOne(id);
       if (!region) {
         throw new NotFoundException(`Region with ID ${id} not found`);
       }
@@ -83,7 +83,7 @@ export class RegionResolver {
   @FirebaseAuth(Role.Admin)
   @Mutation(() => Region)
   async updateRegion(@Args('input') input: UpdateRegionInput) {
-    return await this.regionService.update(input.id, input);
+    return await this.regionsService.update(input.id, input);
   }
 
   /**
@@ -96,6 +96,6 @@ export class RegionResolver {
   @FirebaseAuth(Role.Admin)
   @Mutation(() => EntityWithId)
   async removeRegion(@Args('id', { type: () => Int }) id: number) {
-    return new EntityWithId(await this.regionService.remove(id));
+    return new EntityWithId(await this.regionsService.remove(id));
   }
 }

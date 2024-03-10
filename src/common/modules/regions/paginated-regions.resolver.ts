@@ -4,12 +4,12 @@ import { FirebaseAuth } from '../auth/firebase-auth/firebase-auth.decorator';
 import { Role } from '../auth/roles.eum';
 import { PaginationArgs } from '../../functions/paginate.functions';
 
-import { RegionService } from './regions.service';
+import { RegionsService } from './regions.service';
 import { PaginatedRegions } from './dto/paginated-regions.output';
 
 @Resolver(() => PaginatedRegions)
 export class PaginatedRegionsResolver {
-  constructor(private readonly regionService: RegionService) {}
+  constructor(private readonly regionsService: RegionsService) {}
 
   /**
    * Retrieves all regions with pagination.
@@ -21,7 +21,7 @@ export class PaginatedRegionsResolver {
   @Query(() => PaginatedRegions, { name: 'regions' })
   async findAll(@Args() args: PaginationArgs): Promise<PaginatedRegions> {
     return {
-      data: await this.regionService.findAll(args.offset, args.limit),
+      data: await this.regionsService.findAll(args.offset, args.limit),
       offset: args.offset,
       limit: args.limit,
     };
@@ -29,6 +29,6 @@ export class PaginatedRegionsResolver {
 
   @ResolveField('totalCount', () => Number)
   async totalCount(): Promise<number> {
-    return await this.regionService.count();
+    return await this.regionsService.count();
   }
 }

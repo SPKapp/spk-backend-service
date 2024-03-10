@@ -1,11 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 
-import { RegionService } from './regions.service';
+import { RegionsService } from './regions.service';
 import { Region } from './entities/region.entity';
 
-describe('RegionService', () => {
-  let service: RegionService;
+describe('regionsService', () => {
+  let service: RegionsService;
   let regionRepository: any;
 
   const regions = [
@@ -24,7 +24,7 @@ describe('RegionService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        RegionService,
+        RegionsService,
         {
           provide: 'RegionRepository',
           useValue: {
@@ -38,7 +38,7 @@ describe('RegionService', () => {
       ],
     }).compile();
 
-    service = module.get<RegionService>(RegionService);
+    service = module.get<RegionsService>(RegionsService);
     regionRepository = module.get('RegionRepository');
   });
 

@@ -11,7 +11,7 @@ import { CreateRegionInput } from './dto/create-region.input';
 import { UpdateRegionInput } from './dto/update-region.input';
 
 @Injectable()
-export class RegionService {
+export class RegionsService {
   constructor(
     @InjectRepository(Region)
     private readonly regionRepository: Repository<Region>,

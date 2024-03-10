@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { RegionModule } from '../common/modules/regions/regions.module';
+import { RegionsModule } from '../common/modules/regions/regions.module';
 import { AuthModule } from '../common/modules/auth/auth.module';
 
 import { UsersService } from './users/users.service';
@@ -15,7 +15,7 @@ import { PaginatedUsersResolver } from './users/paginated-users.resolver';
 import { PaginatedTeamsResolver } from './teams/paginated-teams.resolver';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, Team]), RegionModule, AuthModule],
+  imports: [TypeOrmModule.forFeature([User, Team]), RegionsModule, AuthModule],
   providers: [
     UsersResolver,
     UsersService,
