@@ -2,6 +2,7 @@ import { ObjectType, Field, ID } from '@nestjs/graphql';
 import { Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
 import { Region } from '../../common/modules/regions/entities/region.entity';
+import { Team } from '../../users/entities/team.entity';
 import { Rabbit } from './rabbit.entity';
 
 @Entity()
@@ -25,4 +26,8 @@ export class RabbitGroup {
   @OneToMany(() => Rabbit, (rabbit) => rabbit.rabbitGroup)
   @Field(() => [Rabbit])
   rabbits: Promise<Rabbit[]>;
+
+  @ManyToOne(() => Team, (team) => team.rabbitGroups, { eager: true })
+  @Field(() => Team)
+  team: Team;
 }

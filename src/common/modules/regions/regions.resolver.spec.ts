@@ -1,14 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
+
+import {
+  AuthService,
+  FirebaseAuthGuard,
+  Role,
+  UserDetails,
+  getCurrentUserPipe,
+} from '../auth/auth.module';
 
 import { RegionsResolver } from './regions.resolver';
 import { RegionsService } from './regions.service';
-import { FirebaseAuthGuard } from '../auth/firebase-auth/firebase-auth.guard';
 
 import { Region } from './entities/region.entity';
-import { Role } from '../auth/roles.eum';
-import { UserDetails } from '../auth/current-user/current-user';
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
-import { AuthService } from '../auth/auth.service';
 
 describe('RegionResolver', () => {
   let resolver: RegionsResolver;
@@ -40,6 +44,8 @@ describe('RegionResolver', () => {
         },
       ],
     })
+      .overridePipe(getCurrentUserPipe)
+      .useValue({ transform: jest.fn((currentUser) => currentUser) })
       .overrideGuard(FirebaseAuthGuard)
       .useValue({ canActivate: jest.fn(() => true) })
       .compile();

@@ -1,13 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException } from '@nestjs/common';
 
-import { AuthService } from '../../common/modules/auth/auth.service';
+import {
+  AuthService,
+  FirebaseAuthGuard,
+  Role,
+  UserDetails,
+  getCurrentUserPipe,
+} from '../../common/modules/auth/auth.module';
+
 import { PaginatedUsersResolver } from './paginated-users.resolver';
 import { UsersService } from './users.service';
 
-import { UserDetails } from '../../common/modules/auth/current-user/current-user';
-import { FirebaseAuthGuard } from '../../common/modules/auth/firebase-auth/firebase-auth.guard';
-import { Role } from '../../common/modules/auth/roles.eum';
 import { User } from '../entities/user.entity';
 
 describe('PaginatedUsersResolver', () => {
@@ -36,6 +40,8 @@ describe('PaginatedUsersResolver', () => {
         AuthService,
       ],
     })
+      .overridePipe(getCurrentUserPipe)
+      .useValue({ transform: jest.fn((currentUser) => currentUser) })
       .overrideGuard(FirebaseAuthGuard)
       .useValue({ canActivate: jest.fn(() => true) })
       .compile();

@@ -1,8 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
+
+import { FirebaseAuthGuard, getCurrentUserPipe } from '../auth/auth.module';
+
 import { PaginatedRegionsResolver } from './paginated-regions.resolver';
-import { Region } from './entities/region.entity';
 import { RegionsService } from './regions.service';
-import { FirebaseAuthGuard } from '../auth/firebase-auth/firebase-auth.guard';
+
+import { Region } from './entities/region.entity';
 
 describe('PaginatedRegionsResolver', () => {
   let resolver: PaginatedRegionsResolver;
@@ -22,6 +25,8 @@ describe('PaginatedRegionsResolver', () => {
         },
       ],
     })
+      .overridePipe(getCurrentUserPipe)
+      .useValue({ transform: jest.fn((currentUser) => currentUser) })
       .overrideGuard(FirebaseAuthGuard)
       .useValue({ canActivate: jest.fn(() => true) })
       .compile();

@@ -1,8 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
-import { FirebaseAuthGuard } from '../../common/modules/auth/firebase-auth/firebase-auth.guard';
-import { Role } from '../../common/modules/auth/roles.eum';
-import { UserDetails } from '../../common/modules/auth/current-user/current-user';
+import {
+  FirebaseAuthGuard,
+  Role,
+  UserDetails,
+  getCurrentUserPipe,
+} from '../../common/modules/auth/auth.module';
 
 import { PaginatedTeamsResolver } from './paginated-teams.resolver';
 import { TeamsService } from './teams.service';
@@ -35,6 +38,8 @@ describe('PaginatedTeamsResolver', () => {
         },
       ],
     })
+      .overridePipe(getCurrentUserPipe)
+      .useValue({ transform: jest.fn((currentUser) => currentUser) })
       .overrideGuard(FirebaseAuthGuard)
       .useValue({ canActivate: jest.fn(() => true) })
       .compile();

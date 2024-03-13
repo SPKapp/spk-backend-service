@@ -1,10 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 
-import { AuthService } from '../../common/modules/auth/auth.service';
-import { FirebaseAuthGuard } from '../../common/modules/auth/firebase-auth/firebase-auth.guard';
-import { Role } from '../../common/modules/auth/roles.eum';
-import { UserDetails } from '../../common/modules/auth/current-user/current-user';
+import {
+  AuthService,
+  FirebaseAuthGuard,
+  Role,
+  UserDetails,
+  getCurrentUserPipe,
+} from '../../common/modules/auth/auth.module';
 
 import { TeamsResolver } from './teams.resolver';
 import { TeamsService } from './teams.service';
@@ -38,6 +41,8 @@ describe('TeamsResolver', () => {
         AuthService,
       ],
     })
+      .overridePipe(getCurrentUserPipe)
+      .useValue({ transform: jest.fn((currentUser) => currentUser) })
       .overrideGuard(FirebaseAuthGuard)
       .useValue({ canActivate: jest.fn(() => true) })
       .compile();

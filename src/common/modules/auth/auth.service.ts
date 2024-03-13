@@ -10,10 +10,21 @@ export class AuthService {
     fn: () => Promise<number>,
     forbiddenDescription: string = 'Region ID does not match the Region Manager permissions.',
   ): Promise<void> {
-    if (user.roles.includes(Role.RegionManager)) {
-      if (!user.regions.includes(await fn())) {
-        throw new ForbiddenException(forbiddenDescription);
-      }
+    if (
+      user.roles.includes(Role.RegionManager) &&
+      !user.regions.includes(await fn())
+    ) {
+      throw new ForbiddenException(forbiddenDescription);
+    }
+  }
+
+  async checkVolunteerPermissions(
+    user: UserDetails,
+    fn: () => Promise<number>,
+    forbiddenDescription: string = 'Team ID does not match the Volunteer permissions.',
+  ): Promise<void> {
+    if (user.roles.includes(Role.Volunteer) && user.teamId != (await fn())) {
+      throw new ForbiddenException(forbiddenDescription);
     }
   }
 }

@@ -1,10 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
 
-import { AuthService } from '../../common/modules/auth/auth.service';
-import { FirebaseAuthGuard } from '../../common/modules/auth/firebase-auth/firebase-auth.guard';
-import { Role } from '../../common/modules/auth/roles.eum';
-import { UserDetails } from '../../common/modules/auth/current-user/current-user';
+import {
+  AuthService,
+  FirebaseAuthGuard,
+  Role,
+  UserDetails,
+  getCurrentUserPipe,
+} from '../../common/modules/auth/auth.module';
 
 import { Region } from '../../common/modules/regions/entities/region.entity';
 
@@ -62,6 +65,8 @@ describe('RabbitsResolver', () => {
         },
       ],
     })
+      .overridePipe(getCurrentUserPipe)
+      .useValue({ transform: jest.fn((currentUser) => currentUser) })
       .overrideGuard(FirebaseAuthGuard)
       .useValue({ canActivate: jest.fn(() => true) })
       .compile();

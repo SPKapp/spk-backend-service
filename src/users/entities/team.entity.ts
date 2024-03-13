@@ -3,6 +3,7 @@ import { Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
 import { User } from './user.entity';
 import { Region } from '../../common/modules/regions/entities/region.entity';
+import { RabbitGroup } from '../../rabbits/entities/rabbit-group.entity';
 
 @Entity()
 @ObjectType()
@@ -22,4 +23,8 @@ export class Team {
   @OneToMany(() => User, (user) => user.team)
   @Field(() => [User], { nullable: true })
   users: Promise<User[]>;
+
+  @OneToMany(() => RabbitGroup, (rabbitGroup) => rabbitGroup.team)
+  @Field(() => [RabbitGroup])
+  rabbitGroups: Promise<RabbitGroup[]>;
 }

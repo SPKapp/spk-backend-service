@@ -1,8 +1,7 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { RegionsModule } from '../common/modules/regions/regions.module';
-import { AuthModule } from '../common/modules/auth/auth.module';
 
 import { UsersService } from './users/users.service';
 import { UsersResolver } from './users/users.resolver';
@@ -14,8 +13,9 @@ import { Team } from './entities/team.entity';
 import { PaginatedUsersResolver } from './users/paginated-users.resolver';
 import { PaginatedTeamsResolver } from './teams/paginated-teams.resolver';
 
+@Global()
 @Module({
-  imports: [TypeOrmModule.forFeature([User, Team]), RegionsModule, AuthModule],
+  imports: [TypeOrmModule.forFeature([User, Team]), RegionsModule],
   providers: [
     UsersResolver,
     UsersService,
@@ -24,5 +24,6 @@ import { PaginatedTeamsResolver } from './teams/paginated-teams.resolver';
     PaginatedUsersResolver,
     PaginatedTeamsResolver,
   ],
+  exports: [UsersService],
 })
 export class UsersModule {}

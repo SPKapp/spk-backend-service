@@ -6,6 +6,7 @@ import {
   FirebaseAuthGuard,
   Role,
   UserDetails,
+  getCurrentUserPipe,
 } from '../../common/modules/auth/auth.module';
 
 import { PaginatedRabbitGroupsResolver } from './paginated-rabbit-groups.resolver';
@@ -43,6 +44,8 @@ describe('PaginatedRabbitGroupsResolver', () => {
         },
       ],
     })
+      .overridePipe(getCurrentUserPipe)
+      .useValue({ transform: jest.fn((currentUser) => currentUser) })
       .overrideGuard(FirebaseAuthGuard)
       .useValue({ canActivate: jest.fn(() => true) })
       .compile();
