@@ -1,11 +1,14 @@
 import { Args, Parent, Query, ResolveField, Resolver } from '@nestjs/graphql';
 
-import { TeamsService } from './teams.service';
-import { FirebaseAuth } from '../../common/modules/auth/firebase-auth/firebase-auth.decorator';
-import { CurrentUser } from '../../common/modules/auth/current-user/current-user.decorator';
-import { UserDetails } from '../../common/modules/auth/current-user/current-user';
-import { Role } from '../../common/modules/auth/roles.eum';
+import {
+  FirebaseAuth,
+  Role,
+  CurrentUser,
+  UserDetails,
+} from '../../common/modules/auth/auth.module';
 import { PaginationArgs } from '../../common/functions/paginate.functions';
+
+import { TeamsService } from './teams.service';
 
 import { PaginatedTeams } from '../dto/paginated-teams.output';
 

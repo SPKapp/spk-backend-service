@@ -1,11 +1,14 @@
 import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 
-import { AuthService } from '../auth/auth.service';
-import { FirebaseAuth } from '../auth/firebase-auth/firebase-auth.decorator';
-import { CurrentUser } from '../auth/current-user/current-user.decorator';
-import { UserDetails } from '../auth/current-user/current-user';
-import { Role } from '../auth/roles.eum';
+import {
+  AuthService,
+  FirebaseAuth,
+  Role,
+  CurrentUser,
+  UserDetails,
+} from '../auth/auth.module';
+
 import { EntityWithId } from '../../types/remove.entity';
 
 import { RegionsService } from './regions.service';

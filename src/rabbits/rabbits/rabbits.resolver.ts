@@ -1,11 +1,13 @@
 import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
 import { BadRequestException } from '@nestjs/common';
 
-import { AuthService } from '../../common/modules/auth/auth.service';
-import { FirebaseAuth } from '../../common/modules/auth/firebase-auth/firebase-auth.decorator';
-import { Role } from '../../common/modules/auth/roles.eum';
-import { UserDetails } from '../../common/modules/auth/current-user/current-user';
-import { CurrentUser } from '../../common/modules/auth/current-user/current-user.decorator';
+import {
+  AuthService,
+  FirebaseAuth,
+  Role,
+  CurrentUser,
+  UserDetails,
+} from '../../common/modules/auth/auth.module';
 
 import { RabbitsService } from './rabbits.service';
 import { RabbitGroupsService } from '../rabbit-groups/rabbit-groups.service';

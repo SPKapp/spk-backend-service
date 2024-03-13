@@ -5,18 +5,22 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
-import { FirebaseAuth } from '../../common/modules/auth/firebase-auth/firebase-auth.decorator';
-import { AuthService } from '../../common/modules/auth/auth.service';
-import { CurrentUser } from '../../common/modules/auth/current-user/current-user.decorator';
-import { UserDetails } from '../../common/modules/auth/current-user/current-user';
+import {
+  AuthService,
+  FirebaseAuth,
+  Role,
+  CurrentUser,
+  UserDetails,
+} from '../../common/modules/auth/auth.module';
+
+import { EntityWithId } from '../../common/types/remove.entity';
+
 import { UsersService } from './users.service';
 
 import { User } from '../entities/user.entity';
 import { CreateUserInput } from '../dto/create-user.input';
 import { UpdateUserInput } from '../dto/update-user.input';
 import { UpdateProfileInput } from '../dto/update-profile.input';
-import { Role } from '../../common/modules/auth/roles.eum';
-import { EntityWithId } from '../../common/types/remove.entity';
 
 @Resolver(() => User)
 export class UsersResolver {

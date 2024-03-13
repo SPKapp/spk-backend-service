@@ -1,14 +1,17 @@
 import { Args, ID, Query, Resolver } from '@nestjs/graphql';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 
-import { TeamsService } from './teams.service';
-import { AuthService } from '../../common/modules/auth/auth.service';
-import { FirebaseAuth } from '../../common/modules/auth/firebase-auth/firebase-auth.decorator';
-import { CurrentUser } from '../../common/modules/auth/current-user/current-user.decorator';
+import {
+  AuthService,
+  FirebaseAuth,
+  Role,
+  CurrentUser,
+  UserDetails,
+} from '../../common/modules/auth/auth.module';
 
-import { UserDetails } from '../../common/modules/auth/current-user/current-user';
+import { TeamsService } from './teams.service';
+
 import { Team } from '../entities/team.entity';
-import { Role } from '../../common/modules/auth/roles.eum';
 
 @Resolver(() => Team)
 export class TeamsResolver {

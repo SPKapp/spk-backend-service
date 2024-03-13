@@ -1,7 +1,7 @@
 import { Args, Query, ResolveField, Resolver } from '@nestjs/graphql';
 
-import { FirebaseAuth } from '../auth/firebase-auth/firebase-auth.decorator';
-import { Role } from '../auth/roles.eum';
+import { FirebaseAuth, Role } from '../auth/auth.module';
+
 import { PaginationArgs } from '../../functions/paginate.functions';
 
 import { RegionsService } from './regions.service';

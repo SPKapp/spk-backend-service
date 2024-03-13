@@ -1,12 +1,14 @@
 import { Args, Parent, Query, ResolveField, Resolver } from '@nestjs/graphql';
 
-import { AuthService } from '../../common/modules/auth/auth.service';
-import { UsersService } from './users.service';
+import {
+  AuthService,
+  FirebaseAuth,
+  Role,
+  CurrentUser,
+  UserDetails,
+} from '../../common/modules/auth/auth.module';
 
-import { UserDetails } from '../../common/modules/auth/current-user/current-user';
-import { CurrentUser } from '../../common/modules/auth/current-user/current-user.decorator';
-import { FirebaseAuth } from '../../common/modules/auth/firebase-auth/firebase-auth.decorator';
-import { Role } from '../../common/modules/auth/roles.eum';
+import { UsersService } from './users.service';
 
 import { FindAllUsersArgs } from '../dto/find-all-users.args';
 import { PaginatedUsers } from '../dto/paginated-users.output';
