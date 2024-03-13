@@ -6,12 +6,6 @@ import { RabbitGroup } from '../entities/rabbit-group.entity';
 export class RabbitGroupsResolver {
   constructor(private readonly rabbitGroupsService: RabbitGroupsService) {}
 
-  @Query(() => [RabbitGroup], { name: 'rabbitGroups' })
-  findAll() {
-    // TODO: Implement this method
-    return this.rabbitGroupsService.findAll();
-  }
-
   @Query(() => RabbitGroup, { name: 'rabbitGroup' })
   findOne(@Args('id', { type: () => Int }) id: number) {
     // TODO: Implement this method
