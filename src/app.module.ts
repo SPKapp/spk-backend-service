@@ -8,6 +8,7 @@ import { RegionsModule } from './common/modules/regions/regions.module';
 import { FirebaseModule } from './common/modules/firebase/firebase.module';
 import { AuthModule } from './common/modules/auth/auth.module';
 import { UsersModule } from './users/users.module';
+import { RabbitsModule } from './rabbits/rabbits.module';
 
 import databaseConfig from './config/database.config';
 
@@ -35,6 +36,8 @@ import databaseConfig from './config/database.config';
     AuthModule,
 
     UsersModule,
+
+    RabbitsModule,
   ],
 })
 export class AppModule {}
