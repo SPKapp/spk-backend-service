@@ -18,6 +18,7 @@ import { Rabbit } from '../entities/rabbit.entity';
 import { RabbitGroup } from '../entities/rabbit-group.entity';
 import { AdmissionType } from '../entities/admissionType.enum';
 import { RabbitGroupsService } from '../rabbit-groups/rabbit-groups.service';
+import { Gender } from '../entities/gender.enum';
 
 describe('RabbitsResolver', () => {
   let resolver: RabbitsResolver;
@@ -35,8 +36,10 @@ describe('RabbitsResolver', () => {
     new Rabbit({
       id: 1,
       name: 'Rabbit 1',
+      gender: Gender.Male,
       admissionType: AdmissionType.Found,
       color: 'White',
+
       rabbitGroup: new RabbitGroup({ id: 1, region: new Region({ id: 1 }) }),
     }),
     new Rabbit({
@@ -83,6 +86,7 @@ describe('RabbitsResolver', () => {
     const newRabbit = {
       name: rabbits[0].name,
       color: rabbits[0].color,
+      gender: rabbits[0].gender,
       admissionType: rabbits[0].admissionType,
     };
 

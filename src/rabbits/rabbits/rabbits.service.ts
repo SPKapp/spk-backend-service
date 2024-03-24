@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
 
@@ -71,9 +76,56 @@ export class RabbitsService {
     return await this.rabbitRespository.findOneBy({ id });
   }
 
-  update(id: number, updateRabbitInput: UpdateRabbitInput) {
+  async update(id: number, updateRabbitInput: UpdateRabbitInput) {
     // TODO: Implement this method
-    return `This action updates a #${id} rabbit with ${JSON.stringify(updateRabbitInput)}`;
+    const rabbit = await this.rabbitRespository.findOneBy({ id });
+    if (!rabbit) {
+      throw new NotFoundException('Rabbit not found');
+    }
+
+    // TODO: Add group/region update
+
+    if (updateRabbitInput.name) {
+      rabbit.name = updateRabbitInput.name;
+    }
+    if (updateRabbitInput.color) {
+      rabbit.color = updateRabbitInput.color;
+    }
+    if (updateRabbitInput.breed) {
+      rabbit.breed = updateRabbitInput.breed;
+    }
+    if (updateRabbitInput.gender) {
+      rabbit.gender = updateRabbitInput.gender;
+    }
+    if (updateRabbitInput.birthDate) {
+      rabbit.birthDate = updateRabbitInput.birthDate;
+    }
+    if (typeof updateRabbitInput.confirmedBirthDate === 'boolean') {
+      rabbit.confirmedBirthDate = updateRabbitInput.confirmedBirthDate;
+    }
+    if (updateRabbitInput.admissionDate) {
+      rabbit.admissionDate = updateRabbitInput.admissionDate;
+    }
+    if (updateRabbitInput.admissionType) {
+      rabbit.admissionType = updateRabbitInput.admissionType;
+    }
+    if (updateRabbitInput.fillingDate) {
+      rabbit.fillingDate = updateRabbitInput.fillingDate;
+    }
+
+    try {
+      await this.rabbitRespository.save(rabbit);
+
+      return rabbit;
+    } catch (error: unknown) {
+      if (error instanceof QueryFailedError) {
+        throw new BadRequestException(
+          'Cannot update a rabbit with the provided data',
+        );
+      } else {
+        throw error;
+      }
+    }
   }
 
   remove(id: number) {
