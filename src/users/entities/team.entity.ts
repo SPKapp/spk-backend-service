@@ -1,5 +1,11 @@
 import { ObjectType, Field, ID } from '@nestjs/graphql';
-import { Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 
 import { User } from './user.entity';
 import { Region } from '../../common/modules/regions/entities/region.entity';
@@ -15,6 +21,15 @@ export class Team {
   @PrimaryGeneratedColumn()
   @Field(() => ID)
   id: number;
+
+  @Column({
+    default: true,
+  })
+  @Field(() => Boolean, {
+    defaultValue: true,
+    description: 'The Team is active if has at least one active user.',
+  })
+  active: boolean;
 
   @ManyToOne(() => Region, (region) => region.teams, { eager: true })
   @Field(() => Region, { nullable: true })
