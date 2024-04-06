@@ -120,10 +120,10 @@ export class RabbitGroupsService {
    * @throws {NotFoundException} if the rabbit group or team is not found.
    * @throws {BadRequestException} if the team is not active or the rabbit group has a different region than the team.
    */
-  async updateTeam(id: number, teamId: number, regionIds?: number[]) {
+  async updateTeam(id: number, teamId: number, regionsIds?: number[]) {
     const rabbitGroup = await this.rabbitGroupRespository.findOneBy({
       id,
-      region: { id: regionIds ? In(regionIds) : undefined },
+      region: { id: regionsIds ? In(regionsIds) : undefined },
     });
     const team = await this.teamsService.findOne(teamId);
 

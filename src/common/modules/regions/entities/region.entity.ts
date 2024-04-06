@@ -1,4 +1,4 @@
-import { ObjectType, Field, Int } from '@nestjs/graphql';
+import { ObjectType, Field, ID } from '@nestjs/graphql';
 import {
   Column,
   CreateDateColumn,
@@ -20,7 +20,7 @@ export class Region {
   }
 
   @PrimaryGeneratedColumn()
-  @Field(() => Int)
+  @Field(() => ID)
   id: number;
 
   @Column({

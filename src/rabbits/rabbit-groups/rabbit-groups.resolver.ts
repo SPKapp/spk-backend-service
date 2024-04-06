@@ -95,11 +95,11 @@ export class RabbitGroupsResolver {
    */
   async updateTeam(
     @CurrentUser('teamId') currentUser: UserDetails,
-    @Args('groupId', { type: () => Int }) groupId: number,
+    @Args('rabbitGroupId', { type: () => Int }) rabbitGroupId: number,
     @Args('teamId', { type: () => Int }) teamId: number,
   ) {
     return await this.rabbitGroupsService.updateTeam(
-      groupId,
+      rabbitGroupId,
       teamId,
       currentUser.roles.includes(Role.Admin) ? undefined : currentUser.regions,
     );

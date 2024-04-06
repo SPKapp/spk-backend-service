@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException } from '@nestjs/common';
 
 import {
   FirebaseAuthGuard,
@@ -77,6 +78,30 @@ describe('PaginatedTeamsResolver', () => {
       expect(teamsService.findAll).toHaveBeenCalledWith(undefined, 0, 10);
     });
 
+    it('should return all teams if the user is an Admin and regionsIds are provided', async () => {
+      const userDetails: UserDetails = {
+        ...userDetailsTeplate,
+        roles: [Role.Admin],
+      };
+
+      await expect(
+        resolver.findAll(userDetails, {
+          offset: 0,
+          limit: 10,
+          regionsIds: [1],
+        }),
+      ).resolves.toEqual({
+        data: teams,
+        offset: 0,
+        limit: 10,
+        transferToFieds: {
+          regionsIds: [1],
+        },
+      });
+
+      expect(teamsService.findAll).toHaveBeenCalledWith([1], 0, 10);
+    });
+
     it('should return all teams from the user regions if the user is a Region Manager', async () => {
       const userDetails: UserDetails = {
         ...userDetailsTeplate,
@@ -96,6 +121,49 @@ describe('PaginatedTeamsResolver', () => {
       });
 
       expect(teamsService.findAll).toHaveBeenCalledWith([1, 2], 0, 10);
+    });
+
+    it('should throw a BadRequestException if the user is a Region Manager and tries to access teams from other regions', async () => {
+      const userDetails: UserDetails = {
+        ...userDetailsTeplate,
+        roles: [Role.RegionManager],
+        regions: [1, 2],
+      };
+
+      await expect(
+        resolver.findAll(userDetails, {
+          offset: 0,
+          limit: 10,
+          regionsIds: [3],
+        }),
+      ).rejects.toThrow(
+        new BadRequestException('You can only access teams from your regions.'),
+      );
+    });
+
+    it('should return all teams from the user regions if the user is a Region Manager and regionsIds are provided', async () => {
+      const userDetails: UserDetails = {
+        ...userDetailsTeplate,
+        roles: [Role.RegionManager],
+        regions: [1, 2],
+      };
+
+      await expect(
+        resolver.findAll(userDetails, {
+          offset: 0,
+          limit: 10,
+          regionsIds: [1],
+        }),
+      ).resolves.toEqual({
+        data: teams,
+        offset: 0,
+        limit: 10,
+        transferToFieds: {
+          regionsIds: [1],
+        },
+      });
+
+      expect(teamsService.findAll).toHaveBeenCalledWith([1], 0, 10);
     });
   });
 
