@@ -1,7 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { In } from 'typeorm';
 
 import { Region } from '../../common/modules/regions/entities/region.entity';
+import { TeamsService } from '../../users/teams/teams.service';
+import { Team } from '../../users/entities/team.entity';
 
 import { RabbitGroupsService } from './rabbit-groups.service';
 
@@ -10,6 +13,7 @@ import { RabbitGroup } from '../entities/rabbit-group.entity';
 describe('RabbitGroupsService', () => {
   let service: RabbitGroupsService;
   let rabbitGroupRepository: any;
+  let teamsService: TeamsService;
 
   const rabbitGroups = [
     new RabbitGroup({ id: 1, region: new Region({ id: 1 }) }),
@@ -23,7 +27,7 @@ describe('RabbitGroupsService', () => {
         {
           provide: 'RabbitGroupRepository',
           useValue: {
-            // save: jest.fn(() => rabbitGroups[0]),
+            save: jest.fn((val) => val),
             find: jest.fn(() => rabbitGroups),
             countBy: jest.fn(() => rabbitGroups.length),
             findOneBy: jest.fn(() => rabbitGroups[0]),
@@ -31,11 +35,18 @@ describe('RabbitGroupsService', () => {
             // remove: jest.fn(() => rabbitGroups[0].id),
           },
         },
+        {
+          provide: TeamsService,
+          useValue: {
+            findOne: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<RabbitGroupsService>(RabbitGroupsService);
     rabbitGroupRepository = module.get('RabbitGroupRepository');
+    teamsService = module.get<TeamsService>(TeamsService);
   });
 
   it('should be defined', () => {
@@ -174,5 +185,99 @@ describe('RabbitGroupsService', () => {
     });
 
     // TODO: Add tests
+  });
+
+  describe('updateTeam', () => {
+    it('should be defined', () => {
+      expect(service.updateTeam).toBeDefined();
+    });
+
+    it('should update the team of a rabbit group', async () => {
+      const team = new Team({ id: 1, active: true });
+      const group = { ...rabbitGroups[0] };
+
+      jest.spyOn(teamsService, 'findOne').mockResolvedValue(team);
+      jest
+        .spyOn(rabbitGroupRepository, 'findOneBy')
+        .mockResolvedValue(rabbitGroups[0]);
+
+      group.team = team;
+
+      await expect(service.updateTeam(group.id, team.id)).resolves.toEqual(
+        group,
+      );
+
+      expect(rabbitGroupRepository.findOneBy).toHaveBeenCalledWith({
+        id: 1,
+        region: { id: undefined },
+      });
+    });
+
+    it('should throw an error if the rabbit group is not found', async () => {
+      jest.spyOn(rabbitGroupRepository, 'findOneBy').mockResolvedValue(null);
+
+      await expect(service.updateTeam(1, 1)).rejects.toThrow(
+        new NotFoundException(`Rabbit Group with ID 1 not found`),
+      );
+    });
+
+    it('should throw an error if the team is not found', async () => {
+      jest
+        .spyOn(rabbitGroupRepository, 'findOneBy')
+        .mockResolvedValue(rabbitGroups[0]);
+      jest.spyOn(teamsService, 'findOne').mockResolvedValue(null);
+
+      await expect(service.updateTeam(1, 1)).rejects.toThrow(
+        new NotFoundException(`Team with ID 1 not found`),
+      );
+    });
+
+    it('should throw an error if the team is not active', async () => {
+      const team = new Team({ id: 1, active: false });
+
+      jest.spyOn(teamsService, 'findOne').mockResolvedValue(team);
+      jest
+        .spyOn(rabbitGroupRepository, 'findOneBy')
+        .mockResolvedValue(rabbitGroups[0]);
+
+      await expect(service.updateTeam(1, 1)).rejects.toThrow(
+        new BadRequestException(`Team with ID 1 is not active`),
+      );
+    });
+
+    it('should throw an error if the rabbit group does not belong to the specified region', async () => {
+      const team = new Team({ id: 1, active: true });
+
+      jest.spyOn(teamsService, 'findOne').mockResolvedValue(team);
+      jest.spyOn(rabbitGroupRepository, 'findOneBy').mockResolvedValue(null);
+
+      await expect(service.updateTeam(1, 1, [1])).rejects.toThrow(
+        new NotFoundException(`Rabbit Group with ID 1 not found`),
+      );
+
+      expect(rabbitGroupRepository.findOneBy).toHaveBeenCalledWith({
+        id: 1,
+        region: { id: In([1]) },
+      });
+    });
+
+    it('should throw an error if the rabbit group has different region than the team', async () => {
+      const team = new Team({
+        id: 1,
+        active: true,
+        region: new Region({ id: 2 }),
+      });
+
+      jest.spyOn(teamsService, 'findOne').mockResolvedValue(team);
+      jest
+        .spyOn(rabbitGroupRepository, 'findOneBy')
+        .mockResolvedValue(rabbitGroups[0]);
+
+      await expect(service.updateTeam(1, 1)).rejects.toThrow(
+        new BadRequestException(
+          `The rabbit group has different region than the team`,
+        ),
+      );
+    });
   });
 });

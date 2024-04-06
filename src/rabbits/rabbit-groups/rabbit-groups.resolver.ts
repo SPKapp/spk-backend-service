@@ -1,4 +1,4 @@
-import { Resolver, Query, Args, Int } from '@nestjs/graphql';
+import { Resolver, Query, Args, Int, Mutation } from '@nestjs/graphql';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 
 import {
@@ -77,5 +77,31 @@ export class RabbitGroupsResolver {
     }
 
     return rabbitGroup;
+  }
+
+  @FirebaseAuth(Role.Admin, Role.RegionManager)
+  @Mutation(() => RabbitGroup, {
+    name: 'updateRabbitGroupTeam',
+  })
+  /**
+   * Updates the team for a specific rabbit group.
+   *
+   * @param currentUser - The current user details.
+   * @param groupId - The ID of the rabbit group.
+   * @param teamId - The ID of the team to be assigned to the rabbit group.
+   * @returns A Promise that resolves to the updated rabbit group.
+   * @throws {NotFoundException} if the rabbit group or team is not found.
+   * @throws {BadRequestException} if the team is not active or the rabbit group has a different region than the team.
+   */
+  async updateTeam(
+    @CurrentUser('teamId') currentUser: UserDetails,
+    @Args('groupId', { type: () => Int }) groupId: number,
+    @Args('teamId', { type: () => Int }) teamId: number,
+  ) {
+    return await this.rabbitGroupsService.updateTeam(
+      groupId,
+      teamId,
+      currentUser.roles.includes(Role.Admin) ? undefined : currentUser.regions,
+    );
   }
 }

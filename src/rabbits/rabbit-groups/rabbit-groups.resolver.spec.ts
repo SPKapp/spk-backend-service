@@ -44,6 +44,7 @@ describe('RabbitGroupsResolver', () => {
           provide: RabbitGroupsService,
           useValue: {
             findOne: jest.fn(() => rabbitGroup),
+            updateTeam: jest.fn(() => rabbitGroup),
           },
         },
       ],
@@ -136,6 +137,46 @@ describe('RabbitGroupsResolver', () => {
 
       await expect(resolver.findOne(user, rabbitGroup.id)).resolves.toEqual(
         rabbitGroup,
+      );
+    });
+  });
+
+  describe('updateTeam', () => {
+    it('should be defined', () => {
+      expect(resolver.updateTeam).toBeDefined();
+    });
+
+    it('should return a rabbit group as Admin', async () => {
+      const user = { ...userDetailsTeplate, roles: [Role.Admin] };
+      const team = new Team({ id: 1 });
+
+      await expect(
+        resolver.updateTeam(user, rabbitGroup.id, team.id),
+      ).resolves.toEqual(rabbitGroup);
+
+      expect(rabbitGroupsService.updateTeam).toHaveBeenCalledWith(
+        rabbitGroup.id,
+        team.id,
+        undefined,
+      );
+    });
+
+    it('should return a rabbit group as Region Manager', async () => {
+      const user = {
+        ...userDetailsTeplate,
+        roles: [Role.RegionManager],
+        regions: [1],
+      };
+      const team = new Team({ id: 1 });
+
+      await expect(
+        resolver.updateTeam(user, rabbitGroup.id, team.id),
+      ).resolves.toEqual(rabbitGroup);
+
+      expect(rabbitGroupsService.updateTeam).toHaveBeenCalledWith(
+        rabbitGroup.id,
+        team.id,
+        [1],
       );
     });
   });

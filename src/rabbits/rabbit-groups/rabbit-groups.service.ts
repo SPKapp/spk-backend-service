@@ -1,9 +1,15 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { RabbitGroup } from '../entities/rabbit-group.entity';
 import { In, QueryFailedError, Repository } from 'typeorm';
+
+import { RabbitGroup } from '../entities/rabbit-group.entity';
 import { PaginatedRabbitGroups } from '../dto/paginated-rabbit-groups.output';
+import { TeamsService } from '../../users/teams/teams.service';
 
 @Injectable()
 export class RabbitGroupsService {
@@ -12,6 +18,7 @@ export class RabbitGroupsService {
   constructor(
     @InjectRepository(RabbitGroup)
     private readonly rabbitGroupRespository: Repository<RabbitGroup>,
+    private readonly teamsService: TeamsService,
   ) {}
 
   async create(regionId: number) {
@@ -102,5 +109,40 @@ export class RabbitGroupsService {
   remove(id: number) {
     // TODO: Implement this method
     return `This action removes a #${id} rabbitGroup`;
+  }
+
+  /**
+   * Updates the team of a rabbit group.
+   *
+   * @param id - The ID of the rabbit group.
+   * @param teamId - The ID of the team to assign to the rabbit group.
+   * @returns The updated rabbit group.
+   * @throws {NotFoundException} if the rabbit group or team is not found.
+   * @throws {BadRequestException} if the team is not active or the rabbit group has a different region than the team.
+   */
+  async updateTeam(id: number, teamId: number, regionIds?: number[]) {
+    const rabbitGroup = await this.rabbitGroupRespository.findOneBy({
+      id,
+      region: { id: regionIds ? In(regionIds) : undefined },
+    });
+    const team = await this.teamsService.findOne(teamId);
+
+    if (!rabbitGroup) {
+      throw new NotFoundException(`Rabbit Group with ID ${id} not found`);
+    }
+    if (!team) {
+      throw new NotFoundException(`Team with ID ${teamId} not found`);
+    }
+    if (!team.active) {
+      throw new BadRequestException(`Team with ID ${teamId} is not active`);
+    }
+    if (rabbitGroup.region.id !== team.region.id) {
+      throw new BadRequestException(
+        'The rabbit group has different region than the team',
+      );
+    }
+
+    rabbitGroup.team = team;
+    return await this.rabbitGroupRespository.save(rabbitGroup);
   }
 }

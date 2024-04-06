@@ -28,6 +28,6 @@ export class RabbitGroup {
   rabbits: Promise<Rabbit[]>;
 
   @ManyToOne(() => Team, (team) => team.rabbitGroups, { eager: true })
-  @Field(() => Team)
-  team: Team;
+  @Field(() => Team, { nullable: true })
+  team?: Team;
 }

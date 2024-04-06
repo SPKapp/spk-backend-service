@@ -24,6 +24,6 @@ import { PaginatedTeamsResolver } from './teams/paginated-teams.resolver';
     PaginatedUsersResolver,
     PaginatedTeamsResolver,
   ],
-  exports: [UsersService],
+  exports: [UsersService, TeamsService],
 })
 export class UsersModule {}
