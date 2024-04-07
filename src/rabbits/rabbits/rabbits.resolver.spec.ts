@@ -22,7 +22,7 @@ import { Gender } from '../entities/gender.enum';
 
 describe('RabbitsResolver', () => {
   let resolver: RabbitsResolver;
-  // let rabbitsService: RabbitsService;
+  let rabbitsService: RabbitsService;
 
   const userDetailsTeplate: UserDetails = {
     uid: '123',
@@ -58,6 +58,7 @@ describe('RabbitsResolver', () => {
           provide: RabbitsService,
           useValue: {
             create: jest.fn(() => rabbits[0]),
+            updateRabbitGroup: jest.fn(() => rabbits[0]),
           },
         },
         {
@@ -75,7 +76,7 @@ describe('RabbitsResolver', () => {
       .compile();
 
     resolver = module.get<RabbitsResolver>(RabbitsResolver);
-    // rabbitsService = module.get<RabbitsService>(RabbitsService);
+    rabbitsService = module.get<RabbitsService>(RabbitsService);
   });
 
   it('should be defined', () => {
@@ -176,5 +177,38 @@ describe('RabbitsResolver', () => {
     });
 
     // TODO: Add tests
+  });
+
+  describe('updateRabbitGroup', () => {
+    it('should be defined', () => {
+      expect(resolver.updateRabbitGroup).toBeDefined();
+    });
+
+    it('should call the service with the correct parameters - Admin', async () => {
+      const userDetails: UserDetails = {
+        ...userDetailsTeplate,
+        roles: [Role.Admin],
+      };
+
+      await resolver.updateRabbitGroup(userDetails, 1, 2);
+
+      expect(rabbitsService.updateRabbitGroup).toHaveBeenCalledWith(
+        1,
+        2,
+        undefined,
+      );
+    });
+
+    it('should call the service with the correct parameters - RegionManager', async () => {
+      const userDetails: UserDetails = {
+        ...userDetailsTeplate,
+        roles: [Role.RegionManager],
+        regions: [2],
+      };
+
+      await resolver.updateRabbitGroup(userDetails, 1, 2);
+
+      expect(rabbitsService.updateRabbitGroup).toHaveBeenCalledWith(1, 2, [2]);
+    });
   });
 });

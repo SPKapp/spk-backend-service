@@ -5,13 +5,15 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { QueryFailedError, Repository } from 'typeorm';
+import { In, QueryFailedError, Repository } from 'typeorm';
+import { Transactional } from 'typeorm-transactional';
 
 import { RabbitGroupsService } from '../rabbit-groups/rabbit-groups.service';
 
 import { CreateRabbitInput } from '../dto/create-rabbit.input';
 import { UpdateRabbitInput } from '../dto/update-rabbit.input';
 import { Rabbit } from '../entities/rabbit.entity';
+import { RabbitGroup } from '../entities/rabbit-group.entity';
 
 @Injectable()
 export class RabbitsService {
@@ -83,7 +85,7 @@ export class RabbitsService {
       throw new NotFoundException('Rabbit not found');
     }
 
-    // TODO: Add group/region update
+    // TODO: Add region update
 
     if (updateRabbitInput.name) {
       rabbit.name = updateRabbitInput.name;
@@ -131,5 +133,76 @@ export class RabbitsService {
   remove(id: number) {
     // TODO: Implement this method
     return `This action removes a #${id} rabbit`;
+  }
+
+  /**
+   * Updates the rabbit group of a rabbit.
+   * If `rabbitGroupId` is provided, the rabbit will be moved to the specified rabbit group.
+   * If `rabbitGroupId` is not provided, a new rabbit group will be created in the same region as the rabbit.
+   * @param id - The ID of the rabbit to update.
+   * @param rabbitGroupId - The ID of the rabbit group to move the rabbit to, if not provided, new rabbit group will be created.
+   * @param regionsIds - An array of region IDs to filter results by (optional).
+   * @returns The updated rabbit.
+   * @throws {NotFoundException} if the rabbit or rabbit group is not found.
+   * @throws {BadRequestException} if the provided data is invalid.
+   */
+  @Transactional()
+  async updateRabbitGroup(
+    id: number,
+    rabbitGroupId?: number,
+    regionsIds?: number[],
+  ) {
+    const rabbit = await this.rabbitRespository.findOneBy({
+      id,
+      rabbitGroup: {
+        region: { id: regionsIds ? In(regionsIds) : undefined },
+      },
+    });
+    if (!rabbit) {
+      throw new NotFoundException('Rabbit not found');
+    }
+
+    let rabbitGroup: RabbitGroup;
+    if (!rabbitGroupId) {
+      // Create a new rabbit group in the same region
+      if ((await rabbit.rabbitGroup.rabbits).length === 1) {
+        throw new BadRequestException(
+          'Cannot create a new rabbit group if the current rabbit group has only one rabbit',
+        );
+      }
+
+      rabbitGroup = await this.rabbitGroupsService.create(
+        rabbit.rabbitGroup.region.id,
+      );
+    } else {
+      rabbitGroup = await this.rabbitGroupsService.findOne(
+        rabbitGroupId,
+        regionsIds,
+      );
+      if (!rabbitGroup) {
+        throw new NotFoundException('Rabbit Group not found');
+      }
+    }
+
+    const oldRabbitGroup = rabbit.rabbitGroup;
+    rabbit.rabbitGroup = rabbitGroup;
+
+    try {
+      await this.rabbitRespository.save(rabbit);
+
+      if ((await oldRabbitGroup.rabbits).length === 0) {
+        await this.rabbitGroupsService.remove(oldRabbitGroup.id);
+      }
+
+      return rabbit;
+    } catch (error: unknown) {
+      if (error instanceof QueryFailedError) {
+        throw new BadRequestException(
+          'Cannot update a rabbit with the provided data',
+        );
+      } else {
+        throw error;
+      }
+    }
   }
 }

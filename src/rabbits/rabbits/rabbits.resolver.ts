@@ -88,4 +88,31 @@ export class RabbitsResolver {
     // TODO: Implement this method
     return this.rabbitsService.remove(id);
   }
+
+  /**
+   * Updates the rabbit group for a specific rabbit.
+   *
+   * @param currentUser - The current user details.
+   * @param rabbitId - The ID of the rabbit to update.
+   * @param rabbitGroupId - The ID of the new rabbit group. If not provided, new rabbit group will be created.
+   * @returns A Promise that resolves to the updated rabbit.
+   * @throws {NotFoundException} if the rabbit or rabbit group is not found.
+   * @throws {BadRequestException} if the provided data is invalid.
+   */
+  @FirebaseAuth(Role.Admin, Role.RegionManager)
+  @Mutation(() => Rabbit, {
+    name: 'updateRabbitRabbitGroup',
+  })
+  async updateRabbitGroup(
+    @CurrentUser('teamId') currentUser: UserDetails,
+    @Args('rabbitId', { type: () => Int }) rabbitId: number,
+    @Args('rabbitGroupId', { type: () => Int, nullable: true })
+    rabbitGroupId?: number,
+  ) {
+    return await this.rabbitsService.updateRabbitGroup(
+      rabbitId,
+      rabbitGroupId,
+      currentUser.roles.includes(Role.Admin) ? undefined : currentUser.regions,
+    );
+  }
 }

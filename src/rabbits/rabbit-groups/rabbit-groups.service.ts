@@ -95,10 +95,17 @@ export class RabbitGroupsService {
    * Finds a rabbit group by its ID.
    *
    * @param id - The ID of the rabbit group to find.
+   * @param regionsIds - An optional array of region IDs to filter the rabbit groups.
    * @returns A Promise that resolves to the found rabbit group, or null if not found.
    */
-  async findOne(id: number): Promise<RabbitGroup | null> {
-    return await this.rabbitGroupRespository.findOneBy({ id });
+  async findOne(
+    id: number,
+    regionsIds?: number[],
+  ): Promise<RabbitGroup | null> {
+    return await this.rabbitGroupRespository.findOneBy({
+      id,
+      region: { id: regionsIds ? In(regionsIds) : undefined },
+    });
   }
 
   update(id: number) {
@@ -106,9 +113,34 @@ export class RabbitGroupsService {
     return `This action updates a #${id} rabbitGroup`;
   }
 
-  remove(id: number) {
-    // TODO: Implement this method
-    return `This action removes a #${id} rabbitGroup`;
+  /**
+   * Removes a rabbit group by its ID.
+   * If `regionsIds` is provided, only removes the rabbit group if it belongs to the specified regions.
+   *
+   * @param id - The ID of the rabbit group to remove.
+   * @param regionsIds - Optional. An array of region IDs to filter the rabbit group by.
+   * @returns The ID of the removed rabbit group.
+   * @throws {NotFoundException} if the rabbit group is not found.
+   * @throws {BadRequestException} if the rabbit group has rabbits assigned to it.
+   */
+  async remove(id: number, regionsIds?: number[]): Promise<number> {
+    const rabbitGroup = await this.rabbitGroupRespository.findOneBy({
+      id,
+      region: { id: regionsIds ? In(regionsIds) : undefined },
+    });
+    if (!rabbitGroup) {
+      throw new NotFoundException('Rabbit Group not found');
+    }
+
+    if ((await rabbitGroup.rabbits).length > 0) {
+      throw new BadRequestException(
+        'Cannot delete a rabbit group with rabbits assigned to it',
+      );
+    }
+
+    await this.rabbitGroupRespository.remove(rabbitGroup);
+
+    return id;
   }
 
   /**
@@ -120,22 +152,27 @@ export class RabbitGroupsService {
    * @throws {NotFoundException} if the rabbit group or team is not found.
    * @throws {BadRequestException} if the team is not active or the rabbit group has a different region than the team.
    */
-  async updateTeam(id: number, teamId: number, regionsIds?: number[]) {
+  async updateTeam(
+    id: number,
+    teamId: number,
+    regionsIds?: number[],
+  ): Promise<RabbitGroup> {
     const rabbitGroup = await this.rabbitGroupRespository.findOneBy({
       id,
       region: { id: regionsIds ? In(regionsIds) : undefined },
     });
-    const team = await this.teamsService.findOne(teamId);
-
     if (!rabbitGroup) {
-      throw new NotFoundException(`Rabbit Group with ID ${id} not found`);
+      throw new NotFoundException('Rabbit Group not found');
     }
+
+    const team = await this.teamsService.findOne(teamId, regionsIds);
     if (!team) {
-      throw new NotFoundException(`Team with ID ${teamId} not found`);
+      throw new NotFoundException('Team not found');
     }
     if (!team.active) {
-      throw new BadRequestException(`Team with ID ${teamId} is not active`);
+      throw new BadRequestException('Team is not active');
     }
+
     if (rabbitGroup.region.id !== team.region.id) {
       throw new BadRequestException(
         'The rabbit group has different region than the team',

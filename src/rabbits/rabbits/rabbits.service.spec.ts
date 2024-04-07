@@ -1,10 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { NotFoundException } from '@nestjs/common';
 
 import { RabbitsService } from './rabbits.service';
 import { RabbitGroupsService } from '../rabbit-groups/rabbit-groups.service';
 import { Rabbit } from '../entities/rabbit.entity';
 import { RabbitGroup } from '../entities/rabbit-group.entity';
 import { AdmissionType } from '../entities/admissionType.enum';
+import { Region } from '../../common/modules/regions/entities/region.entity';
+
+jest.mock('typeorm-transactional', () => ({
+  Transactional: () => jest.fn(),
+}));
 
 describe('RabbitsService', () => {
   let service: RabbitsService;
@@ -36,6 +42,8 @@ describe('RabbitsService', () => {
             create: jest.fn(
               () => new RabbitGroup({ id: rabbits[0].rabbitGroup.id }),
             ),
+            findOne: jest.fn((id) => new RabbitGroup({ id })),
+            remove: jest.fn(),
           },
         },
         {
@@ -116,5 +124,152 @@ describe('RabbitsService', () => {
     });
 
     // TODO: Add tests
+  });
+
+  describe('updateRabbitGroup', () => {
+    const rabbit = new Rabbit({
+      id: 1,
+      rabbitGroup: new RabbitGroup({
+        id: 1,
+        region: new Region({ id: 1 }),
+        rabbits: new Promise((resolve) => resolve([])),
+      }),
+    });
+
+    const newRabbitGroup = new RabbitGroup({
+      id: 2,
+      region: new Region({ id: 1 }),
+    });
+
+    it('should be defined', () => {
+      expect(service.updateRabbitGroup).toBeDefined();
+    });
+
+    it('should update rabbit group and remove old one', async () => {
+      jest
+        .spyOn(rabbitRepository, 'findOneBy')
+        .mockResolvedValue({ ...rabbit });
+      jest
+        .spyOn(rabbitGroupsService, 'findOne')
+        .mockResolvedValue(newRabbitGroup);
+
+      const updatedRabbit = { ...rabbit };
+      updatedRabbit.rabbitGroup = newRabbitGroup;
+
+      await expect(
+        service.updateRabbitGroup(rabbit.id, newRabbitGroup.id),
+      ).resolves.toEqual(updatedRabbit);
+
+      expect(rabbitRepository.findOneBy).toHaveBeenCalledWith({
+        id: 1,
+        rabbitGroup: {
+          region: {
+            id: undefined,
+          },
+        },
+      });
+      expect(rabbitGroupsService.findOne).toHaveBeenCalledWith(2, undefined);
+      expect(rabbitRepository.save).toHaveBeenCalledWith(updatedRabbit);
+      expect(rabbitGroupsService.remove).toHaveBeenCalledWith(
+        rabbit.rabbitGroup.id,
+      );
+    });
+
+    it('should update rabbit group without removing old one', async () => {
+      jest.spyOn(rabbitRepository, 'findOneBy').mockResolvedValue({
+        ...rabbit,
+        rabbitGroup: {
+          ...rabbit.rabbitGroup,
+          rabbits: new Promise((resolve) => resolve([new Rabbit({ id: 2 })])),
+        },
+      });
+      jest
+        .spyOn(rabbitGroupsService, 'findOne')
+        .mockResolvedValue(newRabbitGroup);
+
+      const updatedRabbit = { ...rabbit };
+      updatedRabbit.rabbitGroup = newRabbitGroup;
+
+      await expect(
+        service.updateRabbitGroup(rabbit.id, newRabbitGroup.id),
+      ).resolves.toEqual(updatedRabbit);
+
+      expect(rabbitRepository.findOneBy).toHaveBeenCalledWith({
+        id: 1,
+        rabbitGroup: {
+          region: {
+            id: undefined,
+          },
+        },
+      });
+      expect(rabbitGroupsService.findOne).toHaveBeenCalledWith(2, undefined);
+      expect(rabbitRepository.save).toHaveBeenCalledWith(updatedRabbit);
+      expect(rabbitGroupsService.remove).not.toHaveBeenCalled();
+    });
+
+    it('should create new rabbit group', async () => {
+      jest.spyOn(rabbitRepository, 'findOneBy').mockResolvedValue({
+        ...rabbit,
+      });
+      jest
+        .spyOn(rabbitGroupsService, 'create')
+        .mockResolvedValue(newRabbitGroup);
+
+      const updatedRabbit = { ...rabbit };
+      updatedRabbit.rabbitGroup = newRabbitGroup;
+
+      await expect(service.updateRabbitGroup(rabbit.id)).resolves.toEqual(
+        updatedRabbit,
+      );
+
+      expect(rabbitRepository.findOneBy).toHaveBeenCalledWith({
+        id: 1,
+        rabbitGroup: {
+          region: {
+            id: undefined,
+          },
+        },
+      });
+      expect(rabbitGroupsService.create).toHaveBeenCalledWith(1);
+      expect(rabbitRepository.save).toHaveBeenCalledWith(updatedRabbit);
+      expect(rabbitGroupsService.remove).toHaveBeenCalledWith(
+        rabbit.rabbitGroup.id,
+      );
+    });
+
+    it('should throw NotFoundException if rabbit not found', async () => {
+      jest.spyOn(rabbitRepository, 'findOneBy').mockResolvedValue(null);
+
+      await expect(
+        service.updateRabbitGroup(rabbit.id, newRabbitGroup.id),
+      ).rejects.toThrow(new NotFoundException('Rabbit not found'));
+    });
+
+    it('should throw NotFoundException if rabbit group not found', async () => {
+      jest.spyOn(rabbitRepository, 'findOneBy').mockResolvedValue({
+        ...rabbit,
+      });
+      jest.spyOn(rabbitGroupsService, 'findOne').mockResolvedValue(null);
+
+      await expect(
+        service.updateRabbitGroup(rabbit.id, newRabbitGroup.id),
+      ).rejects.toThrow(new NotFoundException('Rabbit Group not found'));
+    });
+
+    it('should throw BadRequestException if user wants to create new rabbit group but current group has only one rabbit', async () => {
+      jest.spyOn(rabbitRepository, 'findOneBy').mockResolvedValue({
+        ...rabbit,
+        rabbitGroup: {
+          ...rabbit.rabbitGroup,
+          rabbits: new Promise((resolve) => resolve([new Rabbit({ id: 2 })])),
+        },
+      });
+
+      await expect(service.updateRabbitGroup(rabbit.id)).rejects.toThrow(
+        new NotFoundException(
+          'Cannot create a new rabbit group if the current rabbit group has only one rabbit',
+        ),
+      );
+    });
   });
 });
