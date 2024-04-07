@@ -35,6 +35,7 @@ export class RabbitsService {
    * @returns A Promise that resolves to the created rabbit.
    * @throws {BadRequestException} if the provided data is invalid.
    */
+  @Transactional()
   async create(createRabbitInput: CreateRabbitInput): Promise<Rabbit> {
     if (!createRabbitInput.rabbitGroupId) {
       const rabbitGroup = await this.rabbitGroupsService.create(
