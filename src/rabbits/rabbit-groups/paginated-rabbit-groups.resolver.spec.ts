@@ -73,7 +73,11 @@ describe('PaginatedRabbitGroupsResolver', () => {
       };
 
       await expect(
-        resolver.findAll(userDetails, { regionId: 1, offset: 0, limit: 10 }),
+        resolver.findAll(userDetails, {
+          regionsIds: [1],
+          offset: 0,
+          limit: 10,
+        }),
       ).rejects.toThrow(
         new ForbiddenException(
           'Region ID does not match the Region Manager permissions.',

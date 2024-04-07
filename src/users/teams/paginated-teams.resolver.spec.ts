@@ -1,7 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException } from '@nestjs/common';
+import { ForbiddenException } from '@nestjs/common';
 
 import {
+  AuthService,
   FirebaseAuthGuard,
   Role,
   UserDetails,
@@ -30,6 +31,7 @@ describe('PaginatedTeamsResolver', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PaginatedTeamsResolver,
+        AuthService,
         {
           provide: TeamsService,
           useValue: {
@@ -137,7 +139,9 @@ describe('PaginatedTeamsResolver', () => {
           regionsIds: [3],
         }),
       ).rejects.toThrow(
-        new BadRequestException('You can only access teams from your regions.'),
+        new ForbiddenException(
+          'Region ID does not match the Region Manager permissions.',
+        ),
       );
     });
 

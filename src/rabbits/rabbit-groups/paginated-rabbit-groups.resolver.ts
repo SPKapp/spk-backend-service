@@ -33,13 +33,13 @@ export class PaginatedRabbitGroupsResolver {
     @CurrentUser() currentUser: UserDetails,
     @Args() args: FindRabbitGroupsArgs,
   ): Promise<PaginatedRabbitGroups> {
-    let regionsIds = args.regionId ? [args.regionId] : undefined;
+    let regionsIds = args.regionsIds;
 
     if (!currentUser.roles.includes(Role.Admin)) {
-      if (args.regionId) {
+      if (regionsIds) {
         await this.authService.checkRegionManagerPermissions(
           currentUser,
-          async () => args.regionId,
+          async () => regionsIds,
         );
       } else {
         regionsIds = currentUser.regions;

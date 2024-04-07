@@ -5,7 +5,7 @@ import { PaginationArgs } from '../../common/functions/paginate.functions';
 
 @ArgsType()
 export class FindRabbitGroupsArgs extends PaginationArgs {
-  @Field(() => ID, { nullable: true })
-  @Transform(({ value }) => parseInt(value, 10))
-  regionId?: number;
+  @Field(() => [ID], { nullable: true })
+  @Transform(({ value }) => value.map((v: string) => parseInt(v, 10)))
+  regionsIds?: number[];
 }

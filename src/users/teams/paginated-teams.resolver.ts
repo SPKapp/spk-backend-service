@@ -1,11 +1,11 @@
 import { Args, Parent, Query, ResolveField, Resolver } from '@nestjs/graphql';
-import { BadRequestException } from '@nestjs/common';
 
 import {
   FirebaseAuth,
   Role,
   CurrentUser,
   UserDetails,
+  AuthService,
 } from '../../common/modules/auth/auth.module';
 
 import { TeamsService } from './teams.service';
@@ -15,7 +15,10 @@ import { FindAllTeamsArgs } from '../dto/find-all-teams.args';
 
 @Resolver(() => PaginatedTeams)
 export class PaginatedTeamsResolver {
-  constructor(private readonly teamsService: TeamsService) {}
+  constructor(
+    private readonly teamsService: TeamsService,
+    private readonly authService: AuthService,
+  ) {}
 
   /**
    * Retrieves all teams.
@@ -35,11 +38,10 @@ export class PaginatedTeamsResolver {
 
     if (!currentUser.roles.includes(Role.Admin)) {
       if (regionsIds) {
-        if (regionsIds.some((id) => !currentUser.regions.includes(id))) {
-          throw new BadRequestException(
-            'You can only access teams from your regions.',
-          );
-        }
+        await this.authService.checkRegionManagerPermissions(
+          currentUser,
+          async () => regionsIds,
+        );
       } else {
         regionsIds = currentUser.regions;
       }

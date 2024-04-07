@@ -7,14 +7,18 @@ import { Role } from './roles.eum';
 export class AuthService {
   async checkRegionManagerPermissions(
     user: UserDetails,
-    fn: () => Promise<number>,
+    fn: () => Promise<number | number[]>,
     forbiddenDescription: string = 'Region ID does not match the Region Manager permissions.',
   ): Promise<void> {
-    if (
-      user.roles.includes(Role.RegionManager) &&
-      !user.regions.includes(await fn())
-    ) {
-      throw new ForbiddenException(forbiddenDescription);
+    if (user.roles.includes(Role.RegionManager)) {
+      let regionsIds = await fn();
+      if (!Array.isArray(regionsIds)) {
+        regionsIds = [regionsIds];
+      }
+
+      if (!regionsIds.every((id) => user.regions.includes(id))) {
+        throw new ForbiddenException(forbiddenDescription);
+      }
     }
   }
 
