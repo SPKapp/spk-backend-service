@@ -37,14 +37,14 @@ export class FirebaseAuthGuard implements CanActivate {
     // claims.roles = [Role.RegionManager]; //TODO: Remove testing data
     claims.roles = [Role.Admin]; //TODO: Remove testing data
 
-    request.user = {
+    request.user = new UserDetails({
       uid: claims.uid,
       email: claims.email,
       roles: claims.roles || [],
       phone: claims.phone_number,
       // regions: claims.regions
       regions: [2, 10], //TODO: Remove testing data
-    } as UserDetails;
+    });
 
     const requiredRoles: Role[] = this.reflector.getAllAndOverride<Role[]>(
       ROLES_KEY,

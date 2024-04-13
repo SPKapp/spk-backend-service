@@ -53,7 +53,7 @@ export class RegionsResolver {
   ) {
     let region: Region | null = null;
 
-    if (!currentUser.roles.includes(Role.Admin)) {
+    if (!currentUser.isAdmin) {
       await this.authService.checkRegionManagerPermissions(
         currentUser,
         async () => {

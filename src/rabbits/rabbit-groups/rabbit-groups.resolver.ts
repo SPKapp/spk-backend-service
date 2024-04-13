@@ -42,7 +42,7 @@ export class RabbitGroupsResolver {
 
     let rabbitGroup: RabbitGroup | null = null;
 
-    if (currentUser.roles.includes(Role.Admin)) {
+    if (currentUser.isAdmin) {
       rabbitGroup = await this.rabbitGroupsService.findOne(id);
       if (!rabbitGroup) {
         throw new NotFoundException(`Rabbit Group with ID ${id} not found`);
@@ -79,10 +79,6 @@ export class RabbitGroupsResolver {
     return rabbitGroup;
   }
 
-  @FirebaseAuth(Role.Admin, Role.RegionManager)
-  @Mutation(() => RabbitGroup, {
-    name: 'updateRabbitGroupTeam',
-  })
   /**
    * Updates the team for a specific rabbit group.
    *
@@ -93,15 +89,19 @@ export class RabbitGroupsResolver {
    * @throws {NotFoundException} if the rabbit group or team is not found.
    * @throws {BadRequestException} if the team is not active or the rabbit group has a different region than the team.
    */
+  @FirebaseAuth(Role.Admin, Role.RegionManager)
+  @Mutation(() => RabbitGroup, {
+    name: 'updateRabbitGroupTeam',
+  })
   async updateTeam(
-    @CurrentUser('teamId') currentUser: UserDetails,
+    @CurrentUser() currentUser: UserDetails,
     @Args('rabbitGroupId', { type: () => Int }) rabbitGroupId: number,
     @Args('teamId', { type: () => Int }) teamId: number,
   ) {
     return await this.rabbitGroupsService.updateTeam(
       rabbitGroupId,
       teamId,
-      currentUser.roles.includes(Role.Admin) ? undefined : currentUser.regions,
+      currentUser.isAdmin ? undefined : currentUser.regions,
     );
   }
 }

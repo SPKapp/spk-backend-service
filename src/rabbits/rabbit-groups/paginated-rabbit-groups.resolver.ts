@@ -35,7 +35,7 @@ export class PaginatedRabbitGroupsResolver {
   ): Promise<PaginatedRabbitGroups> {
     let regionsIds = args.regionsIds;
 
-    if (!currentUser.roles.includes(Role.Admin)) {
+    if (!currentUser.isAdmin) {
       if (regionsIds) {
         await this.authService.checkRegionManagerPermissions(
           currentUser,

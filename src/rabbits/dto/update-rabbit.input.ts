@@ -1,12 +1,17 @@
-import { InputType, Field, PartialType, ID } from '@nestjs/graphql';
+import { InputType, Field, PartialType, ID, OmitType } from '@nestjs/graphql';
 import { Transform } from 'class-transformer';
 
 import { CreateRabbitInput } from './create-rabbit.input';
 import { Gender } from '../entities/gender.enum';
 import { AdmissionType } from '../entities/admissionType.enum';
 
-@InputType()
-export class UpdateRabbitInput extends PartialType(CreateRabbitInput) {
+@InputType({
+  description:
+    'The input type for updating a rabbit. Fields: name, admissionType, fillingDate can be modified only by Admin or RegionManager.',
+})
+export class UpdateRabbitInput extends PartialType(
+  OmitType(CreateRabbitInput, ['rabbitGroupId', 'regionId'] as const),
+) {
   @Field(() => ID)
   @Transform(({ value }) => parseInt(value, 10))
   id: number;

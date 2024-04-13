@@ -79,41 +79,50 @@ export class RabbitsService {
     return await this.rabbitRespository.findOneBy({ id });
   }
 
-  async update(id: number, updateRabbitInput: UpdateRabbitInput) {
-    // TODO: Implement this method
-    const rabbit = await this.rabbitRespository.findOneBy({ id });
+  /**
+   * Updates a rabbit with the provided data.
+   * @param id - The ID of the rabbit to update.
+   * @param updateRabbitInput - The data to update the rabbit with.
+   * @param privileged - A boolean indicating if the user has privileged access.
+   * @param regionsIds - Optional array of region IDs to filter the region by.
+   * @param teamsIds - Optional array of team IDs to filter the team by.
+   * @returns The updated rabbit.
+   * @throws {NotFoundException} if the rabbit with the provided ID is not found.
+   * @throws {BadRequestException} if the provided data is invalid and cannot be updated.
+   */
+  async update(
+    id: number,
+    updateRabbitInput: UpdateRabbitInput,
+    privileged: boolean,
+    regionsIds?: number[],
+    teamsIds?: number[],
+  ) {
+    const rabbit = await this.rabbitRespository.findOneBy({
+      id,
+      rabbitGroup: {
+        region: { id: regionsIds ? In(regionsIds) : undefined },
+        team: { id: teamsIds ? In(teamsIds) : undefined },
+      },
+    });
     if (!rabbit) {
+      // TODO: Export comunicat to a constant
       throw new NotFoundException('Rabbit not found');
     }
 
-    // TODO: Add region update
+    rabbit.color = updateRabbitInput.color ?? rabbit.color;
+    rabbit.breed = updateRabbitInput.breed ?? rabbit.breed;
+    rabbit.gender = updateRabbitInput.gender ?? rabbit.gender;
+    rabbit.birthDate = updateRabbitInput.birthDate ?? rabbit.birthDate;
+    rabbit.confirmedBirthDate =
+      updateRabbitInput.confirmedBirthDate ?? rabbit.confirmedBirthDate;
+    rabbit.admissionDate =
+      updateRabbitInput.admissionDate ?? rabbit.admissionDate;
 
-    if (updateRabbitInput.name) {
-      rabbit.name = updateRabbitInput.name;
-    }
-    if (updateRabbitInput.color) {
-      rabbit.color = updateRabbitInput.color;
-    }
-    if (updateRabbitInput.breed) {
-      rabbit.breed = updateRabbitInput.breed;
-    }
-    if (updateRabbitInput.gender) {
-      rabbit.gender = updateRabbitInput.gender;
-    }
-    if (updateRabbitInput.birthDate) {
-      rabbit.birthDate = updateRabbitInput.birthDate;
-    }
-    if (typeof updateRabbitInput.confirmedBirthDate === 'boolean') {
-      rabbit.confirmedBirthDate = updateRabbitInput.confirmedBirthDate;
-    }
-    if (updateRabbitInput.admissionDate) {
-      rabbit.admissionDate = updateRabbitInput.admissionDate;
-    }
-    if (updateRabbitInput.admissionType) {
-      rabbit.admissionType = updateRabbitInput.admissionType;
-    }
-    if (updateRabbitInput.fillingDate) {
-      rabbit.fillingDate = updateRabbitInput.fillingDate;
+    if (privileged) {
+      rabbit.name = updateRabbitInput.name ?? rabbit.name;
+      rabbit.fillingDate = updateRabbitInput.fillingDate ?? rabbit.fillingDate;
+      rabbit.admissionType =
+        updateRabbitInput.admissionType ?? rabbit.admissionType;
     }
 
     try {

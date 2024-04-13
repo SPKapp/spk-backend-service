@@ -24,13 +24,28 @@ describe('RabbitsResolver', () => {
   let resolver: RabbitsResolver;
   let rabbitsService: RabbitsService;
 
-  const userDetailsTeplate: UserDetails = {
+  const userDetailsTeplate = new UserDetails({
     uid: '123',
     email: 'email1@example.com',
     phone: '123456789',
-    roles: [],
-    regions: [],
-  };
+  });
+
+  const userVolunteer = new UserDetails({
+    ...userDetailsTeplate,
+    roles: [Role.Volunteer],
+    teamId: 1,
+  });
+
+  const userRegionManager = new UserDetails({
+    ...userDetailsTeplate,
+    roles: [Role.RegionManager],
+    regions: [2],
+  });
+
+  const userAdmin = new UserDetails({
+    ...userDetailsTeplate,
+    roles: [Role.Admin],
+  });
 
   const rabbits = [
     new Rabbit({
@@ -58,6 +73,7 @@ describe('RabbitsResolver', () => {
           provide: RabbitsService,
           useValue: {
             create: jest.fn(() => rabbits[0]),
+            update: jest.fn(() => rabbits[0]),
             updateRabbitGroup: jest.fn(() => rabbits[0]),
           },
         },
@@ -104,11 +120,11 @@ describe('RabbitsResolver', () => {
     });
 
     it('should throw bad permissions error - wrong regionId', async () => {
-      const userDetails: UserDetails = {
+      const userDetails = new UserDetails({
         ...userDetailsTeplate,
         roles: [Role.RegionManager],
         regions: [2],
-      };
+      });
 
       await expect(
         resolver.createRabbit(userDetails, { ...newRabbit, regionId: 1 }),
@@ -120,14 +136,11 @@ describe('RabbitsResolver', () => {
     });
 
     it('should throw bad permissions error - wrong rabbitGroupId', async () => {
-      const userDetails: UserDetails = {
-        ...userDetailsTeplate,
-        roles: [Role.RegionManager],
-        regions: [2],
-      };
-
       await expect(
-        resolver.createRabbit(userDetails, { ...newRabbit, rabbitGroupId: 1 }),
+        resolver.createRabbit(userRegionManager, {
+          ...newRabbit,
+          rabbitGroupId: 1,
+        }),
       ).rejects.toThrow(
         new BadRequestException(
           'Region ID does not match the Region Manager permissions.',
@@ -136,13 +149,8 @@ describe('RabbitsResolver', () => {
     });
 
     it('should create a new rabbit', async () => {
-      const userDetails: UserDetails = {
-        ...userDetailsTeplate,
-        roles: [Role.Admin],
-      };
-
       await expect(
-        resolver.createRabbit(userDetails, { ...newRabbit, regionId: 1 }),
+        resolver.createRabbit(userAdmin, { ...newRabbit, regionId: 1 }),
       ).resolves.toEqual(rabbits[0]);
     });
   });
@@ -168,7 +176,56 @@ describe('RabbitsResolver', () => {
       expect(resolver.updateRabbit).toBeDefined();
     });
 
-    // TODO: Add tests
+    it('should call the service with the correct parameters - Admin', async () => {
+      const updateData = {
+        id: 1,
+        name: 'Rabbit 1',
+      };
+
+      await resolver.updateRabbit(userAdmin, updateData);
+
+      expect(rabbitsService.update).toHaveBeenCalledWith(
+        updateData.id,
+        updateData,
+        true,
+        undefined,
+        undefined,
+      );
+    });
+
+    it('should call the service with the correct parameters - RegionManager', async () => {
+      const updateData = {
+        id: 1,
+        name: 'Rabbit 1',
+      };
+
+      await resolver.updateRabbit(userRegionManager, updateData);
+
+      expect(rabbitsService.update).toHaveBeenCalledWith(
+        updateData.id,
+        updateData,
+        true,
+        [2],
+        undefined,
+      );
+    });
+
+    it('should call the service with the correct parameters - Volunteer', async () => {
+      const updateData = {
+        id: 1,
+        color: 'White',
+      };
+
+      await resolver.updateRabbit(userVolunteer, updateData);
+
+      expect(rabbitsService.update).toHaveBeenCalledWith(
+        updateData.id,
+        updateData,
+        false,
+        undefined,
+        [1],
+      );
+    });
   });
 
   describe('removeRabbit', () => {
@@ -185,12 +242,7 @@ describe('RabbitsResolver', () => {
     });
 
     it('should call the service with the correct parameters - Admin', async () => {
-      const userDetails: UserDetails = {
-        ...userDetailsTeplate,
-        roles: [Role.Admin],
-      };
-
-      await resolver.updateRabbitGroup(userDetails, 1, 2);
+      await resolver.updateRabbitGroup(userAdmin, 1, 2);
 
       expect(rabbitsService.updateRabbitGroup).toHaveBeenCalledWith(
         1,
@@ -200,13 +252,7 @@ describe('RabbitsResolver', () => {
     });
 
     it('should call the service with the correct parameters - RegionManager', async () => {
-      const userDetails: UserDetails = {
-        ...userDetailsTeplate,
-        roles: [Role.RegionManager],
-        regions: [2],
-      };
-
-      await resolver.updateRabbitGroup(userDetails, 1, 2);
+      await resolver.updateRabbitGroup(userRegionManager, 1, 2);
 
       expect(rabbitsService.updateRabbitGroup).toHaveBeenCalledWith(1, 2, [2]);
     });

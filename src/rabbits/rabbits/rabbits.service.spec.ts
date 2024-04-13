@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
+import { In } from 'typeorm';
 
 import { RabbitsService } from './rabbits.service';
 import { RabbitGroupsService } from '../rabbit-groups/rabbit-groups.service';
@@ -115,7 +116,103 @@ describe('RabbitsService', () => {
       expect(service.update).toBeDefined();
     });
 
-    // TODO: Add tests
+    it('should update a rabbit', async () => {
+      jest.spyOn(rabbitRepository, 'findOneBy').mockResolvedValue(rabbits[0]);
+
+      const updatedRabbit = { ...rabbits[0], name: 'Updated Rabbit 1' };
+      await expect(
+        service.update(
+          rabbits[0].id,
+          {
+            id: rabbits[0].id,
+            name: 'Updated Rabbit 1',
+          },
+          true,
+        ),
+      ).resolves.toEqual(updatedRabbit);
+
+      expect(rabbitRepository.findOneBy).toHaveBeenCalledWith({
+        id: 1,
+        rabbitGroup: {
+          region: {
+            id: undefined,
+          },
+          team: {
+            id: undefined,
+          },
+        },
+      });
+      expect(rabbitRepository.save).toHaveBeenCalledWith({
+        ...rabbits[0],
+        name: 'Updated Rabbit 1',
+      });
+    });
+
+    it('should throw NotFoundException if rabbit not found', async () => {
+      jest.spyOn(rabbitRepository, 'findOneBy').mockResolvedValue(null);
+
+      await expect(
+        service.update(
+          rabbits[0].id,
+          {
+            id: rabbits[0].id,
+            name: 'Updated Rabbit 1',
+          },
+          true,
+        ),
+      ).rejects.toThrow(new NotFoundException('Rabbit not found'));
+    });
+
+    it('should update a rabbit group with regionId ad teamId filter', async () => {
+      jest.spyOn(rabbitRepository, 'findOneBy').mockResolvedValue(rabbits[1]);
+
+      const updatedRabbit = { ...rabbits[1], name: 'Updated Rabbit 1' };
+      await expect(
+        service.update(
+          rabbits[1].id,
+          {
+            id: rabbits[1].id,
+            name: 'Updated Rabbit 1',
+          },
+          true,
+          [1],
+          [1],
+        ),
+      ).resolves.toEqual(updatedRabbit);
+
+      expect(rabbitRepository.findOneBy).toHaveBeenCalledWith({
+        id: 1,
+        rabbitGroup: {
+          region: {
+            id: In([1]),
+          },
+          team: {
+            id: In([1]),
+          },
+        },
+      });
+      expect(rabbitRepository.save).toHaveBeenCalledWith({
+        ...rabbits[1],
+        name: 'Updated Rabbit 1',
+      });
+    });
+
+    it('should not update privileged fields', async () => {
+      jest.spyOn(rabbitRepository, 'findOneBy').mockResolvedValue(rabbits[0]);
+
+      await expect(
+        service.update(
+          rabbits[0].id,
+          {
+            id: rabbits[0].id,
+            name: 'Updated Rabbit 1',
+          },
+          false,
+        ),
+      ).resolves.toEqual(rabbits[0]);
+
+      expect(rabbitRepository.save).toHaveBeenCalledWith(rabbits[0]);
+    });
   });
 
   describe('remove', () => {

@@ -42,7 +42,7 @@ export class RabbitsResolver {
       throw new BadRequestException('RegionId or RabbitGroupId is required');
     }
 
-    if (!currentUser.roles.includes(Role.Admin)) {
+    if (!currentUser.isAdmin) {
       await this.authService.checkRegionManagerPermissions(
         currentUser,
         async () => {
@@ -75,12 +75,30 @@ export class RabbitsResolver {
     return this.rabbitsService.findOne(id);
   }
 
+  /**
+   * Updates a rabbit.
+   *
+   * @param currentUser - The current user details.
+   * @param updateRabbitInput - The input data for updating the rabbit.
+   * @returns A promise that resolves to the updated rabbit.
+   * @throws {NotFoundException} if the rabbit with the provided ID is not found.
+   * @throws {BadRequestException} if the provided data is invalid and cannot be updated.
+   */
+  @FirebaseAuth(Role.Admin, Role.RegionManager, Role.Volunteer)
   @Mutation(() => Rabbit)
   updateRabbit(
+    @CurrentUser('teamId') currentUser: UserDetails,
     @Args('updateRabbitInput') updateRabbitInput: UpdateRabbitInput,
   ) {
-    // TODO: Implement this method
-    return this.rabbitsService.update(updateRabbitInput.id, updateRabbitInput);
+    const privileged = currentUser.isAtLeastRegionManager;
+
+    return this.rabbitsService.update(
+      updateRabbitInput.id,
+      updateRabbitInput,
+      privileged,
+      currentUser.isAdmin ? undefined : currentUser.regions,
+      privileged ? undefined : [currentUser.teamId],
+    );
   }
 
   @Mutation(() => Rabbit)
@@ -104,7 +122,7 @@ export class RabbitsResolver {
     name: 'updateRabbitRabbitGroup',
   })
   async updateRabbitGroup(
-    @CurrentUser('teamId') currentUser: UserDetails,
+    @CurrentUser() currentUser: UserDetails,
     @Args('rabbitId', { type: () => Int }) rabbitId: number,
     @Args('rabbitGroupId', { type: () => Int, nullable: true })
     rabbitGroupId?: number,
@@ -112,7 +130,7 @@ export class RabbitsResolver {
     return await this.rabbitsService.updateRabbitGroup(
       rabbitId,
       rabbitGroupId,
-      currentUser.roles.includes(Role.Admin) ? undefined : currentUser.regions,
+      currentUser.isAdmin ? undefined : currentUser.regions,
     );
   }
 }
