@@ -19,5 +19,6 @@ import { PaginatedRabbitGroupsResolver } from './rabbit-groups/paginated-rabbit-
     RabbitGroupsService,
     PaginatedRabbitGroupsResolver,
   ],
+  exports: [RabbitsService],
 })
 export class RabbitsModule {}

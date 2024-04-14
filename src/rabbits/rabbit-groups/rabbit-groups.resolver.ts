@@ -32,7 +32,7 @@ export class RabbitGroupsResolver {
   @FirebaseAuth(Role.Admin, Role.RegionManager, Role.Volunteer)
   @Query(() => RabbitGroup, { name: 'rabbitGroup' })
   async findOne(
-    @CurrentUser('teamId') currentUser: UserDetails,
+    @CurrentUser('ALL') currentUser: UserDetails,
     @Args('id', { type: () => Int }) id: number,
   ): Promise<RabbitGroup> {
     const ERROR_REGION_MANAGER =

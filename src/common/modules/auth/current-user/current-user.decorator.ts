@@ -19,9 +19,10 @@ export class getCurrentUserPipe implements PipeTransform {
   async transform(currentUser: UserDetails, metadata: ArgumentMetadata) {
     if (!metadata.data) return currentUser;
 
-    if (metadata.data.includes('teamId')) {
+    if (metadata.data.includes('ALL')) {
       const user = await this.usersService.findOneByUid(currentUser.uid);
 
+      currentUser.id = user.id;
       currentUser.teamId = user.team ? user.team.id : null;
 
       return currentUser;

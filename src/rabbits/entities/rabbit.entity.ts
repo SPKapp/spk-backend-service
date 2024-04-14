@@ -5,6 +5,7 @@ import {
   DeleteDateColumn,
   Entity,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -12,6 +13,7 @@ import {
 import { AdmissionType } from './admissionType.enum';
 import { RabbitGroup } from './rabbit-group.entity';
 import { Gender } from './gender.enum';
+import { RabbitNote } from '../../rabbit-notes/entities/rabbit-note.entity';
 
 @Entity()
 @ObjectType()
@@ -96,6 +98,9 @@ export class Rabbit {
   })
   @Field(() => RabbitGroup)
   rabbitGroup: RabbitGroup;
+
+  @OneToMany(() => RabbitNote, (rabbitNote) => rabbitNote.rabbit)
+  notes?: Promise<RabbitNote[]>;
 
   @CreateDateColumn()
   createdAt?: Date;

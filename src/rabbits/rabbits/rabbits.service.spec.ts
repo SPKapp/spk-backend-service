@@ -103,11 +103,51 @@ describe('RabbitsService', () => {
 
     it('should return a rabbit by id', () => {
       expect(service.findOne(1)).resolves.toEqual(rabbits[0]);
+
+      expect(rabbitRepository.findOneBy).toHaveBeenCalledWith({
+        id: 1,
+        rabbitGroup: {
+          region: {
+            id: undefined,
+          },
+          team: {
+            id: undefined,
+          },
+        },
+      });
     });
 
     it('should return null', () => {
       jest.spyOn(rabbitRepository, 'findOneBy').mockResolvedValue(null);
-      expect(service.findOne(1)).resolves.toBeNull();
+      expect(service.findOne(1, undefined, [1])).resolves.toBeNull();
+
+      expect(rabbitRepository.findOneBy).toHaveBeenCalledWith({
+        id: 1,
+        rabbitGroup: {
+          region: {
+            id: undefined,
+          },
+          team: {
+            id: In([1]),
+          },
+        },
+      });
+    });
+
+    it('should return a rabbit by id with regionId and teamId filter', () => {
+      expect(service.findOne(1, [1], [1])).resolves.toEqual(rabbits[0]);
+
+      expect(rabbitRepository.findOneBy).toHaveBeenCalledWith({
+        id: 1,
+        rabbitGroup: {
+          region: {
+            id: In([1]),
+          },
+          team: {
+            id: In([1]),
+          },
+        },
+      });
     });
   });
 

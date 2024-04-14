@@ -73,10 +73,22 @@ export class RabbitsService {
    * Finds a rabbit by its ID.
    *
    * @param id - The ID of the rabbit to find.
+   * @param regionsIds - Optional array of region IDs to filter the region by.
+   * @param teamsIds - Optional array of team IDs to filter the team by.
    * @returns A Promise that resolves to the found rabbit, or null if not found.
    */
-  async findOne(id: number): Promise<Rabbit | null> {
-    return await this.rabbitRespository.findOneBy({ id });
+  async findOne(
+    id: number,
+    regionsIds?: number[],
+    teamsIds?: number[],
+  ): Promise<Rabbit | null> {
+    return await this.rabbitRespository.findOneBy({
+      id,
+      rabbitGroup: {
+        region: { id: regionsIds ? In(regionsIds) : undefined },
+        team: { id: teamsIds ? In(teamsIds) : undefined },
+      },
+    });
   }
 
   /**

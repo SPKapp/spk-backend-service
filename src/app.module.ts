@@ -11,6 +11,7 @@ import { FirebaseModule } from './common/modules/firebase/firebase.module';
 import { AuthModule } from './common/modules/auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { RabbitsModule } from './rabbits/rabbits.module';
+import { RabbitNotesModule } from './rabbit-notes/rabbit-notes.module';
 
 import databaseConfig from './config/database.config';
 
@@ -39,14 +40,11 @@ import databaseConfig from './config/database.config';
     }),
 
     RegionsModule,
-
     FirebaseModule,
-
     AuthModule,
-
     UsersModule,
-
     RabbitsModule,
+    RabbitNotesModule,
   ],
 })
 export class AppModule {}

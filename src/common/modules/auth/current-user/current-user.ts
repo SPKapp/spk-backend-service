@@ -11,6 +11,7 @@ export class UserDetails {
   roles: Role[];
   regions?: number[];
   teamId?: number;
+  id?: number;
 
   /**
    * Checks if the current user is an admin.
@@ -46,5 +47,13 @@ export class UserDetails {
    */
   get isAtLeastRegionManager(): boolean {
     return this.isAdmin || this.isRegionManager;
+  }
+
+  checkRole(role: Role | Role[]): boolean {
+    if (Array.isArray(role)) {
+      return role.some((r) => this.roles.includes(r));
+    }
+
+    return this.roles.includes(role);
   }
 }

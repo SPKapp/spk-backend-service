@@ -87,7 +87,7 @@ export class RabbitsResolver {
   @FirebaseAuth(Role.Admin, Role.RegionManager, Role.Volunteer)
   @Mutation(() => Rabbit)
   updateRabbit(
-    @CurrentUser('teamId') currentUser: UserDetails,
+    @CurrentUser('ALL') currentUser: UserDetails,
     @Args('updateRabbitInput') updateRabbitInput: UpdateRabbitInput,
   ) {
     const privileged = currentUser.isAtLeastRegionManager;
