@@ -2,10 +2,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
 
 import {
+  userAdmin,
+  userRegionManager,
+  userVolunteer,
+} from '../../common/tests/user-details.template';
+import {
   AuthService,
   FirebaseAuthGuard,
-  Role,
-  UserDetails,
   getCurrentUserPipe,
 } from '../../common/modules/auth/auth.module';
 
@@ -23,29 +26,6 @@ import { Gender } from '../entities/gender.enum';
 describe('RabbitsResolver', () => {
   let resolver: RabbitsResolver;
   let rabbitsService: RabbitsService;
-
-  const userDetailsTeplate = new UserDetails({
-    uid: '123',
-    email: 'email1@example.com',
-    phone: '123456789',
-  });
-
-  const userVolunteer = new UserDetails({
-    ...userDetailsTeplate,
-    roles: [Role.Volunteer],
-    teamId: 1,
-  });
-
-  const userRegionManager = new UserDetails({
-    ...userDetailsTeplate,
-    roles: [Role.RegionManager],
-    regions: [2],
-  });
-
-  const userAdmin = new UserDetails({
-    ...userDetailsTeplate,
-    roles: [Role.Admin],
-  });
 
   const rabbits = [
     new Rabbit({
@@ -112,22 +92,14 @@ describe('RabbitsResolver', () => {
     });
 
     it('should throw an error if the regionId or rabbitGroupId is missing', async () => {
-      await expect(
-        resolver.createRabbit(userDetailsTeplate, newRabbit),
-      ).rejects.toThrow(
+      await expect(resolver.createRabbit(userAdmin, newRabbit)).rejects.toThrow(
         new BadRequestException('RegionId or RabbitGroupId is required'),
       );
     });
 
     it('should throw bad permissions error - wrong regionId', async () => {
-      const userDetails = new UserDetails({
-        ...userDetailsTeplate,
-        roles: [Role.RegionManager],
-        regions: [2],
-      });
-
       await expect(
-        resolver.createRabbit(userDetails, { ...newRabbit, regionId: 1 }),
+        resolver.createRabbit(userRegionManager, { ...newRabbit, regionId: 1 }),
       ).rejects.toThrow(
         new BadRequestException(
           'Region ID does not match the Region Manager permissions.',

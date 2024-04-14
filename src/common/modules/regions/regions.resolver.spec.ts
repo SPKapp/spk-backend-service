@@ -2,12 +2,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 
 import {
+  userAdmin,
+  userRegionManager,
+} from '../../tests/user-details.template';
+import {
   AuthService,
   FirebaseAuthGuard,
-  Role,
-  UserDetails,
   getCurrentUserPipe,
-} from '../auth/auth.module';
+} from '../../modules/auth/auth.module';
 
 import { RegionsResolver } from './regions.resolver';
 import { RegionsService } from './regions.service';
@@ -17,14 +19,6 @@ import { Region } from './entities/region.entity';
 describe('RegionResolver', () => {
   let resolver: RegionsResolver;
   let regionsService: RegionsService;
-
-  const userDetailsTeplate: UserDetails = {
-    uid: '123',
-    email: 'email1@example.com',
-    phone: '123456789',
-    roles: [],
-    regions: [],
-  };
 
   const regions = [new Region({ id: 1 }), new Region({ id: 2 })];
 
@@ -76,27 +70,16 @@ describe('RegionResolver', () => {
     });
 
     it('should throw not found error', async () => {
-      const userDetails: UserDetails = {
-        ...userDetailsTeplate,
-        roles: [Role.Admin],
-      };
-
       jest.spyOn(regionsService, 'findOne').mockResolvedValue(null);
 
-      await expect(resolver.findOne(userDetails, 1)).rejects.toThrow(
+      await expect(resolver.findOne(userAdmin, 1)).rejects.toThrow(
         new NotFoundException(`Region with ID 1 not found`),
       );
     });
 
     it('should throw bad permissions error', async () => {
-      const userDetails: UserDetails = {
-        ...userDetailsTeplate,
-        roles: [Role.RegionManager],
-        regions: [regions[1].id],
-      };
-
       await expect(
-        resolver.findOne(userDetails, regions[0].id),
+        resolver.findOne(userRegionManager, regions[0].id),
       ).rejects.toThrow(
         new ForbiddenException(
           'Region does not belong to the Region Manager permissions.',
@@ -105,14 +88,9 @@ describe('RegionResolver', () => {
     });
 
     it('should return a region', async () => {
-      const userDetails: UserDetails = {
-        ...userDetailsTeplate,
-        roles: [Role.Admin],
-      };
-
-      await expect(
-        resolver.findOne(userDetails, regions[0].id),
-      ).resolves.toEqual(regions[0]);
+      await expect(resolver.findOne(userAdmin, regions[0].id)).resolves.toEqual(
+        regions[0],
+      );
     });
   });
 

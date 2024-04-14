@@ -2,10 +2,15 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 
 import {
+  userAdmin,
+  userRegionManager,
+  userRegionManager2Regions,
+  userVolunteer,
+  userVolunteer2,
+} from '../../common/tests/user-details.template';
+import {
   AuthService,
   FirebaseAuthGuard,
-  Role,
-  UserDetails,
   getCurrentUserPipe,
 } from '../../common/modules/auth/auth.module';
 
@@ -20,14 +25,6 @@ import { RabbitGroup } from '../entities/rabbit-group.entity';
 describe('RabbitGroupsResolver', () => {
   let resolver: RabbitGroupsResolver;
   let rabbitGroupsService: RabbitGroupsService;
-
-  const userDetailsTeplate: UserDetails = {
-    uid: '123',
-    email: 'email1@example.com',
-    phone: '123456789',
-    roles: [],
-    regions: [],
-  };
 
   const rabbitGroup = new RabbitGroup({
     id: 1,
@@ -69,19 +66,15 @@ describe('RabbitGroupsResolver', () => {
     });
 
     it('should return a rabbit group', async () => {
-      const user = { ...userDetailsTeplate, roles: [Role.Admin] };
-
-      await expect(resolver.findOne(user, rabbitGroup.id)).resolves.toEqual(
-        rabbitGroup,
-      );
+      await expect(
+        resolver.findOne(userAdmin, rabbitGroup.id),
+      ).resolves.toEqual(rabbitGroup);
     });
 
     it('should throw a NotFoundException if the rabbit group does not exist', async () => {
-      const user = { ...userDetailsTeplate, roles: [Role.Admin] };
-
       jest.spyOn(rabbitGroupsService, 'findOne').mockResolvedValue(null);
 
-      await expect(resolver.findOne(user, rabbitGroup.id)).rejects.toThrow(
+      await expect(resolver.findOne(userAdmin, rabbitGroup.id)).rejects.toThrow(
         new NotFoundException(
           `Rabbit Group with ID ${rabbitGroup.id} not found`,
         ),
@@ -89,13 +82,9 @@ describe('RabbitGroupsResolver', () => {
     });
 
     it('should throw a ForbiddenException when the region manager does not have permissions', async () => {
-      const user = {
-        ...userDetailsTeplate,
-        roles: [Role.RegionManager],
-        regions: [2],
-      };
-
-      await expect(resolver.findOne(user, rabbitGroup.id)).rejects.toThrow(
+      await expect(
+        resolver.findOne(userRegionManager, rabbitGroup.id),
+      ).rejects.toThrow(
         new ForbiddenException(
           'Rabbit Group does not belong to the Region Manager permissions.',
         ),
@@ -103,25 +92,15 @@ describe('RabbitGroupsResolver', () => {
     });
 
     it('should return a rabbit group from the region manager', async () => {
-      const user = {
-        ...userDetailsTeplate,
-        roles: [Role.RegionManager],
-        regions: [1],
-      };
-
-      await expect(resolver.findOne(user, rabbitGroup.id)).resolves.toEqual(
-        rabbitGroup,
-      );
+      await expect(
+        resolver.findOne(userRegionManager2Regions, rabbitGroup.id),
+      ).resolves.toEqual(rabbitGroup);
     });
 
     it('should throw a ForbiddenException when the volunteer does not have permissions', async () => {
-      const user = {
-        ...userDetailsTeplate,
-        roles: [Role.Volunteer],
-        teamId: 2,
-      };
-
-      await expect(resolver.findOne(user, rabbitGroup.id)).rejects.toThrow(
+      await expect(
+        resolver.findOne(userVolunteer2, rabbitGroup.id),
+      ).rejects.toThrow(
         new ForbiddenException(
           'Rabbit Group does not belong to the Volunteer permissions.',
         ),
@@ -129,15 +108,9 @@ describe('RabbitGroupsResolver', () => {
     });
 
     it('should return a rabbit group from the volunteer', async () => {
-      const user = {
-        ...userDetailsTeplate,
-        roles: [Role.Volunteer],
-        teamId: 1,
-      };
-
-      await expect(resolver.findOne(user, rabbitGroup.id)).resolves.toEqual(
-        rabbitGroup,
-      );
+      await expect(
+        resolver.findOne(userVolunteer, rabbitGroup.id),
+      ).resolves.toEqual(rabbitGroup);
     });
   });
 
@@ -147,11 +120,10 @@ describe('RabbitGroupsResolver', () => {
     });
 
     it('should return a rabbit group as Admin', async () => {
-      const user = { ...userDetailsTeplate, roles: [Role.Admin] };
       const team = new Team({ id: 1 });
 
       await expect(
-        resolver.updateTeam(user, rabbitGroup.id, team.id),
+        resolver.updateTeam(userAdmin, rabbitGroup.id, team.id),
       ).resolves.toEqual(rabbitGroup);
 
       expect(rabbitGroupsService.updateTeam).toHaveBeenCalledWith(
@@ -162,21 +134,16 @@ describe('RabbitGroupsResolver', () => {
     });
 
     it('should return a rabbit group as Region Manager', async () => {
-      const user = {
-        ...userDetailsTeplate,
-        roles: [Role.RegionManager],
-        regions: [1],
-      };
       const team = new Team({ id: 1 });
 
       await expect(
-        resolver.updateTeam(user, rabbitGroup.id, team.id),
+        resolver.updateTeam(userRegionManager2Regions, rabbitGroup.id, team.id),
       ).resolves.toEqual(rabbitGroup);
 
       expect(rabbitGroupsService.updateTeam).toHaveBeenCalledWith(
         rabbitGroup.id,
         team.id,
-        [1],
+        [1, 3],
       );
     });
   });

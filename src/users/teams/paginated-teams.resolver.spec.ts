@@ -2,10 +2,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException } from '@nestjs/common';
 
 import {
+  userAdmin,
+  userRegionManager2Regions,
+} from '../../common/tests/user-details.template';
+import {
   AuthService,
   FirebaseAuthGuard,
-  Role,
-  UserDetails,
   getCurrentUserPipe,
 } from '../../common/modules/auth/auth.module';
 
@@ -18,14 +20,6 @@ describe('PaginatedTeamsResolver', () => {
   let teamsService: TeamsService;
 
   const teams = [new Team({ id: 1 }), new Team({ id: 2 })];
-
-  const userDetailsTeplate: UserDetails = {
-    uid: '123',
-    email: 'email1@example.com',
-    phone: '123456789',
-    roles: [],
-    regions: [],
-  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -61,13 +55,8 @@ describe('PaginatedTeamsResolver', () => {
     });
 
     it('should return all teams if the user is an Admin', async () => {
-      const userDetails: UserDetails = {
-        ...userDetailsTeplate,
-        roles: [Role.Admin],
-      };
-
       await expect(
-        resolver.findAll(userDetails, { offset: 0, limit: 10 }),
+        resolver.findAll(userAdmin, { offset: 0, limit: 10 }),
       ).resolves.toEqual({
         data: teams,
         offset: 0,
@@ -81,13 +70,8 @@ describe('PaginatedTeamsResolver', () => {
     });
 
     it('should return all teams if the user is an Admin and regionsIds are provided', async () => {
-      const userDetails: UserDetails = {
-        ...userDetailsTeplate,
-        roles: [Role.Admin],
-      };
-
       await expect(
-        resolver.findAll(userDetails, {
+        resolver.findAll(userAdmin, {
           offset: 0,
           limit: 10,
           regionsIds: [1],
@@ -105,38 +89,26 @@ describe('PaginatedTeamsResolver', () => {
     });
 
     it('should return all teams from the user regions if the user is a Region Manager', async () => {
-      const userDetails: UserDetails = {
-        ...userDetailsTeplate,
-        roles: [Role.RegionManager],
-        regions: [1, 2],
-      };
-
       await expect(
-        resolver.findAll(userDetails, { offset: 0, limit: 10 }),
+        resolver.findAll(userRegionManager2Regions, { offset: 0, limit: 10 }),
       ).resolves.toEqual({
         data: teams,
         offset: 0,
         limit: 10,
         transferToFieds: {
-          regionsIds: [1, 2],
+          regionsIds: [1, 3],
         },
       });
 
-      expect(teamsService.findAll).toHaveBeenCalledWith([1, 2], 0, 10);
+      expect(teamsService.findAll).toHaveBeenCalledWith([1, 3], 0, 10);
     });
 
     it('should throw a BadRequestException if the user is a Region Manager and tries to access teams from other regions', async () => {
-      const userDetails: UserDetails = {
-        ...userDetailsTeplate,
-        roles: [Role.RegionManager],
-        regions: [1, 2],
-      };
-
       await expect(
-        resolver.findAll(userDetails, {
+        resolver.findAll(userRegionManager2Regions, {
           offset: 0,
           limit: 10,
-          regionsIds: [3],
+          regionsIds: [2],
         }),
       ).rejects.toThrow(
         new ForbiddenException(
@@ -146,14 +118,8 @@ describe('PaginatedTeamsResolver', () => {
     });
 
     it('should return all teams from the user regions if the user is a Region Manager and regionsIds are provided', async () => {
-      const userDetails: UserDetails = {
-        ...userDetailsTeplate,
-        roles: [Role.RegionManager],
-        regions: [1, 2],
-      };
-
       await expect(
-        resolver.findAll(userDetails, {
+        resolver.findAll(userRegionManager2Regions, {
           offset: 0,
           limit: 10,
           regionsIds: [1],

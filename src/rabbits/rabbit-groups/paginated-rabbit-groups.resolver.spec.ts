@@ -2,10 +2,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException } from '@nestjs/common';
 
 import {
+  userAdmin,
+  userRegionManager,
+} from '../../common/tests/user-details.template';
+import {
   AuthService,
   FirebaseAuthGuard,
-  Role,
-  UserDetails,
   getCurrentUserPipe,
 } from '../../common/modules/auth/auth.module';
 
@@ -15,14 +17,6 @@ import { RabbitGroupsService } from './rabbit-groups.service';
 describe('PaginatedRabbitGroupsResolver', () => {
   let resolver: PaginatedRabbitGroupsResolver;
   let rabbitGroupsService: RabbitGroupsService;
-
-  const userDetailsTeplate: UserDetails = {
-    uid: '123',
-    email: 'email1@example.com',
-    phone: '123456789',
-    roles: [],
-    regions: [],
-  };
 
   const paginatedRabbitGroups = {
     data: [],
@@ -66,14 +60,8 @@ describe('PaginatedRabbitGroupsResolver', () => {
     });
 
     it('should throw bad permissions error', async () => {
-      const userDetails: UserDetails = {
-        ...userDetailsTeplate,
-        roles: [Role.RegionManager],
-        regions: [2],
-      };
-
       await expect(
-        resolver.findAll(userDetails, {
+        resolver.findAll(userRegionManager, {
           regionsIds: [1],
           offset: 0,
           limit: 10,
@@ -86,36 +74,25 @@ describe('PaginatedRabbitGroupsResolver', () => {
     });
 
     it('should return paginated rabbit groups from Region manager', async () => {
-      const userDetails: UserDetails = {
-        ...userDetailsTeplate,
-        roles: [Role.RegionManager],
-        regions: [2],
-      };
-
       await expect(
-        resolver.findAll(userDetails, { offset: 0, limit: 10 }),
+        resolver.findAll(userRegionManager, { offset: 0, limit: 10 }),
       ).resolves.toEqual({
         ...paginatedRabbitGroups,
         transferToFieds: {
-          regionsIds: userDetails.regions,
+          regionsIds: userRegionManager.regions,
         },
       });
 
       expect(rabbitGroupsService.findAllPaginated).toHaveBeenCalledWith(
         0,
         10,
-        userDetails.regions,
+        userRegionManager.regions,
       );
     });
 
     it('should return paginated rabbit groups', async () => {
-      const userDetails: UserDetails = {
-        ...userDetailsTeplate,
-        roles: [Role.Admin],
-      };
-
       await expect(
-        resolver.findAll(userDetails, { offset: 0, limit: 10 }),
+        resolver.findAll(userAdmin, { offset: 0, limit: 10 }),
       ).resolves.toEqual({
         ...paginatedRabbitGroups,
         transferToFieds: {

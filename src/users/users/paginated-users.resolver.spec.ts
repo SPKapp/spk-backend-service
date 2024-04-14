@@ -2,10 +2,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException } from '@nestjs/common';
 
 import {
+  userAdmin,
+  userRegionManager,
+} from '../../common/tests/user-details.template';
+import {
   AuthService,
   FirebaseAuthGuard,
-  Role,
-  UserDetails,
   getCurrentUserPipe,
 } from '../../common/modules/auth/auth.module';
 
@@ -17,14 +19,6 @@ import { User } from '../entities/user.entity';
 describe('PaginatedUsersResolver', () => {
   let resolver: PaginatedUsersResolver;
   let usersService: UsersService;
-
-  const userDetailsTeplate: UserDetails = {
-    uid: '123',
-    email: 'email1@example.com',
-    phone: '123456789',
-    roles: [],
-    regions: [],
-  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -60,14 +54,12 @@ describe('PaginatedUsersResolver', () => {
     });
 
     it('should throw bad permissions error', async () => {
-      const userDetails: UserDetails = {
-        ...userDetailsTeplate,
-        roles: [Role.RegionManager],
-        regions: [2],
-      };
-
       await expect(
-        resolver.findAll(userDetails, { offset: 0, limit: 10, regionId: 1 }),
+        resolver.findAll(userRegionManager, {
+          offset: 0,
+          limit: 10,
+          regionId: 1,
+        }),
       ).rejects.toThrow(
         new ForbiddenException(
           'Region ID does not match the Region Manager permissions.',
@@ -76,16 +68,11 @@ describe('PaginatedUsersResolver', () => {
     });
 
     it('should find all users from Region', async () => {
-      const userDetails: UserDetails = {
-        ...userDetailsTeplate,
-        roles: [Role.Admin],
-      };
-
       const users = [new User({ id: 1 })];
       jest.spyOn(usersService, 'findAll').mockResolvedValue(users);
 
       await expect(
-        resolver.findAll(userDetails, { offset: 0, limit: 10, regionId: 1 }),
+        resolver.findAll(userAdmin, { offset: 0, limit: 10, regionId: 1 }),
       ).resolves.toEqual({
         data: users,
         offset: 0,
@@ -96,16 +83,11 @@ describe('PaginatedUsersResolver', () => {
     });
 
     it('should find all users', async () => {
-      const userDetails: UserDetails = {
-        ...userDetailsTeplate,
-        roles: [Role.Admin],
-      };
-
       const users = [new User({ id: 1 })];
       jest.spyOn(usersService, 'findAll').mockResolvedValue(users);
 
       await expect(
-        resolver.findAll(userDetails, { offset: 0, limit: 10 }),
+        resolver.findAll(userAdmin, { offset: 0, limit: 10 }),
       ).resolves.toEqual({
         data: users,
         offset: 0,

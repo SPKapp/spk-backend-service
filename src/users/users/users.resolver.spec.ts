@@ -2,10 +2,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 
 import {
+  userAdmin,
+  userRegionManager,
+  userRegionManager2Regions,
+} from '../../common/tests/user-details.template';
+import {
   AuthService,
   FirebaseAuthGuard,
-  Role,
-  UserDetails,
   getCurrentUserPipe,
 } from '../../common/modules/auth/auth.module';
 
@@ -21,14 +24,6 @@ import { Team } from '../entities/team.entity';
 describe('UsersResolver', () => {
   let resolver: UsersResolver;
   let usersService: UsersService;
-
-  const userDetailsTeplate: UserDetails = {
-    uid: '123',
-    email: 'email1@example.com',
-    phone: '123456789',
-    roles: [],
-    regions: [],
-  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -82,14 +77,9 @@ describe('UsersResolver', () => {
     });
 
     describe('Admin', () => {
-      const userDetails: UserDetails = {
-        ...userDetailsTeplate,
-        roles: [Role.Admin],
-      };
-
       it('should throw no regionId error', async () => {
         await expect(
-          resolver.createUser(userDetails, { ...user }),
+          resolver.createUser(userAdmin, { ...user }),
         ).rejects.toThrow(
           new BadRequestException(
             'Region ID is required for Admin and Region Manager with more than 1 region.',
@@ -99,7 +89,7 @@ describe('UsersResolver', () => {
       });
 
       it('should create user', async () => {
-        const result = await resolver.createUser(userDetails, {
+        const result = await resolver.createUser(userAdmin, {
           ...user,
           regionId: 1,
         });
@@ -109,14 +99,9 @@ describe('UsersResolver', () => {
     });
 
     describe('Region Manager', () => {
-      const userDetails: UserDetails = {
-        ...userDetailsTeplate,
-        roles: [Role.RegionManager],
-      };
-
       it('should throw no regionId error', async () => {
         await expect(
-          resolver.createUser({ ...userDetails, regions: [1, 2] }, { ...user }),
+          resolver.createUser(userRegionManager2Regions, { ...user }),
         ).rejects.toThrow(
           new BadRequestException(
             'Region ID is required for Admin and Region Manager with more than 1 region.',
@@ -127,10 +112,7 @@ describe('UsersResolver', () => {
 
       it('should throw wrong regionId error', async () => {
         await expect(
-          resolver.createUser(
-            { ...userDetails, regions: [2] },
-            { ...user, regionId: 1 },
-          ),
+          resolver.createUser(userRegionManager, { ...user, regionId: 1 }),
         ).rejects.toThrow(
           new ForbiddenException(
             'Region ID does not match the Region Manager permissions.',
@@ -140,22 +122,18 @@ describe('UsersResolver', () => {
       });
 
       it('should create user - more than one region', async () => {
-        const result = await resolver.createUser(
-          { ...userDetails, regions: [1, 2] },
-          {
-            ...user,
-            regionId: 1,
-          },
-        );
+        const result = await resolver.createUser(userRegionManager2Regions, {
+          ...user,
+          regionId: 1,
+        });
         expect(result).toEqual(new User(user));
         expect(createSpy).toHaveBeenCalled();
       });
 
       it('should create user - one region', async () => {
-        const result = await resolver.createUser(
-          { ...userDetails, regions: [2] },
-          { ...user },
-        );
+        const result = await resolver.createUser(userRegionManager, {
+          ...user,
+        });
         expect(result).toEqual(new User(user));
         expect(createSpy).toHaveBeenCalled();
       });
@@ -168,12 +146,6 @@ describe('UsersResolver', () => {
     });
 
     it('should throw bad permissions error', async () => {
-      const userDetails: UserDetails = {
-        ...userDetailsTeplate,
-        roles: [Role.RegionManager],
-        regions: [2],
-      };
-
       jest.spyOn(usersService, 'findOne').mockResolvedValue(
         new User({
           id: 1,
@@ -184,7 +156,7 @@ describe('UsersResolver', () => {
         }),
       );
 
-      await expect(resolver.findOne(userDetails, 1)).rejects.toThrow(
+      await expect(resolver.findOne(userRegionManager, 1)).rejects.toThrow(
         new ForbiddenException(
           'User does not belong to the Region Manager permissions.',
         ),
@@ -192,16 +164,11 @@ describe('UsersResolver', () => {
     });
 
     it('should find user', async () => {
-      const userDetails: UserDetails = {
-        ...userDetailsTeplate,
-        roles: [Role.Admin],
-      };
-
       jest
         .spyOn(usersService, 'findOne')
         .mockResolvedValue(new User({ id: 1 }));
 
-      await expect(resolver.findOne(userDetails, 1)).resolves.toEqual({
+      await expect(resolver.findOne(userAdmin, 1)).resolves.toEqual({
         id: 1,
       });
     });
@@ -213,12 +180,6 @@ describe('UsersResolver', () => {
     });
 
     it('should throw bad permissions error', async () => {
-      const userDetails: UserDetails = {
-        ...userDetailsTeplate,
-        roles: [Role.RegionManager],
-        regions: [2],
-      };
-
       jest.spyOn(usersService, 'findOne').mockResolvedValue(
         new User({
           id: 1,
@@ -229,7 +190,9 @@ describe('UsersResolver', () => {
         }),
       );
 
-      await expect(resolver.updateUser(userDetails, { id: 1 })).rejects.toThrow(
+      await expect(
+        resolver.updateUser(userRegionManager, { id: 1 }),
+      ).rejects.toThrow(
         new ForbiddenException(
           'User does not belong to the Region Manager permissions.',
         ),
@@ -237,13 +200,8 @@ describe('UsersResolver', () => {
     });
 
     it('should update user', async () => {
-      const userDetails: UserDetails = {
-        ...userDetailsTeplate,
-        roles: [Role.Admin],
-      };
-
       await expect(
-        resolver.updateUser(userDetails, { id: 1, firstname: 'John' }),
+        resolver.updateUser(userAdmin, { id: 1, firstname: 'John' }),
       ).resolves.toEqual({ id: 1, firstname: 'John' });
     });
   });
@@ -254,12 +212,6 @@ describe('UsersResolver', () => {
     });
 
     it('should throw bad permissions error', async () => {
-      const userDetails: UserDetails = {
-        ...userDetailsTeplate,
-        roles: [Role.RegionManager],
-        regions: [2],
-      };
-
       jest.spyOn(usersService, 'findOne').mockResolvedValue(
         new User({
           id: 1,
@@ -270,7 +222,7 @@ describe('UsersResolver', () => {
         }),
       );
 
-      await expect(resolver.removeUser(userDetails, 1)).rejects.toThrow(
+      await expect(resolver.removeUser(userRegionManager, 1)).rejects.toThrow(
         new ForbiddenException(
           'User does not belong to the Region Manager permissions.',
         ),
@@ -278,12 +230,7 @@ describe('UsersResolver', () => {
     });
 
     it('should remove user', async () => {
-      const userDetails: UserDetails = {
-        ...userDetailsTeplate,
-        roles: [Role.Admin],
-      };
-
-      await expect(resolver.removeUser(userDetails, 1)).resolves.toEqual({
+      await expect(resolver.removeUser(userAdmin, 1)).resolves.toEqual({
         id: 1,
       });
     });
@@ -295,18 +242,13 @@ describe('UsersResolver', () => {
     });
 
     it('should find my profile', async () => {
-      const userDetails: UserDetails = {
-        ...userDetailsTeplate,
-        uid: '123',
-      };
-
       jest
         .spyOn(usersService, 'findOneByUid')
-        .mockResolvedValue(new User({ id: 1, firebaseUid: userDetails.uid }));
+        .mockResolvedValue(new User({ id: 1, firebaseUid: userAdmin.uid }));
 
-      await expect(resolver.myProfile(userDetails)).resolves.toEqual({
+      await expect(resolver.myProfile(userAdmin)).resolves.toEqual({
         id: 1,
-        firebaseUid: userDetails.uid,
+        firebaseUid: userAdmin.uid,
       });
     });
   });
@@ -317,19 +259,14 @@ describe('UsersResolver', () => {
     });
 
     it('should update my profile', async () => {
-      const userDetails: UserDetails = {
-        ...userDetailsTeplate,
-        uid: '123',
-      };
-
       jest
         .spyOn(usersService, 'findOneByUid')
         .mockResolvedValue(
-          new User({ id: 1, firebaseUid: userDetails.uid, lastname: 'Doe' }),
+          new User({ id: 1, firebaseUid: userAdmin.uid, lastname: 'Doe' }),
         );
       const templateUser = {
         id: 1,
-        firebaseUid: userDetails.uid,
+        firebaseUid: userAdmin.uid,
         lastname: 'Doe',
       };
       const user = {
@@ -339,7 +276,7 @@ describe('UsersResolver', () => {
       jest.spyOn(usersService, 'update').mockResolvedValue(new User(user));
 
       await expect(
-        resolver.updateMyProfile(userDetails, templateUser),
+        resolver.updateMyProfile(userAdmin, templateUser),
       ).resolves.toEqual(user);
     });
   });
