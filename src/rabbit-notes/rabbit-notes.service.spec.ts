@@ -58,6 +58,7 @@ describe('RabbitNotesService', () => {
             findOne: jest.fn(),
             findOneBy: jest.fn(),
             save: jest.fn((data) => data),
+            softRemove: jest.fn(),
           },
         },
         {
@@ -182,17 +183,11 @@ describe('RabbitNotesService', () => {
     });
 
     it('should update a rabbit note without a vet visit', async () => {
-      jest
-        .spyOn(rabbitNoteRepository, 'findOneBy')
-        .mockResolvedValueOnce(rabbitNote);
+      jest.spyOn(service, 'findOne').mockResolvedValueOnce(rabbitNote);
 
       await expect(
         service.update(updateRabbitNote.id, updateRabbitNote),
       ).resolves.toEqual(updatedRabbitNote);
-
-      expect(rabbitNoteRepository.findOneBy).toHaveBeenCalledWith({
-        id: updateRabbitNote.id,
-      });
 
       expect(rabbitNoteRepository.save).toHaveBeenCalledWith({
         ...rabbitNote,
@@ -202,16 +197,12 @@ describe('RabbitNotesService', () => {
 
     it('should update a rabbit note with a vet visit', async () => {
       jest
-        .spyOn(rabbitNoteRepository, 'findOneBy')
+        .spyOn(service, 'findOne')
         .mockResolvedValueOnce(rabbitNoteWithVetVisit);
 
       await expect(
         service.update(updateRabbitNote.id, updateRabbitNoteWithVetVisit),
       ).resolves.toEqual(updatedRabbitNoteWithVetVisit);
-
-      expect(rabbitNoteRepository.findOneBy).toHaveBeenCalledWith({
-        id: updateRabbitNote.id,
-      });
 
       expect(rabbitNoteRepository.save).toHaveBeenCalledWith(
         updatedRabbitNoteWithVetVisit,
@@ -219,7 +210,7 @@ describe('RabbitNotesService', () => {
     });
 
     it('should throw an error when the rabbit note is not found', async () => {
-      jest.spyOn(rabbitNoteRepository, 'findOneBy').mockResolvedValue(null);
+      jest.spyOn(service, 'findOne').mockResolvedValue(null);
 
       await expect(
         service.update(updateRabbitNote.id, updateRabbitNote),
@@ -227,9 +218,7 @@ describe('RabbitNotesService', () => {
     });
 
     it('should throw an error when trying to add a vet visit to a note without it', async () => {
-      jest
-        .spyOn(rabbitNoteRepository, 'findOneBy')
-        .mockResolvedValueOnce(rabbitNote);
+      jest.spyOn(service, 'findOne').mockResolvedValueOnce(rabbitNote);
 
       await expect(
         service.update(updateRabbitNote.id, updateRabbitNoteWithVetVisit),
@@ -246,7 +235,23 @@ describe('RabbitNotesService', () => {
       expect(service.remove).toBeDefined();
     });
 
-    // TODO: Add tests for remove
+    it('should remove a rabbit note', async () => {
+      jest.spyOn(service, 'findOne').mockResolvedValueOnce(rabbitNote);
+
+      await expect(service.remove(rabbitNote.id)).resolves.toBeUndefined();
+
+      expect(rabbitNoteRepository.softRemove).toHaveBeenCalledWith(rabbitNote);
+    });
+
+    it('should throw an error when the rabbit note is not found', async () => {
+      jest.spyOn(service, 'findOne').mockResolvedValue(null);
+
+      await expect(service.remove(rabbitNote.id)).rejects.toThrow(
+        new NotFoundException('RabbitNote not found'),
+      );
+
+      expect(rabbitNoteRepository.softRemove).not.toHaveBeenCalled();
+    });
   });
 
   describe('updateRabbit', () => {

@@ -58,6 +58,7 @@ describe('RabbitNotesResolver', () => {
             create: jest.fn(() => rabbitNote),
             findOne: jest.fn(() => rabbitNote),
             update: jest.fn(() => rabbitNote),
+            remove: jest.fn(),
           },
         },
       ],
@@ -147,73 +148,120 @@ describe('RabbitNotesResolver', () => {
       description: rabbitNote.description,
       vetVisit: { date: rabbitNote.vetVisit.date },
     };
+    let verifyEditAccessSpy: jest.SpyInstance;
 
     beforeEach(() => {
       jest.spyOn(rabbitNoteService, 'findOne').mockResolvedValue(rabbitNote);
+      // @ts-expect-error - testing private method
+      verifyEditAccessSpy = jest.spyOn(resolver, 'validateEditAccess');
     });
 
     it('should be defined', () => {
       expect(resolver.updateRabbitNote).toBeDefined();
     });
 
-    it('should update a rabbit note - admin', async () => {
+    it('should update a rabbit note', async () => {
       await expect(
         resolver.updateRabbitNote(userAdmin, updateRabbitNoteInput),
       ).resolves.toEqual(rabbitNote);
 
-      expect(rabbitNoteService.findOne).not.toHaveBeenCalled();
+      expect(rabbitNoteService.update).toHaveBeenCalledWith(
+        rabbitNote.id,
+        updateRabbitNoteInput,
+      );
+
+      expect(verifyEditAccessSpy).toHaveBeenCalledWith(userAdmin, 1);
+    });
+  });
+
+  describe('removeRabbitNote', () => {
+    let verifyEditAccessSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      // @ts-expect-error - testing private method
+      verifyEditAccessSpy = jest.spyOn(resolver, 'validateEditAccess');
     });
 
-    it('should update a rabbit note - region manager', async () => {
-      await expect(
-        resolver.updateRabbitNote(
-          userRegionManager2Regions,
-          updateRabbitNoteInput,
-        ),
-      ).resolves.toEqual(rabbitNote);
-
-      expect(rabbitNoteService.findOne).toHaveBeenCalled();
+    it('should be defined', () => {
+      expect(resolver.removeRabbitNote).toBeDefined();
     });
 
-    it('should throw permission error when wrong region manager tries to update', async () => {
+    it('should remove a rabbit note', async () => {
+      await expect(resolver.removeRabbitNote(userAdmin, '1')).resolves.toEqual({
+        id: 1,
+      });
+
+      expect(rabbitNoteService.remove).toHaveBeenCalledWith(1);
+      expect(verifyEditAccessSpy).toHaveBeenCalledWith(userAdmin, 1);
+    });
+  });
+
+  describe('validateEditAccess', () => {
+    it('should be defined', () => {
+      // @ts-expect-error - testing private method
+      expect(resolver.validateEditAccess).toBeDefined();
+    });
+
+    it('should allow admin', async () => {
       await expect(
-        resolver.updateRabbitNote(userRegionManager, updateRabbitNoteInput),
+        // @ts-expect-error - testing private method
+        resolver.validateEditAccess(userAdmin, 1),
+      ).resolves.toBeUndefined();
+    });
+
+    it('should allow region manager', async () => {
+      await expect(
+        // @ts-expect-error - testing private method
+        resolver.validateEditAccess(userRegionManager2Regions, 1),
+      ).resolves.toBeUndefined();
+    });
+
+    it('should throw permission error when region manager does not have access to the region', async () => {
+      await expect(
+        // @ts-expect-error - testing private method
+        resolver.validateEditAccess(userRegionManager, 1),
       ).rejects.toThrow(
         new ForbiddenException('User is not allowed to update the note'),
       );
-
-      expect(rabbitNoteService.findOne).toHaveBeenCalled();
     });
 
-    it('should update a rabbit note - volunteer', async () => {
+    it('should allow volunteer', async () => {
       await expect(
-        resolver.updateRabbitNote(userVolunteer, updateRabbitNoteInput),
-      ).resolves.toEqual(rabbitNote);
-
-      expect(rabbitNoteService.findOne).toHaveBeenCalled();
+        // @ts-expect-error - testing private method
+        resolver.validateEditAccess(userVolunteer, 1),
+      ).resolves.toBeUndefined();
     });
 
-    it('should update a rabbit note - region observer', async () => {
+    it('should allow region observer', async () => {
       await expect(
-        resolver.updateRabbitNote(userRegionObserver, updateRabbitNoteInput),
-      ).resolves.toEqual(rabbitNote);
-
-      expect(rabbitNoteService.findOne).toHaveBeenCalled();
+        // @ts-expect-error - testing private method
+        resolver.validateEditAccess(userRegionObserver, 1),
+      ).resolves.toBeUndefined();
     });
 
-    it('should throw permission error when user is not allowed to update the note', async () => {
+    it('should throw permission error when user cannot edit the note', async () => {
       jest.spyOn(rabbitNoteService, 'findOne').mockResolvedValue({
         ...rabbitNote,
-        user: new User({ id: 1, firebaseUid: '456' }),
+        user: new User({ id: 2, firebaseUid: '456' }),
       });
 
       await expect(
-        resolver.updateRabbitNote(userVolunteer, updateRabbitNoteInput),
+        // @ts-expect-error - testing private method
+        resolver.validateEditAccess(userRegionObserver, 1),
       ).rejects.toThrow(
         new ForbiddenException('User is not allowed to update the note'),
       );
+    });
 
-      expect(rabbitNoteService.findOne).toHaveBeenCalled();
+    it('should throw permission error when RabbitNote is not found', async () => {
+      jest.spyOn(rabbitNoteService, 'findOne').mockResolvedValue(null);
+
+      await expect(
+        // @ts-expect-error - testing private method
+        resolver.validateEditAccess(userRegionObserver, 1),
+      ).rejects.toThrow(
+        new ForbiddenException('User is not allowed to update the note'),
+      );
     });
   });
 });

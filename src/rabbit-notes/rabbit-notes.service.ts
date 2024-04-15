@@ -57,8 +57,29 @@ export class RabbitNotesService {
     return `This action returns all rabbitNotes`;
   }
 
-  async findOne(id: number): Promise<RabbitNote | null> {
-    return await this.rabbitNoteRepository.findOneBy({ id });
+  async findOne(
+    id: number,
+    params: {
+      withRabbit?: boolean;
+      withRegion?: boolean;
+      withUser?: boolean;
+    } = {},
+  ): Promise<RabbitNote | null> {
+    return await this.rabbitNoteRepository.findOne({
+      relations: {
+        vetVisit: true,
+        user: params.withUser,
+        rabbit:
+          params.withRabbit || params.withRegion
+            ? params.withRegion
+              ? {
+                  rabbitGroup: true,
+                }
+              : true
+            : false,
+      },
+      where: { id },
+    });
   }
 
   /**
@@ -75,7 +96,7 @@ export class RabbitNotesService {
     id: number,
     updateRabbitNoteInput: UpdateRabbitNoteInput,
   ): Promise<RabbitNote> {
-    const rabbitNote = await this.rabbitNoteRepository.findOneBy({ id });
+    const rabbitNote = await this.findOne(id, { withRabbit: true });
     if (!rabbitNote) {
       throw new NotFoundException('RabbitNote not found');
     }
@@ -126,8 +147,28 @@ export class RabbitNotesService {
     return result;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} rabbitNote`;
+  /**
+   * Removes a rabbit note by its ID.
+   *
+   * After removing the rabbit note, the corresponding rabbit's fields are recalculated.
+   *
+   * @param id - The ID of the rabbit note to remove.
+   * @returns A Promise that resolves to void.
+   * @throws {NotFoundException} if the rabbit note is not found.
+   */
+  @Transactional()
+  async remove(id: number): Promise<void> {
+    const rabbitNote = await this.findOne(id, { withRabbit: true });
+    if (!rabbitNote) {
+      throw new NotFoundException('RabbitNote not found');
+    }
+
+    const rabbitId = rabbitNote.rabbit.id;
+
+    await this.rabbitNoteRepository.softRemove(rabbitNote);
+
+    // Recalculate the rabbit's fields based on the new rabbit note
+    await this.updateRabbit(rabbitId);
   }
 
   /**
