@@ -1,4 +1,4 @@
-import { ObjectType, Field, ID } from '@nestjs/graphql';
+import { ObjectType, Field, ID, Float } from '@nestjs/graphql';
 import {
   Column,
   CreateDateColumn,
@@ -92,6 +92,61 @@ export class Rabbit {
     nullable: true,
   })
   fillingDate?: Date;
+
+  @Column({
+    type: 'numeric',
+    precision: 10,
+    scale: 3,
+    nullable: true,
+    comment: 'Can be set only by RabbitNote.',
+  })
+  @Field(() => Float, {
+    nullable: true,
+    description:
+      'The weight of the rabbit in kilograms. Can be set only by RabbitNote.',
+  })
+  weight?: number;
+
+  @Column({
+    nullable: true,
+    comment: 'Can be set only by RabbitNote.',
+  })
+  @Field({
+    nullable: true,
+    description:
+      'The number of the chip implanted in the rabbit. Can be set only by RabbitNote.',
+  })
+  chipNumber?: string;
+
+  @Column({
+    nullable: true,
+    comment: 'Can be set only by RabbitNote.',
+  })
+  @Field({
+    nullable: true,
+    description: 'The date of the castration. Can be set only by RabbitNote.',
+  })
+  castrationDate?: Date;
+
+  @Column({
+    nullable: true,
+    comment: 'Can be set only by RabbitNote.',
+  })
+  @Field({
+    nullable: true,
+    description: 'The date of the deworming. Can be set only by RabbitNote.',
+  })
+  dewormingDate?: Date;
+
+  @Column({
+    nullable: true,
+    comment: 'Can be set only by RabbitNote.',
+  })
+  @Field({
+    nullable: true,
+    description: 'The date of the vaccination. Can be set only by RabbitNote.',
+  })
+  vaccinationDate?: Date;
 
   @ManyToOne(() => RabbitGroup, (rabbitGroup) => rabbitGroup.rabbits, {
     eager: true,

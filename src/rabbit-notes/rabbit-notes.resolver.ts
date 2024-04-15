@@ -106,11 +106,60 @@ export class RabbitNotesResolver {
     return this.rabbitNotesService.findOne(id);
   }
 
+  /**
+   * Updates a rabbit note.
+   *
+   * @param currentUser - The current user details.
+   * @param updateRabbitNoteInput - The input data for updating the rabbit note.
+   * @returns A promise that resolves to the updated rabbit note.
+   * @throws {ForbiddenException} If the user is not allowed to update the note.
+   */
+  @FirebaseAuth(
+    Role.Admin,
+    Role.RegionManager,
+    Role.RegionObserver,
+    Role.Volunteer,
+  )
   @Mutation(() => RabbitNote)
-  updateRabbitNote(
+  async updateRabbitNote(
+    @CurrentUser() currentUser: UserDetails,
     @Args('updateRabbitNoteInput') updateRabbitNoteInput: UpdateRabbitNoteInput,
-  ) {
-    // TODO: Implement this method
+  ): Promise<RabbitNote> {
+    const error = new ForbiddenException(
+      'User is not allowed to update the note',
+    );
+    let allowed = false;
+
+    if (currentUser.checkRole(Role.Admin)) {
+      allowed = true;
+    } else {
+      const rabbitNote = await this.rabbitNotesService.findOne(
+        updateRabbitNoteInput.id,
+      );
+      if (!rabbitNote) {
+        throw error;
+      }
+
+      if (currentUser.checkRole(Role.RegionManager)) {
+        if (
+          currentUser.regions.includes(rabbitNote.rabbit.rabbitGroup.region.id)
+        ) {
+          allowed = true;
+        }
+      }
+      if (
+        !allowed &&
+        currentUser.checkRole([Role.RegionObserver, Role.Volunteer]) &&
+        rabbitNote.user.firebaseUid === currentUser.uid
+      ) {
+        allowed = true;
+      }
+    }
+
+    if (!allowed) {
+      throw error;
+    }
+
     return this.rabbitNotesService.update(
       updateRabbitNoteInput.id,
       updateRabbitNoteInput,

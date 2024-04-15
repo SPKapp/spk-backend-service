@@ -27,6 +27,7 @@ export class VisitInfo {
   @ManyToOne(() => VetVisit, (vetVisit) => vetVisit.visitInfo, {
     nullable: false,
     onDelete: 'CASCADE',
+    orphanedRowAction: 'delete',
   })
   vetVisit: VetVisit;
 

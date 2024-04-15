@@ -7,6 +7,7 @@ export enum VisitType {
   Treatment = 'Treatment',
   Operation = 'Operation',
   Castration = 'Castration',
+  Chip = 'Chip',
 }
 
 registerEnumType(VisitType, {

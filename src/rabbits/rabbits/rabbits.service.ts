@@ -12,6 +12,7 @@ import { RabbitGroupsService } from '../rabbit-groups/rabbit-groups.service';
 
 import { CreateRabbitInput } from '../dto/create-rabbit.input';
 import { UpdateRabbitInput } from '../dto/update-rabbit.input';
+import { UpdateRabbitNoteFieldsDto } from '../dto/update-rabbit-note-fields.input';
 import { Rabbit } from '../entities/rabbit.entity';
 import { RabbitGroup } from '../entities/rabbit-group.entity';
 
@@ -226,5 +227,26 @@ export class RabbitsService {
         throw error;
       }
     }
+  }
+
+  async updateRabbitNoteFields(
+    id: number,
+    updateDto: UpdateRabbitNoteFieldsDto,
+  ) {
+    const rabbit = await this.rabbitRespository.findOneBy({
+      id,
+    });
+    if (!rabbit) {
+      throw new NotFoundException('Rabbit not found');
+    }
+
+    rabbit.weight = updateDto.weight ?? rabbit.weight;
+    rabbit.chipNumber = updateDto.chipNumber ?? rabbit.chipNumber;
+    rabbit.castrationDate = updateDto.castrationDate ?? rabbit.castrationDate;
+    rabbit.dewormingDate = updateDto.dewormingDate ?? rabbit.dewormingDate;
+    rabbit.vaccinationDate =
+      updateDto.vaccinationDate ?? rabbit.vaccinationDate;
+
+    await this.rabbitRespository.save(rabbit);
   }
 }

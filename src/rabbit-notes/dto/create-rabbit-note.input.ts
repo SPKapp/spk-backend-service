@@ -4,7 +4,7 @@ import { Transform } from 'class-transformer';
 import { VisitType } from '../entities/visit-type.enum';
 
 @InputType()
-class CreateVisitInfoInput {
+export class VisitInfoInput {
   @Field(() => VisitType)
   visitType: VisitType;
 
@@ -22,8 +22,8 @@ class CreateVetVisitInput {
   })
   date?: Date;
 
-  @Field(() => [CreateVisitInfoInput])
-  visitInfo: CreateVisitInfoInput[];
+  @Field(() => [VisitInfoInput])
+  visitInfo: VisitInfoInput[];
 }
 
 @InputType()
