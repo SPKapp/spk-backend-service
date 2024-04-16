@@ -5,12 +5,12 @@ import { In, IsNull, Not, Repository } from 'typeorm';
 
 import { buildDateFilter } from '../common/functions/filter.functions';
 
-import { RabbitNotesService } from './rabbit-notes.service';
 import { RabbitNote, VetVisit, VisitInfo, VisitType } from './entities';
+import { Rabbit } from '../rabbits/entities';
+import { User } from '../users/entities';
 
-import { Rabbit } from '../rabbits/entities/rabbit.entity';
-import { User } from '../users/entities/user.entity';
-import { RabbitsService } from '../rabbits/rabbits/rabbits.service';
+import { RabbitNotesService } from './rabbit-notes.service';
+import { RabbitsService } from '../rabbits';
 
 jest.mock('typeorm-transactional', () => ({
   Transactional: () => jest.fn(),
@@ -348,11 +348,74 @@ describe('RabbitNotesService', () => {
   });
 
   describe('findOne', () => {
+    beforeEach(() => {
+      jest.spyOn(rabbitNoteRepository, 'findOne').mockResolvedValue(rabbitNote);
+    });
+
     it('should be defined', () => {
       expect(service.findOne).toBeDefined();
     });
 
-    // TODO: Add tests for findOne
+    it('should find a rabbit note', async () => {
+      await expect(service.findOne(rabbitNote.id)).resolves.toEqual(rabbitNote);
+
+      expect(rabbitNoteRepository.findOne).toHaveBeenCalledWith({
+        relations: {
+          vetVisit: true,
+        },
+        where: { id: rabbitNote.id },
+      });
+    });
+
+    it('should find a rabbit note with related rabbit', async () => {
+      await expect(
+        service.findOne(rabbitNote.id, {
+          withRabbit: true,
+        }),
+      ).resolves.toEqual(rabbitNote);
+
+      expect(rabbitNoteRepository.findOne).toHaveBeenCalledWith({
+        relations: {
+          vetVisit: true,
+          rabbit: true,
+        },
+        where: { id: rabbitNote.id },
+      });
+    });
+
+    it('should find a rabbit note with related user', async () => {
+      await expect(
+        service.findOne(rabbitNote.id, {
+          withUser: true,
+        }),
+      ).resolves.toEqual(rabbitNote);
+
+      expect(rabbitNoteRepository.findOne).toHaveBeenCalledWith({
+        relations: {
+          vetVisit: true,
+          user: true,
+        },
+        where: { id: rabbitNote.id },
+      });
+    });
+
+    it('should find a rabbit note with related region', async () => {
+      await expect(
+        service.findOne(rabbitNote.id, {
+          withRegion: true,
+        }),
+      ).resolves.toEqual(rabbitNote);
+
+      expect(rabbitNoteRepository.findOne).toHaveBeenCalledWith({
+        relations: {
+          vetVisit: true,
+          rabbit: {
+            rabbitGroup: true,
+          },
+        },
+        where: { id: rabbitNote.id },
+      });
+    });
   });
 
   describe('update', () => {

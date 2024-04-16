@@ -1,19 +1,19 @@
 import { Resolver, Query, Mutation, Args, Int, ID } from '@nestjs/graphql';
-import { ForbiddenException, Logger } from '@nestjs/common';
+import { ForbiddenException, Logger, NotFoundException } from '@nestjs/common';
 
 import {
   CurrentUser,
   FirebaseAuth,
   Role,
   UserDetails,
-} from '../common/modules/auth/auth.module';
-import { EntityWithId } from '../common/types/remove.entity';
+} from '../common/modules/auth';
+import { EntityWithId } from '../common/types';
 
-import { RabbitNotesService } from './rabbit-notes.service';
 import { RabbitNote } from './entities';
 import { CreateRabbitNoteInput, UpdateRabbitNoteInput } from './dto';
 
-import { RabbitsAccessService } from '../rabbits/rabbits-access.service';
+import { RabbitNotesService } from './rabbit-notes.service';
+import { RabbitsAccessService } from '../rabbits';
 
 @Resolver(() => RabbitNote)
 export class RabbitNotesResolver {
@@ -80,10 +80,67 @@ export class RabbitNotesResolver {
     );
   }
 
+  /**
+   * Finds a rabbit note by its ID.
+   *
+   * Note can be viewed by users that have access to the related rabbit
+   * or users that created the note.
+   *
+   * @param currentUser - The current user details.
+   * @param id - The ID of the rabbit note to find.
+   * @returns The found rabbit note.
+   * @throws {ForbiddenException} If the user is not allowed to view the note.
+   * @throws {NotFoundException} If the rabbit note is not found.
+   */
+  @FirebaseAuth(
+    Role.Admin,
+    Role.RegionManager,
+    Role.RegionObserver,
+    Role.Volunteer,
+  )
   @Query(() => RabbitNote, { name: 'rabbitNote' })
-  findOne(@Args('id', { type: () => Int }) id: number) {
-    // TODO: Implement this method
-    return this.rabbitNotesService.findOne(id);
+  async findOne(
+    @CurrentUser('ALL') currentUser: UserDetails,
+    @Args('id', { type: () => Int }) id: number,
+  ) {
+    const error = new ForbiddenException(
+      'User is not allowed to view the note',
+    );
+
+    if (currentUser.checkRole(Role.Admin)) {
+      const rabbitNote = await this.rabbitNotesService.findOne(id);
+      if (!rabbitNote) {
+        throw new NotFoundException('Rabbit note not found');
+      }
+      return rabbitNote;
+    }
+
+    const rabbitNote = await this.rabbitNotesService.findOne(id, {
+      withRegion: true,
+      withUser: true,
+    });
+    if (!rabbitNote) {
+      throw error;
+    }
+
+    if (
+      currentUser.checkRole([Role.RegionManager, Role.RegionObserver]) &&
+      currentUser.regions.includes(rabbitNote.rabbit.rabbitGroup.region.id)
+    ) {
+      return rabbitNote;
+    }
+    if (
+      currentUser.checkRole(Role.Volunteer) &&
+      rabbitNote.rabbit.rabbitGroup.team.id === currentUser.teamId
+    ) {
+      return rabbitNote;
+    }
+
+    if (rabbitNote.user.firebaseUid === currentUser.uid) {
+      return rabbitNote;
+    }
+
+    throw error;
   }
 
   /**
@@ -156,7 +213,7 @@ export class RabbitNotesResolver {
     rabbitNoteId: number,
   ): Promise<void> {
     const error = new ForbiddenException(
-      'User is not allowed to update the note',
+      'User is not allowed to edit the note',
     );
 
     if (currentUser.checkRole(Role.Admin)) {
@@ -177,10 +234,7 @@ export class RabbitNotesResolver {
         return;
       }
 
-      if (
-        currentUser.checkRole([Role.RegionObserver, Role.Volunteer]) &&
-        rabbitNote.user.firebaseUid === currentUser.uid
-      ) {
+      if (rabbitNote.user.firebaseUid === currentUser.uid) {
         return;
       }
     }

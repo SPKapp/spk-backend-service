@@ -6,16 +6,16 @@ import {
   Role,
   CurrentUser,
   UserDetails,
-} from '../common/modules/auth/auth.module';
+} from '../common/modules/auth';
 import {
   GqlFields,
   GqlFieldsName,
 } from '../common/decorators/gql-fields.decorator';
 
-import { RabbitNotesService } from './rabbit-notes.service';
 import { FindRabbitNotesArgs, PaginatedRabbitNotes } from './dto';
 
-import { RabbitsAccessService } from '../rabbits/rabbits-access.service';
+import { RabbitNotesService } from './rabbit-notes.service';
+import { RabbitsAccessService } from '../rabbits';
 
 @Resolver(() => PaginatedRabbitNotes)
 export class PaginatedRabbitNoteResolver {

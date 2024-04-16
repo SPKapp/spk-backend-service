@@ -58,6 +58,16 @@ export const userRegionObserver = new UserDetails({
 });
 
 /**
+ * Represents a user region observer.
+ * regions is set to [1, 3].
+ */
+export const userRegionObserver2Regions = new UserDetails({
+  ...userDetailsTeplate,
+  roles: [Role.RegionObserver],
+  regions: [1, 3],
+});
+
+/**
  * Represents a user with the role of Admin.
  */
 export const userAdmin = new UserDetails({

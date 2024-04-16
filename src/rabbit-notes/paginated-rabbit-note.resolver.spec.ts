@@ -1,18 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
+import { FirebaseAuthGuard, getCurrentUserPipe } from '../common/modules/auth';
 import {
-  FirebaseAuthGuard,
-  getCurrentUserPipe,
-} from '../common/modules/auth/auth.module';
-import { userAdmin } from '../common/tests/user-details.template';
-import {
+  userAdmin,
   paginatedFields,
   paginatedFieldsWithTotalCount,
-} from '../common/tests/paginated-fields.template';
+} from '../common/tests';
 
 import { PaginatedRabbitNoteResolver } from './paginated-rabbit-note.resolver';
 import { RabbitNotesService } from './rabbit-notes.service';
-import { RabbitsAccessService } from '../rabbits/rabbits-access.service';
+import { RabbitsAccessService } from '../rabbits';
 
 describe('PaginatedRabbitNoteResolver', () => {
   let resolver: PaginatedRabbitNoteResolver;

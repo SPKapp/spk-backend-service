@@ -18,8 +18,8 @@ import {
 } from './dto';
 import { RabbitNote, VisitInfo, VisitType } from './entities';
 
-import { UpdateRabbitNoteFieldsDto } from '../rabbits/dto/update-rabbit-note-fields.input';
-import { RabbitsService } from '../rabbits/rabbits/rabbits.service';
+import { UpdateRabbitNoteFieldsDto } from '../rabbits/dto';
+import { RabbitsService } from '../rabbits';
 
 @Injectable()
 export class RabbitNotesService {
@@ -140,6 +140,13 @@ export class RabbitNotesService {
     };
   }
 
+  /**
+   * Finds a RabbitNote by its ID.
+   *
+   * @param id - The ID of the RabbitNote to find.
+   * @param params - Additional parameters for fetching related entities.
+   * @returns A Promise that resolves to the found RabbitNote, or null if not found.
+   */
   async findOne(
     id: number,
     params: {
@@ -159,7 +166,7 @@ export class RabbitNotesService {
                   rabbitGroup: true,
                 }
               : true
-            : false,
+            : undefined,
       },
       where: { id },
     });
