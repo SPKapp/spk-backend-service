@@ -5,16 +5,21 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Not, Repository } from 'typeorm';
-
-import { CreateRabbitNoteInput } from './dto/create-rabbit-note.input';
-import { UpdateRabbitNoteInput } from './dto/update-rabbit-note.input';
-import { UpdateRabbitNoteFieldsDto } from '../rabbits/dto/update-rabbit-note-fields.input';
-import { RabbitNote } from './entities/rabbit-note.entity';
-import { RabbitsService } from '../rabbits/rabbits/rabbits.service';
-import { VisitType } from './entities/visit-type.enum';
-import { VisitInfo } from './entities/visit-info.entity';
+import { FindManyOptions, In, IsNull, Not, Repository } from 'typeorm';
 import { Transactional } from 'typeorm-transactional';
+
+import { buildDateFilter } from '../common/functions/filter.functions';
+
+import {
+  CreateRabbitNoteInput,
+  UpdateRabbitNoteInput,
+  PaginatedRabbitNotes,
+  RabbitNotesFilters,
+} from './dto';
+import { RabbitNote, VisitInfo, VisitType } from './entities';
+
+import { UpdateRabbitNoteFieldsDto } from '../rabbits/dto/update-rabbit-note-fields.input';
+import { RabbitsService } from '../rabbits/rabbits/rabbits.service';
 
 @Injectable()
 export class RabbitNotesService {
@@ -53,8 +58,86 @@ export class RabbitNotesService {
     return result;
   }
 
-  findAll() {
-    return `This action returns all rabbitNotes`;
+  /**
+   * Retrieves paginated rabbit notes based on the provided filters.
+   *
+   * @param rabbitId - The ID of the rabbit.
+   * @param filters - Optional filters to apply to the query.
+   * @returns A Promise that resolves to a PaginatedRabbitNotes object containing the paginated rabbit notes.
+   */
+  async findAllPaginated(
+    rabbitId: number,
+    filters: RabbitNotesFilters = {},
+    totalCount: boolean = false,
+  ): Promise<PaginatedRabbitNotes> {
+    filters.offset ??= 0;
+    filters.limit ??= 10;
+
+    const options = this.createFilterOptions(rabbitId, filters);
+
+    return {
+      data: await this.rabbitNoteRepository.find(options),
+      offset: filters.offset,
+      limit: filters.limit,
+      totalCount: totalCount
+        ? await this.rabbitNoteRepository.count(options)
+        : undefined,
+    };
+  }
+
+  /**
+   * Retrieves all rabbit notes based on the provided filters.
+   *
+   * @param rabbitId - The ID of the rabbit.
+   * @param filters - Optional filters to apply when retrieving the notes.
+   * @returns A promise that resolves to an array of RabbitNote objects.
+   */
+  async findAll(
+    rabbitId: number,
+    filters: RabbitNotesFilters = {},
+  ): Promise<RabbitNote[]> {
+    return await this.rabbitNoteRepository.find(
+      this.createFilterOptions(rabbitId, filters),
+    );
+  }
+
+  private createFilterOptions(
+    rabbitId: number,
+    filters: RabbitNotesFilters = {},
+  ): FindManyOptions<RabbitNote> {
+    return {
+      skip: filters.offset,
+      take: filters.limit,
+      where: {
+        rabbit: { id: rabbitId },
+        user: { id: filters.createdBy ? In(filters.createdBy) : undefined },
+        createdAt: buildDateFilter(filters.createdAtFrom, filters.createdAtTo),
+        weight: filters.withWeight ? Not(IsNull()) : undefined,
+        vetVisit: (() => {
+          switch (filters.vetVisit) {
+            case true:
+              return { id: Not(IsNull()) };
+            case false:
+              return { id: IsNull() };
+            case undefined:
+              return undefined;
+            default:
+              return {
+                id: Not(IsNull()),
+                date: buildDateFilter(
+                  filters.vetVisit.dateFrom,
+                  filters.vetVisit.dateTo,
+                ),
+                visitInfo: {
+                  visitType: filters.vetVisit.visitTypes
+                    ? In(filters.vetVisit.visitTypes)
+                    : undefined,
+                },
+              };
+          }
+        })(),
+      },
+    };
   }
 
   async findOne(

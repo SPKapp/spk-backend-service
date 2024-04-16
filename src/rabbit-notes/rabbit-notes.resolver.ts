@@ -1,15 +1,5 @@
 import { Resolver, Query, Mutation, Args, Int, ID } from '@nestjs/graphql';
-import {
-  ForbiddenException,
-  InternalServerErrorException,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
-
-import { RabbitNotesService } from './rabbit-notes.service';
-import { RabbitNote } from './entities/rabbit-note.entity';
-import { CreateRabbitNoteInput } from './dto/create-rabbit-note.input';
-import { UpdateRabbitNoteInput } from './dto/update-rabbit-note.input';
+import { ForbiddenException, Logger } from '@nestjs/common';
 
 import {
   CurrentUser,
@@ -18,7 +8,12 @@ import {
   UserDetails,
 } from '../common/modules/auth/auth.module';
 import { EntityWithId } from '../common/types/remove.entity';
-import { RabbitsService } from '../rabbits/rabbits/rabbits.service';
+
+import { RabbitNotesService } from './rabbit-notes.service';
+import { RabbitNote } from './entities';
+import { CreateRabbitNoteInput, UpdateRabbitNoteInput } from './dto';
+
+import { RabbitsAccessService } from '../rabbits/rabbits-access.service';
 
 @Resolver(() => RabbitNote)
 export class RabbitNotesResolver {
@@ -26,7 +21,7 @@ export class RabbitNotesResolver {
 
   constructor(
     private readonly rabbitNotesService: RabbitNotesService,
-    private readonly rabbitsService: RabbitsService,
+    private readonly rabbitsAccessService: RabbitsAccessService,
   ) {}
 
   /**
@@ -56,48 +51,33 @@ export class RabbitNotesResolver {
     @CurrentUser('ALL') currentUser: UserDetails,
     @Args('createRabbitNoteInput') createRabbitNoteInput: CreateRabbitNoteInput,
   ): Promise<RabbitNote> {
-    let regionIds: number[] | undefined;
-    let teamIds: number[] | undefined;
-
-    if (currentUser.checkRole(Role.Admin)) {
-    } else if (
-      currentUser.checkRole([Role.RegionManager, Role.RegionObserver])
-    ) {
-      regionIds = currentUser.regions;
-
-      if (!currentUser.checkRole(Role.RegionManager)) {
+    const hasEditAccess = await this.rabbitsAccessService.validateAccess(
+      createRabbitNoteInput.rabbitId,
+      currentUser,
+      true,
+    );
+    if (!hasEditAccess) {
+      if (
+        await this.rabbitsAccessService.validateAccess(
+          createRabbitNoteInput.rabbitId,
+          currentUser,
+          false,
+        )
+      ) {
         if (createRabbitNoteInput.vetVisit) {
           throw new ForbiddenException(
             'Region Observer cannot create vet visits',
           );
         }
+      } else {
+        throw new ForbiddenException('User is not allowed to create a note');
       }
-    } else if (currentUser.checkRole(Role.Volunteer)) {
-      teamIds = [currentUser.teamId];
-    } else {
-      this.logger.error(`User ${currentUser.uid} gets invalid access`);
-      throw new InternalServerErrorException();
-    }
-
-    const rabbit = await this.rabbitsService.findOne(
-      createRabbitNoteInput.rabbitId,
-      regionIds,
-      teamIds,
-    );
-    if (!rabbit) {
-      throw new NotFoundException('Rabbit not found');
     }
 
     return this.rabbitNotesService.create(
       createRabbitNoteInput,
       currentUser.id,
     );
-  }
-
-  @Query(() => [RabbitNote], { name: 'rabbitNotes' })
-  findAll() {
-    // TODO: Implement this method
-    return this.rabbitNotesService.findAll();
   }
 
   @Query(() => RabbitNote, { name: 'rabbitNote' })
@@ -161,6 +141,7 @@ export class RabbitNotesResolver {
 
   /**
    * Validates the edit access for a given user and rabbit note.
+   *
    * The user is allowed to edit the note if:
    * - The user is an admin.
    * - The user is a region manager and has access to the region of the rabbit.

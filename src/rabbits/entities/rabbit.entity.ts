@@ -13,7 +13,7 @@ import {
 import { AdmissionType } from './admissionType.enum';
 import { RabbitGroup } from './rabbit-group.entity';
 import { Gender } from './gender.enum';
-import { RabbitNote } from '../../rabbit-notes/entities/rabbit-note.entity';
+import { RabbitNote } from '../../rabbit-notes/entities';
 
 @Entity()
 @ObjectType()

@@ -3,10 +3,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { RabbitNotesService } from './rabbit-notes.service';
 import { RabbitNotesResolver } from './rabbit-notes.resolver';
+import { PaginatedRabbitNoteResolver } from './paginated-rabbit-note.resolver';
 
-import { RabbitNote } from './entities/rabbit-note.entity';
-import { VetVisit } from './entities/vet-visit.entity';
-import { VisitInfo } from './entities/visit-info.entity';
+import { RabbitNote, VetVisit, VisitInfo } from './entities';
 
 import { RabbitsModule } from '../rabbits/rabbits.module';
 
@@ -15,6 +14,10 @@ import { RabbitsModule } from '../rabbits/rabbits.module';
     TypeOrmModule.forFeature([RabbitNote, VetVisit, VisitInfo]),
     RabbitsModule,
   ],
-  providers: [RabbitNotesResolver, RabbitNotesService],
+  providers: [
+    RabbitNotesResolver,
+    RabbitNotesService,
+    PaginatedRabbitNoteResolver,
+  ],
 })
 export class RabbitNotesModule {}

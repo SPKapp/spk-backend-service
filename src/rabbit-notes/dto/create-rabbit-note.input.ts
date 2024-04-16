@@ -1,7 +1,7 @@
 import { InputType, ID, Field, Float } from '@nestjs/graphql';
 import { Transform } from 'class-transformer';
 
-import { VisitType } from '../entities/visit-type.enum';
+import { VisitType } from '../entities';
 
 @InputType()
 export class VisitInfoInput {

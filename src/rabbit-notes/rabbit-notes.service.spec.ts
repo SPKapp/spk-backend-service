@@ -1,17 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, IsNull, Not, Repository } from 'typeorm';
+
+import { buildDateFilter } from '../common/functions/filter.functions';
 
 import { RabbitNotesService } from './rabbit-notes.service';
-import { RabbitNote } from './entities/rabbit-note.entity';
-import { VetVisit } from './entities/vet-visit.entity';
+import { RabbitNote, VetVisit, VisitInfo, VisitType } from './entities';
 
 import { Rabbit } from '../rabbits/entities/rabbit.entity';
 import { User } from '../users/entities/user.entity';
 import { RabbitsService } from '../rabbits/rabbits/rabbits.service';
-import { VisitInfo } from './entities/visit-info.entity';
-import { VisitType } from './entities/visit-type.enum';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 jest.mock('typeorm-transactional', () => ({
   Transactional: () => jest.fn(),
@@ -55,8 +54,10 @@ describe('RabbitNotesService', () => {
         {
           provide: getRepositoryToken(RabbitNote),
           useValue: {
+            find: jest.fn(),
             findOne: jest.fn(),
             findOneBy: jest.fn(),
+            count: jest.fn(),
             save: jest.fn((data) => data),
             softRemove: jest.fn(),
           },
@@ -133,12 +134,217 @@ describe('RabbitNotesService', () => {
     });
   });
 
+  describe('findAllPaginated', () => {
+    beforeEach(() => {
+      jest.spyOn(rabbitNoteRepository, 'find').mockResolvedValue([rabbitNote]);
+    });
+
+    it('should be defined', () => {
+      expect(service.findAllPaginated).toBeDefined();
+    });
+
+    it('should find with default offset and limit', async () => {
+      await expect(service.findAllPaginated(1)).resolves.toEqual({
+        data: [rabbitNote],
+        offset: 0,
+        limit: 10,
+      });
+
+      expect(rabbitNoteRepository.find).toHaveBeenCalledWith({
+        where: { rabbit: { id: 1 }, user: {} },
+        skip: 0,
+        take: 10,
+      });
+    });
+
+    it('should find with custom offset and limit', async () => {
+      await expect(
+        service.findAllPaginated(1, { offset: 5, limit: 15 }),
+      ).resolves.toEqual({
+        data: [rabbitNote],
+        offset: 5,
+        limit: 15,
+      });
+
+      expect(rabbitNoteRepository.find).toHaveBeenCalledWith({
+        where: { rabbit: { id: 1 }, user: {} },
+        skip: 5,
+        take: 15,
+      });
+    });
+
+    it('should find with additional filters', async () => {
+      const filters = {
+        createdAtFrom: new Date(),
+        createdAtTo: new Date(),
+        vetVisit: true,
+      };
+      await expect(service.findAllPaginated(1, filters)).resolves.toEqual({
+        data: [rabbitNote],
+        offset: 0,
+        limit: 10,
+      });
+
+      expect(rabbitNoteRepository.find).toHaveBeenCalledWith({
+        where: {
+          rabbit: { id: 1 },
+          user: {},
+          createdAt: buildDateFilter(new Date(), new Date()),
+          vetVisit: { id: Not(IsNull()) },
+        },
+        skip: 0,
+        take: 10,
+      });
+    });
+
+    it('should add total count to the response', async () => {
+      jest.spyOn(rabbitNoteRepository, 'count').mockResolvedValue(1);
+
+      await expect(
+        service.findAllPaginated(1, undefined, true),
+      ).resolves.toEqual({
+        data: [rabbitNote],
+        offset: 0,
+        limit: 10,
+        totalCount: 1,
+      });
+
+      expect(rabbitNoteRepository.count).toHaveBeenCalledWith({
+        where: { rabbit: { id: 1 }, user: {} },
+        skip: 0,
+        take: 10,
+      });
+    });
+  });
+
   describe('findAll', () => {
+    beforeEach(() => {
+      jest.spyOn(rabbitNoteRepository, 'find').mockResolvedValue([rabbitNote]);
+    });
+
     it('should be defined', () => {
       expect(service.findAll).toBeDefined();
     });
 
-    // TODO: Add tests for findAll
+    it('should find without additional filters', async () => {
+      await expect(service.findAll(1)).resolves.toEqual([rabbitNote]);
+
+      expect(rabbitNoteRepository.find).toHaveBeenCalledWith({
+        where: { rabbit: { id: 1 }, user: {} },
+      });
+    });
+
+    it('should find with offset and limit', async () => {
+      await expect(
+        service.findAll(1, { offset: 5, limit: 10 }),
+      ).resolves.toEqual([rabbitNote]);
+
+      expect(rabbitNoteRepository.find).toHaveBeenCalledWith({
+        where: { rabbit: { id: 1 }, user: {} },
+        skip: 5,
+        take: 10,
+      });
+    });
+
+    it('should find creation filters', async () => {
+      await expect(
+        service.findAll(1, {
+          createdAtFrom: new Date(),
+          createdAtTo: new Date(),
+        }),
+      ).resolves.toEqual([rabbitNote]);
+
+      expect(rabbitNoteRepository.find).toHaveBeenCalledWith({
+        where: {
+          rabbit: { id: 1 },
+          user: {},
+          createdAt: buildDateFilter(new Date(), new Date()),
+        },
+      });
+    });
+
+    it('should find only notes without vet visits', async () => {
+      await expect(service.findAll(1, { vetVisit: false })).resolves.toEqual([
+        rabbitNote,
+      ]);
+
+      expect(rabbitNoteRepository.find).toHaveBeenCalledWith({
+        where: { rabbit: { id: 1 }, user: {}, vetVisit: { id: IsNull() } },
+      });
+    });
+
+    it('should find only notes with vet visits', async () => {
+      await expect(service.findAll(1, { vetVisit: true })).resolves.toEqual([
+        rabbitNote,
+      ]);
+
+      expect(rabbitNoteRepository.find).toHaveBeenCalledWith({
+        where: { rabbit: { id: 1 }, user: {}, vetVisit: { id: Not(IsNull()) } },
+      });
+    });
+
+    it('should find with vet visit filters', async () => {
+      await expect(
+        service.findAll(1, {
+          vetVisit: {
+            visitTypes: [VisitType.Control],
+          },
+        }),
+      ).resolves.toEqual([rabbitNote]);
+
+      expect(rabbitNoteRepository.find).toHaveBeenCalledWith({
+        where: {
+          rabbit: { id: 1 },
+          user: {},
+          vetVisit: {
+            id: Not(IsNull()),
+            visitInfo: {
+              visitType: In([VisitType.Control]),
+            },
+          },
+        },
+      });
+    });
+
+    it('should find with vet visit date filter', async () => {
+      await expect(
+        service.findAll(1, {
+          vetVisit: { dateFrom: new Date(), dateTo: new Date() },
+        }),
+      ).resolves.toEqual([rabbitNote]);
+
+      expect(rabbitNoteRepository.find).toHaveBeenCalledWith({
+        where: {
+          rabbit: { id: 1 },
+          user: {},
+          vetVisit: {
+            id: Not(IsNull()),
+            date: buildDateFilter(new Date(), new Date()),
+            visitInfo: {},
+          },
+        },
+      });
+    });
+
+    it('should find with withWeight filter', async () => {
+      await expect(service.findAll(1, { withWeight: true })).resolves.toEqual([
+        rabbitNote,
+      ]);
+
+      expect(rabbitNoteRepository.find).toHaveBeenCalledWith({
+        where: { rabbit: { id: 1 }, user: {}, weight: Not(IsNull()) },
+      });
+    });
+
+    it('should find with createdBy filter', async () => {
+      await expect(service.findAll(1, { createdBy: [1, 2] })).resolves.toEqual([
+        rabbitNote,
+      ]);
+
+      expect(rabbitNoteRepository.find).toHaveBeenCalledWith({
+        where: { rabbit: { id: 1 }, user: { id: In([1, 2]) } },
+      });
+    });
   });
 
   describe('findOne', () => {

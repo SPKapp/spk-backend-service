@@ -15,11 +15,10 @@ import {
 
 import { RabbitNotesResolver } from './rabbit-notes.resolver';
 import { RabbitNotesService } from './rabbit-notes.service';
+import { RabbitNote, VetVisit } from './entities';
 
-import { RabbitsService } from '../rabbits/rabbits/rabbits.service';
+import { RabbitsAccessService } from '../rabbits/rabbits-access.service';
 
-import { VetVisit } from './entities/vet-visit.entity';
-import { RabbitNote } from './entities/rabbit-note.entity';
 import { Region } from '../common/modules/regions/entities/region.entity';
 import { RabbitGroup } from '../rabbits/entities/rabbit-group.entity';
 import { Rabbit } from '../rabbits/entities/rabbit.entity';
@@ -28,7 +27,7 @@ import { User } from '../users/entities/user.entity';
 describe('RabbitNotesResolver', () => {
   let resolver: RabbitNotesResolver;
   let rabbitNoteService: RabbitNotesService;
-  let rabbitsService: RabbitsService;
+  let rabbitsAccessService: RabbitsAccessService;
 
   const rabbitNote = new RabbitNote({
     id: 1,
@@ -45,11 +44,10 @@ describe('RabbitNotesResolver', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RabbitNotesResolver,
-        RabbitNotesService,
         {
-          provide: RabbitsService,
+          provide: RabbitsAccessService,
           useValue: {
-            findOne: jest.fn(() => ({ id: 1 })),
+            validateAccess: jest.fn(() => true),
           },
         },
         {
@@ -70,7 +68,8 @@ describe('RabbitNotesResolver', () => {
       .compile();
 
     resolver = module.get<RabbitNotesResolver>(RabbitNotesResolver);
-    rabbitsService = module.get<RabbitsService>(RabbitsService);
+    rabbitsAccessService =
+      module.get<RabbitsAccessService>(RabbitsAccessService);
     rabbitNoteService = module.get<RabbitNotesService>(RabbitNotesService);
   });
 
@@ -89,49 +88,56 @@ describe('RabbitNotesResolver', () => {
       expect(resolver.createRabbitNote).toBeDefined();
     });
 
-    it('should create a rabbit note - admin', async () => {
+    it('should create a rabbit note with editAccess', async () => {
       await expect(
         resolver.createRabbitNote(userAdmin, createRabbitNoteInput),
       ).resolves.toEqual(rabbitNote);
 
-      expect(rabbitsService.findOne).toHaveBeenCalledWith(
-        1,
-        undefined,
-        undefined,
-      );
+      expect(rabbitsAccessService.validateAccess).toHaveBeenCalledTimes(1);
     });
 
-    it('should create a rabbit note - region manager', async () => {
+    it('should create a rabbit note with viewAccess', async () => {
+      jest
+        .spyOn(rabbitsAccessService, 'validateAccess')
+        .mockResolvedValueOnce(false);
+
       await expect(
-        resolver.createRabbitNote(userRegionManager, createRabbitNoteInput),
+        resolver.createRabbitNote(userAdmin, {
+          ...createRabbitNoteInput,
+          vetVisit: undefined,
+        }),
       ).resolves.toEqual(rabbitNote);
 
-      expect(rabbitsService.findOne).toHaveBeenCalledWith(1, [2], undefined);
+      expect(rabbitsAccessService.validateAccess).toHaveBeenCalledTimes(2);
     });
 
-    it('should create a rabbit note - volunteer', async () => {
-      await expect(
-        resolver.createRabbitNote(userVolunteer, createRabbitNoteInput),
-      ).resolves.toEqual(rabbitNote);
+    it('should throw an error if user vith viewAccess tries to create note with vet visit', async () => {
+      jest
+        .spyOn(rabbitsAccessService, 'validateAccess')
+        .mockResolvedValueOnce(false);
 
-      expect(rabbitsService.findOne).toHaveBeenCalledWith(1, undefined, [1]);
-    });
-
-    it('should throw an error if the user is not allowed to create a vet visit', async () => {
       await expect(
-        resolver.createRabbitNote(userRegionObserver, createRabbitNoteInput),
+        resolver.createRabbitNote(userAdmin, createRabbitNoteInput),
       ).rejects.toThrow(
         new ForbiddenException('Region Observer cannot create vet visits'),
       );
-    });
-  });
 
-  describe('findAll', () => {
-    it('should be defined', () => {
-      expect(resolver.findAll).toBeDefined();
+      expect(rabbitsAccessService.validateAccess).toHaveBeenCalledTimes(2);
     });
 
-    // TODO: Add tests for findAll
+    it('should throw an error if the user is not allowed to create a note', async () => {
+      jest
+        .spyOn(rabbitsAccessService, 'validateAccess')
+        .mockResolvedValue(false);
+
+      await expect(
+        resolver.createRabbitNote(userRegionObserver, createRabbitNoteInput),
+      ).rejects.toThrow(
+        new ForbiddenException('User is not allowed to create a note'),
+      );
+
+      expect(rabbitsAccessService.validateAccess).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe('findOne', () => {

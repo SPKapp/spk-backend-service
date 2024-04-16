@@ -9,6 +9,7 @@ import { RabbitGroupsService } from './rabbit-groups/rabbit-groups.service';
 import { Rabbit } from './entities/rabbit.entity';
 import { RabbitGroup } from './entities/rabbit-group.entity';
 import { PaginatedRabbitGroupsResolver } from './rabbit-groups/paginated-rabbit-groups.resolver';
+import { RabbitsAccessService } from './rabbits-access.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Rabbit, RabbitGroup])],
@@ -18,7 +19,8 @@ import { PaginatedRabbitGroupsResolver } from './rabbit-groups/paginated-rabbit-
     RabbitGroupsResolver,
     RabbitGroupsService,
     PaginatedRabbitGroupsResolver,
+    RabbitsAccessService,
   ],
-  exports: [RabbitsService],
+  exports: [RabbitsService, RabbitsAccessService],
 })
 export class RabbitsModule {}

@@ -1,6 +1,7 @@
 import { Role, UserDetails } from '../../common/modules/auth/auth.module';
 
 const userDetailsTeplate = new UserDetails({
+  id: 1,
   uid: '123',
   email: 'email1@example.com',
   phone: '123456789',
@@ -62,4 +63,12 @@ export const userRegionObserver = new UserDetails({
 export const userAdmin = new UserDetails({
   ...userDetailsTeplate,
   roles: [Role.Admin],
+});
+
+/**
+ * Represents a user with no roles.
+ */
+export const userNoRoles = new UserDetails({
+  ...userDetailsTeplate,
+  roles: [],
 });

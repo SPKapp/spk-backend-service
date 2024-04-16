@@ -8,7 +8,7 @@ import {
 } from 'typeorm';
 
 import { Team } from './team.entity';
-import { RabbitNote } from '../../rabbit-notes/entities/rabbit-note.entity';
+import { RabbitNote } from '../../rabbit-notes/entities';
 
 @Entity()
 @ObjectType()
