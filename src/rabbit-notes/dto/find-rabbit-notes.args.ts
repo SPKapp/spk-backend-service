@@ -27,7 +27,9 @@ class VetVisitsArgs {
 
 @ArgsType()
 export class FindRabbitNotesArgs extends PaginationArgs {
-  @Field(() => ID)
+  @Field(() => ID, {
+    description: 'ID of the rabbit to get notes for. Must be provided.',
+  })
   @Transform(({ value }) => parseInt(value, 10))
   rabbitId: number;
 

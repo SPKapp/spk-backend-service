@@ -32,5 +32,8 @@ registerEnumType(VisitType, {
     Castration: {
       description: 'Castration visit',
     },
+    Chip: {
+      description: 'Chip visit',
+    },
   },
 });

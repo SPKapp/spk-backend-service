@@ -65,6 +65,9 @@ export class RabbitNote {
   user?: User;
 
   @CreateDateColumn()
+  @Field({
+    nullable: true,
+  })
   createdAt?: Date;
 
   @UpdateDateColumn()
