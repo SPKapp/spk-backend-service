@@ -45,6 +45,13 @@ export class RabbitNotesService {
     createRabbitNoteInput: CreateRabbitNoteInput,
     userId: number,
   ): Promise<RabbitNote> {
+    if (
+      createRabbitNoteInput.vetVisit &&
+      createRabbitNoteInput.vetVisit.visitInfo.length === 0
+    ) {
+      throw new BadRequestException('VisitInfo cannot be empty');
+    }
+
     const result = await this.rabbitNoteRepository.save({
       rabbit: { id: createRabbitNoteInput.rabbitId },
       user: { id: userId },
@@ -120,6 +127,7 @@ export class RabbitNotesService {
             case false:
               return { id: IsNull() };
             case undefined:
+            case null:
               return undefined;
             default:
               return {
@@ -195,6 +203,8 @@ export class RabbitNotesService {
     rabbitNote.description =
       updateRabbitNoteInput.description ?? rabbitNote.description;
     rabbitNote.weight = updateRabbitNoteInput.weight ?? rabbitNote.weight;
+    // if dto weight is set to 0, it should be saved as null
+    rabbitNote.weight = rabbitNote.weight === 0 ? null : rabbitNote.weight;
 
     // Update VetVisit
     if (!rabbitNote.vetVisit && updateRabbitNoteInput.vetVisit) {
@@ -207,26 +217,33 @@ export class RabbitNotesService {
         updateRabbitNoteInput.vetVisit.date ?? rabbitNote.vetVisit.date;
 
       // Update VisitInfo
-      for (const updateVisitInfo of updateRabbitNoteInput.vetVisit.visitInfo) {
-        const oldVisitInfo = rabbitNote.vetVisit.visitInfo.find(
-          (v) => v.visitType === updateVisitInfo.visitType,
+      if (updateRabbitNoteInput.vetVisit.visitInfo) {
+        for (const updateVisitInfo of updateRabbitNoteInput.vetVisit
+          .visitInfo) {
+          const oldVisitInfo = rabbitNote.vetVisit.visitInfo.find(
+            (v) => v.visitType === updateVisitInfo.visitType,
+          );
+
+          if (oldVisitInfo) {
+            oldVisitInfo.additionalInfo =
+              updateVisitInfo.additionalInfo ?? oldVisitInfo.additionalInfo;
+          } else {
+            // @ts-expect-error - when no id is provided, the entity is created
+            rabbitNote.vetVisit.visitInfo.push(updateVisitInfo);
+          }
+        }
+
+        rabbitNote.vetVisit.visitInfo = rabbitNote.vetVisit.visitInfo.filter(
+          (v) =>
+            updateRabbitNoteInput.vetVisit.visitInfo.some(
+              (u) => u.visitType === v.visitType,
+            ),
         );
 
-        if (oldVisitInfo) {
-          oldVisitInfo.additionalInfo =
-            updateVisitInfo.additionalInfo ?? oldVisitInfo.additionalInfo;
-        } else {
-          // @ts-expect-error - when no id is provided, the entity is created
-          rabbitNote.vetVisit.visitInfo.push(updateVisitInfo);
+        if (rabbitNote.vetVisit.visitInfo.length === 0) {
+          throw new BadRequestException('VisitInfo cannot be empty');
         }
       }
-
-      rabbitNote.vetVisit.visitInfo = rabbitNote.vetVisit.visitInfo.filter(
-        (v) =>
-          updateRabbitNoteInput.vetVisit.visitInfo.some(
-            (u) => u.visitType === v.visitType,
-          ),
-      );
     }
 
     const result = await this.rabbitNoteRepository.save(rabbitNote);

@@ -7,6 +7,7 @@ import {
   ManyToOne,
   OneToOne,
   PrimaryGeneratedColumn,
+  RelationId,
   UpdateDateColumn,
 } from 'typeorm';
 
@@ -59,10 +60,20 @@ export class RabbitNote {
   })
   rabbit?: Rabbit;
 
+  @RelationId((note: RabbitNote) => note.rabbit)
+  @Field(() => ID)
+  rabbitId?: number;
+
   @ManyToOne(() => User, (user) => user.rabbitNotes, {
     nullable: false,
   })
   user?: User;
+
+  @RelationId((note: RabbitNote) => note.user)
+  @Field(() => ID, {
+    name: 'createdBy',
+  })
+  userId?: number;
 
   @CreateDateColumn()
   @Field({

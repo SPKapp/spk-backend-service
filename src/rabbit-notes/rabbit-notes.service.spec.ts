@@ -91,7 +91,15 @@ describe('RabbitNotesService', () => {
 
     const createRabbitNoteWithVetVisit = {
       ...createRabbitNote,
-      vetVisit: { date: rabbitNoteWithVetVisit.vetVisit.date, visitInfo: [] },
+      vetVisit: {
+        date: rabbitNoteWithVetVisit.vetVisit.date,
+        visitInfo: [
+          {
+            visitType: VisitType.Control,
+            additionalInfo: 'Test additional info',
+          },
+        ],
+      },
     };
 
     const userId = 1;
@@ -131,6 +139,31 @@ describe('RabbitNotesService', () => {
         weight: createRabbitNote.weight,
         vetVisit: createRabbitNoteWithVetVisit.vetVisit,
       });
+    });
+
+    it('should throw an error when trying to add a vet visit without VisitInfo', async () => {
+      jest.spyOn(rabbitNoteRepository, 'save').mockResolvedValue(
+        new RabbitNote({
+          ...rabbitNote,
+          vetVisit: new VetVisit({
+            date: new Date(),
+            visitInfo: [],
+          }),
+        }),
+      );
+
+      await expect(
+        service.create(
+          {
+            ...createRabbitNote,
+            vetVisit: {
+              date: rabbitNoteWithVetVisit.vetVisit.date,
+              visitInfo: [],
+            },
+          },
+          userId,
+        ),
+      ).rejects.toThrow(new BadRequestException('VisitInfo cannot be empty'));
     });
   });
 
@@ -496,6 +529,21 @@ describe('RabbitNotesService', () => {
           'VetVisit cannot be added to a note without it',
         ),
       );
+    });
+
+    it('should throw an error when trying to save a note without VisitInfo', async () => {
+      jest
+        .spyOn(service, 'findOne')
+        .mockResolvedValueOnce(rabbitNoteWithVetVisit);
+
+      await expect(
+        service.update(updateRabbitNote.id, {
+          ...updateRabbitNote,
+          vetVisit: {
+            visitInfo: [],
+          },
+        }),
+      ).rejects.toThrow(new BadRequestException('VisitInfo cannot be empty'));
     });
   });
 

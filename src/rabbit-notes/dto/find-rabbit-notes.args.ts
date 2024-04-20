@@ -22,7 +22,7 @@ class VetVisitsArgs {
     nullable: true,
     description: 'Specifies the types of visits.',
   })
-  types?: VisitType[];
+  visitTypes?: VisitType[];
 }
 
 @ArgsType()

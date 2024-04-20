@@ -1,4 +1,11 @@
-import { InputType, Field, Int, PartialType, OmitType } from '@nestjs/graphql';
+import {
+  InputType,
+  Field,
+  Int,
+  PartialType,
+  OmitType,
+  Float,
+} from '@nestjs/graphql';
 
 import {
   CreateRabbitNoteInput,
@@ -28,6 +35,12 @@ export class UpdateRabbitNoteInput extends PartialType(
 ) {
   @Field(() => Int)
   id: number;
+
+  @Field(() => Float, {
+    nullable: true,
+    description: 'Weight in kg, if set to 0 will be removed from note',
+  })
+  weight?: number;
 
   @Field(() => UpdateVetVisitInput, {
     nullable: true,
