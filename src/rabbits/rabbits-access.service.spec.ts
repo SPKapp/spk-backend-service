@@ -10,11 +10,13 @@ import {
 
 import { RabbitsAccessService } from './rabbits-access.service';
 import { RabbitsService } from './rabbits/rabbits.service';
-import { Rabbit } from './entities/rabbit.entity';
+import { RabbitGroupsService } from './rabbit-groups/rabbit-groups.service';
+import { Rabbit, RabbitGroup } from './entities';
 
 describe('RabbitsAccessService', () => {
   let service: RabbitsAccessService;
   let rabbitsService: RabbitsService;
+  let rabbitGroupsService: RabbitGroupsService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -26,11 +28,18 @@ describe('RabbitsAccessService', () => {
             findOne: jest.fn(),
           },
         },
+        {
+          provide: RabbitGroupsService,
+          useValue: {
+            findOne: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<RabbitsAccessService>(RabbitsAccessService);
     rabbitsService = module.get<RabbitsService>(RabbitsService);
+    rabbitGroupsService = module.get<RabbitGroupsService>(RabbitGroupsService);
   });
 
   it('should be defined', () => {
@@ -119,6 +128,64 @@ describe('RabbitsAccessService', () => {
         expect(rabbitsService.findOne).toHaveBeenCalledWith(1, undefined, [
           userVolunteer.teamId,
         ]);
+      });
+    });
+  });
+
+  describe('validateAccessForRabbitGroup', () => {
+    it('should be defined', () => {
+      expect(service.validateAccessForRabbitGroup).toBeDefined();
+    });
+
+    describe('allow access', () => {
+      beforeEach(() => {
+        jest
+          .spyOn(rabbitGroupsService, 'findOne')
+          .mockResolvedValue(new RabbitGroup());
+      });
+
+      it('should allow access for admin', async () => {
+        expect(await service.validateAccessForRabbitGroup(1, userAdmin)).toBe(
+          true,
+        );
+
+        expect(rabbitsService.findOne).not.toHaveBeenCalled();
+      });
+
+      it('should allow access for region manager', async () => {
+        expect(
+          await service.validateAccessForRabbitGroup(1, userRegionManager),
+        ).toBe(true);
+
+        expect(rabbitGroupsService.findOne).toHaveBeenCalledWith(
+          1,
+          userRegionManager.regions,
+        );
+      });
+    });
+
+    describe('deny access', () => {
+      beforeEach(() => {
+        jest.spyOn(rabbitGroupsService, 'findOne').mockResolvedValue(null);
+      });
+
+      it('should deny access for unknown role', async () => {
+        expect(await service.validateAccessForRabbitGroup(1, userNoRoles)).toBe(
+          false,
+        );
+
+        expect(rabbitGroupsService.findOne).not.toHaveBeenCalled();
+      });
+
+      it('should deny access for region manager', async () => {
+        expect(
+          await service.validateAccessForRabbitGroup(1, userRegionManager),
+        ).toBe(false);
+
+        expect(rabbitGroupsService.findOne).toHaveBeenCalledWith(
+          1,
+          userRegionManager.regions,
+        );
       });
     });
   });

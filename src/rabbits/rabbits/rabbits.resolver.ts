@@ -1,27 +1,29 @@
 import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
-import { BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 
 import {
-  AuthService,
   FirebaseAuth,
   Role,
   CurrentUser,
   UserDetails,
 } from '../../common/modules/auth/auth.module';
 
-import { RabbitsService } from './rabbits.service';
-import { RabbitGroupsService } from '../rabbit-groups/rabbit-groups.service';
+import { EntityWithId } from '../../common/types';
+import { Rabbit } from '../entities';
+import { CreateRabbitInput, UpdateRabbitInput } from '../dto';
 
-import { Rabbit } from '../entities/rabbit.entity';
-import { CreateRabbitInput } from '../dto/create-rabbit.input';
-import { UpdateRabbitInput } from '../dto/update-rabbit.input';
+import { RabbitsService } from './rabbits.service';
+import { RabbitsAccessService } from '../rabbits-access.service';
 
 @Resolver(() => Rabbit)
 export class RabbitsResolver {
   constructor(
     private readonly rabbitsService: RabbitsService,
-    private readonly rabbitGroupsService: RabbitGroupsService,
-    private readonly authService: AuthService,
+    private readonly rabbitsAccessService: RabbitsAccessService,
   ) {}
 
   /**
@@ -42,37 +44,67 @@ export class RabbitsResolver {
       throw new BadRequestException('RegionId or RabbitGroupId is required');
     }
 
-    if (!currentUser.isAdmin) {
-      await this.authService.checkRegionManagerPermissions(
-        currentUser,
-        async () => {
-          if (createRabbitInput.rabbitGroupId) {
-            const rabbitGroup = await this.rabbitGroupsService.findOne(
-              createRabbitInput.rabbitGroupId,
-            );
-            if (!rabbitGroup) {
-              throw new BadRequestException('Invalid rabbitGroupId');
-            }
-            return rabbitGroup.region.id;
-          }
-          return createRabbitInput.regionId;
-        },
-      );
+    if (!currentUser.checkRole(Role.Admin)) {
+      if (createRabbitInput.rabbitGroupId) {
+        if (
+          !(await this.rabbitsAccessService.validateAccessForRabbitGroup(
+            createRabbitInput.rabbitGroupId,
+            currentUser,
+          ))
+        ) {
+          throw new ForbiddenException(
+            'Rabbit Group ID does not match the Region Manager permissions.',
+          );
+        }
+      } else if (
+        createRabbitInput.regionId &&
+        !currentUser.checkRegion(createRabbitInput.regionId)
+      ) {
+        throw new ForbiddenException(
+          'Region ID does not match the Region Manager permissions.',
+        );
+      }
     }
 
     return await this.rabbitsService.create(createRabbitInput);
   }
 
-  @Query(() => [Rabbit], { name: 'rabbits' })
-  findAll() {
-    // TODO: Implement this method
-    return this.rabbitsService.findAll();
-  }
-
+  /**
+   * Retrieves a single rabbit by its ID.
+   *
+   * @param currentUser - The current user details.
+   * @param id - The ID of the rabbit to retrieve.
+   * @returns A Promise that resolves to the retrieved rabbit.
+   * @throws {NotFoundException} if the rabbit with the specified ID is not found.
+   */
+  @FirebaseAuth(
+    Role.Admin,
+    Role.RegionManager,
+    Role.RegionObserver,
+    Role.Volunteer,
+  )
   @Query(() => Rabbit, { name: 'rabbit' })
-  async findOne(@Args('id', { type: () => Int }) id: number): Promise<Rabbit> {
-    // TODO: Implement this method
-    return this.rabbitsService.findOne(id);
+  async findOne(
+    @CurrentUser('ALL') currentUser: UserDetails,
+    @Args('id', { type: () => Int }) id: number,
+  ): Promise<Rabbit> {
+    const isAdmin = currentUser.checkRole(Role.Admin);
+    const regional =
+      !isAdmin &&
+      currentUser.checkRole([Role.RegionManager, Role.RegionObserver]);
+    const volunteer = !isAdmin && !regional;
+
+    const rabbit = await this.rabbitsService.findOne(
+      id,
+      regional ? currentUser.regions : undefined,
+      volunteer ? [currentUser.teamId] : undefined,
+    );
+
+    if (!rabbit) {
+      throw new NotFoundException('Rabbit not found');
+    }
+
+    return rabbit;
   }
 
   /**
@@ -89,22 +121,37 @@ export class RabbitsResolver {
   updateRabbit(
     @CurrentUser('ALL') currentUser: UserDetails,
     @Args('updateRabbitInput') updateRabbitInput: UpdateRabbitInput,
-  ) {
-    const privileged = currentUser.isAtLeastRegionManager;
+  ): Promise<Rabbit> {
+    const isAdmin = currentUser.checkRole(Role.Admin);
+    const regional = !isAdmin && currentUser.checkRole(Role.RegionManager);
+    const volunteer = !isAdmin && !regional;
 
     return this.rabbitsService.update(
       updateRabbitInput.id,
       updateRabbitInput,
-      privileged,
-      currentUser.isAdmin ? undefined : currentUser.regions,
-      privileged ? undefined : [currentUser.teamId],
+      isAdmin || regional,
+      regional ? currentUser.regions : undefined,
+      volunteer ? [currentUser.teamId] : undefined,
     );
   }
 
-  @Mutation(() => Rabbit)
-  removeRabbit(@Args('id', { type: () => Int }) id: number) {
-    // TODO: Implement this method
-    return this.rabbitsService.remove(id);
+  /**
+   * Removes a rabbit with the specified ID.
+   *
+   * @param currentUser - The current user details.
+   * @param id - The ID of the rabbit to remove.
+   * @returns A promise that resolves to an EntityWithId object.
+   */
+  @FirebaseAuth(Role.Admin, Role.RegionManager)
+  @Mutation(() => EntityWithId)
+  removeRabbit(
+    @CurrentUser() currentUser: UserDetails,
+    @Args('id', { type: () => Int }) id: number,
+  ): Promise<EntityWithId> {
+    return this.rabbitsService.remove(
+      id,
+      currentUser.checkRole(Role.Admin) ? undefined : currentUser.regions,
+    );
   }
 
   /**
@@ -126,11 +173,11 @@ export class RabbitsResolver {
     @Args('rabbitId', { type: () => Int }) rabbitId: number,
     @Args('rabbitGroupId', { type: () => Int, nullable: true })
     rabbitGroupId?: number,
-  ) {
+  ): Promise<Rabbit> {
     return await this.rabbitsService.updateRabbitGroup(
       rabbitId,
       rabbitGroupId,
-      currentUser.isAdmin ? undefined : currentUser.regions,
+      currentUser.checkRole(Role.Admin) ? undefined : currentUser.regions,
     );
   }
 }

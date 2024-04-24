@@ -1,26 +1,25 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 
 import {
   userAdmin,
   userRegionManager,
   userRegionManager2Regions,
+  userRegionObserver,
   userVolunteer,
   userVolunteer2,
 } from '../../common/tests/user-details.template';
 import {
-  AuthService,
   FirebaseAuthGuard,
   getCurrentUserPipe,
 } from '../../common/modules/auth/auth.module';
 
-import { Region } from '../../common/modules/regions/entities/region.entity';
-import { Team } from '../../users/entities/team.entity';
+import { Region } from '../../common/modules/regions/entities';
+import { Team } from '../../users/entities';
+import { RabbitGroup } from '../entities';
 
 import { RabbitGroupsResolver } from './rabbit-groups.resolver';
 import { RabbitGroupsService } from './rabbit-groups.service';
-
-import { RabbitGroup } from '../entities/rabbit-group.entity';
 
 describe('RabbitGroupsResolver', () => {
   let resolver: RabbitGroupsResolver;
@@ -36,7 +35,6 @@ describe('RabbitGroupsResolver', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RabbitGroupsResolver,
-        AuthService,
         {
           provide: RabbitGroupsService,
           useValue: {
@@ -69,25 +67,52 @@ describe('RabbitGroupsResolver', () => {
       await expect(
         resolver.findOne(userAdmin, rabbitGroup.id),
       ).resolves.toEqual(rabbitGroup);
+
+      expect(rabbitGroupsService.findOne).toHaveBeenCalledWith(
+        rabbitGroup.id,
+        undefined,
+        undefined,
+      );
     });
 
     it('should throw a NotFoundException if the rabbit group does not exist', async () => {
       jest.spyOn(rabbitGroupsService, 'findOne').mockResolvedValue(null);
 
       await expect(resolver.findOne(userAdmin, rabbitGroup.id)).rejects.toThrow(
-        new NotFoundException(
-          `Rabbit Group with ID ${rabbitGroup.id} not found`,
-        ),
+        new NotFoundException(`Rabbit Group not found.`),
+      );
+
+      expect(rabbitGroupsService.findOne).toHaveBeenCalledWith(
+        rabbitGroup.id,
+        undefined,
+        undefined,
       );
     });
 
-    it('should throw a ForbiddenException when the region manager does not have permissions', async () => {
+    it('should throw a NotFoundException when the region manager does not have permissions', async () => {
+      jest.spyOn(rabbitGroupsService, 'findOne').mockResolvedValue(null);
+
       await expect(
         resolver.findOne(userRegionManager, rabbitGroup.id),
-      ).rejects.toThrow(
-        new ForbiddenException(
-          'Rabbit Group does not belong to the Region Manager permissions.',
-        ),
+      ).rejects.toThrow(new NotFoundException('Rabbit Group not found.'));
+
+      expect(rabbitGroupsService.findOne).toHaveBeenCalledWith(
+        rabbitGroup.id,
+        userRegionManager.regions,
+        undefined,
+      );
+    });
+    it('should throw a NotFoundException when the region observer does not have permissions', async () => {
+      jest.spyOn(rabbitGroupsService, 'findOne').mockResolvedValue(null);
+
+      await expect(
+        resolver.findOne(userRegionObserver, rabbitGroup.id),
+      ).rejects.toThrow(new NotFoundException('Rabbit Group not found.'));
+
+      expect(rabbitGroupsService.findOne).toHaveBeenCalledWith(
+        rabbitGroup.id,
+        userRegionObserver.regions,
+        undefined,
       );
     });
 
@@ -95,22 +120,32 @@ describe('RabbitGroupsResolver', () => {
       await expect(
         resolver.findOne(userRegionManager2Regions, rabbitGroup.id),
       ).resolves.toEqual(rabbitGroup);
+
+      expect(rabbitGroupsService.findOne).toHaveBeenCalledWith(
+        rabbitGroup.id,
+        userRegionManager2Regions.regions,
+        undefined,
+      );
     });
 
     it('should throw a ForbiddenException when the volunteer does not have permissions', async () => {
+      jest.spyOn(rabbitGroupsService, 'findOne').mockResolvedValue(null);
+
       await expect(
         resolver.findOne(userVolunteer2, rabbitGroup.id),
-      ).rejects.toThrow(
-        new ForbiddenException(
-          'Rabbit Group does not belong to the Volunteer permissions.',
-        ),
-      );
+      ).rejects.toThrow(new NotFoundException('Rabbit Group not found.'));
     });
 
     it('should return a rabbit group from the volunteer', async () => {
       await expect(
         resolver.findOne(userVolunteer, rabbitGroup.id),
       ).resolves.toEqual(rabbitGroup);
+
+      expect(rabbitGroupsService.findOne).toHaveBeenCalledWith(
+        rabbitGroup.id,
+        undefined,
+        [userVolunteer.teamId],
+      );
     });
   });
 

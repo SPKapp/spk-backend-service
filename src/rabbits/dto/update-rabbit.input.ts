@@ -2,8 +2,7 @@ import { InputType, Field, PartialType, ID, OmitType } from '@nestjs/graphql';
 import { Transform } from 'class-transformer';
 
 import { CreateRabbitInput } from './create-rabbit.input';
-import { Gender } from '../entities/gender.enum';
-import { AdmissionType } from '../entities/admissionType.enum';
+import { AdmissionType, Gender } from '../entities';
 
 @InputType({
   description:

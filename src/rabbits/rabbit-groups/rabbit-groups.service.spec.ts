@@ -1,14 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  NotFoundException,
+  NotImplementedException,
+} from '@nestjs/common';
 import { In } from 'typeorm';
 
-import { Region } from '../../common/modules/regions/entities/region.entity';
+import { RabbitGroup } from '../entities';
+import { Team } from '../../users/entities';
+import { Region } from '../../common/modules/regions/entities';
+
 import { TeamsService } from '../../users/teams/teams.service';
-import { Team } from '../../users/entities/team.entity';
-
 import { RabbitGroupsService } from './rabbit-groups.service';
-
-import { RabbitGroup } from '../entities/rabbit-group.entity';
 
 describe('RabbitGroupsService', () => {
   let service: RabbitGroupsService;
@@ -35,8 +38,7 @@ describe('RabbitGroupsService', () => {
             find: jest.fn(() => rabbitGroups),
             countBy: jest.fn(() => rabbitGroups.length),
             findOneBy: jest.fn(() => rabbitGroups[0]),
-            // update: jest.fn(() => rabbitGroups[0]),
-            remove: jest.fn((group) => group.id),
+            softRemove: jest.fn((group) => group.id),
           },
         },
         {
@@ -62,7 +64,17 @@ describe('RabbitGroupsService', () => {
       expect(service.create).toBeDefined();
     });
 
-    // TODO: Add tests
+    it('should create a rabbit group', async () => {
+      jest
+        .spyOn(rabbitGroupRepository, 'save')
+        .mockResolvedValue(rabbitGroups[0]);
+
+      await expect(service.create(1)).resolves.toEqual(rabbitGroups[0]);
+
+      expect(rabbitGroupRepository.save).toHaveBeenCalledWith({
+        region: { id: 1 },
+      });
+    });
   });
 
   describe('findAllPaginated', () => {
@@ -76,16 +88,50 @@ describe('RabbitGroupsService', () => {
         offset: 0,
         limit: 10,
       });
+
+      expect(rabbitGroupRepository.find).toHaveBeenCalledWith({
+        skip: 0,
+        take: 10,
+        where: { region: { id: undefined }, team: { id: undefined } },
+      });
     });
 
     it('should return a paginated list of rabbit groups with the specified offset and limit', async () => {
       const offset = 1;
       const limit = 1;
 
-      await expect(service.findAllPaginated(offset, limit)).resolves.toEqual({
+      await expect(
+        service.findAllPaginated({ offset, limit }),
+      ).resolves.toEqual({
         data: rabbitGroups,
         offset,
         limit,
+      });
+
+      expect(rabbitGroupRepository.find).toHaveBeenCalledWith({
+        skip: offset,
+        take: limit,
+        where: { region: { id: undefined }, team: { id: undefined } },
+      });
+    });
+
+    it('should return a paginated list with the total count of rabbit groups', async () => {
+      await expect(service.findAllPaginated({}, true)).resolves.toEqual({
+        data: rabbitGroups,
+        offset: 0,
+        limit: 10,
+        totalCount: rabbitGroups.length,
+      });
+
+      expect(rabbitGroupRepository.find).toHaveBeenCalledWith({
+        skip: 0,
+        take: 10,
+        where: { region: { id: undefined }, team: { id: undefined } },
+      });
+
+      expect(rabbitGroupRepository.countBy).toHaveBeenCalledWith({
+        region: { id: undefined },
+        team: { id: undefined },
       });
     });
   });
@@ -101,60 +147,48 @@ describe('RabbitGroupsService', () => {
       expect(rabbitGroupRepository.find).toHaveBeenCalledWith({
         skip: undefined,
         take: undefined,
-        where: { region: { id: undefined } },
+        where: { region: { id: undefined }, team: { id: undefined } },
       });
     });
 
     it('should return a list of rabbit groups with the specified regions', async () => {
       const regionsIds = [1, 2];
 
-      await expect(service.findAll(regionsIds)).resolves.toEqual(rabbitGroups);
-
-      expect(rabbitGroupRepository.find).toHaveBeenCalledWith({
-        skip: undefined,
-        take: undefined,
-        where: { region: { id: In(regionsIds) } },
-      });
-    });
-
-    it('should return a list of rabbit groups with the specified offset and limit', async () => {
-      const offset = 1;
-      const limit = 1;
-
-      await expect(service.findAll(undefined, offset, limit)).resolves.toEqual(
+      await expect(service.findAll({ regionsIds })).resolves.toEqual(
         rabbitGroups,
       );
 
       expect(rabbitGroupRepository.find).toHaveBeenCalledWith({
-        skip: offset,
-        take: limit,
-        where: { region: { id: undefined } },
-      });
-    });
-  });
-
-  describe('count', () => {
-    it('should be defined', () => {
-      expect(service.count).toBeDefined();
-    });
-
-    it('should return the number of rabbit groups', async () => {
-      await expect(service.count()).resolves.toEqual(rabbitGroups.length);
-
-      expect(rabbitGroupRepository.countBy).toHaveBeenCalledWith({
-        region: { id: undefined },
+        skip: undefined,
+        take: undefined,
+        where: { region: { id: In(regionsIds) }, team: { id: undefined } },
       });
     });
 
-    it('should return the number of rabbit groups with the specified regions', async () => {
+    it('should return a list of rabbit groups with the specified teams', async () => {
+      const teamIds = [1, 2];
+
+      await expect(service.findAll({ teamIds })).resolves.toEqual(rabbitGroups);
+
+      expect(rabbitGroupRepository.find).toHaveBeenCalledWith({
+        skip: undefined,
+        take: undefined,
+        where: { region: { id: undefined }, team: { id: In(teamIds) } },
+      });
+    });
+
+    it('should return a list of rabbit groups with the specified regions and teams', async () => {
       const regionsIds = [1, 2];
+      const teamIds = [1, 2];
 
-      await expect(service.count(regionsIds)).resolves.toEqual(
-        rabbitGroups.length,
+      await expect(service.findAll({ regionsIds, teamIds })).resolves.toEqual(
+        rabbitGroups,
       );
 
-      expect(rabbitGroupRepository.countBy).toHaveBeenCalledWith({
-        region: { id: In(regionsIds) },
+      expect(rabbitGroupRepository.find).toHaveBeenCalledWith({
+        skip: undefined,
+        take: undefined,
+        where: { region: { id: In(regionsIds) }, team: { id: In(teamIds) } },
       });
     });
   });
@@ -172,6 +206,7 @@ describe('RabbitGroupsService', () => {
       expect(rabbitGroupRepository.findOneBy).toHaveBeenCalledWith({
         id: rabbitGroups[0].id,
         region: { id: undefined },
+        team: { id: undefined },
       });
     });
 
@@ -182,6 +217,7 @@ describe('RabbitGroupsService', () => {
       expect(rabbitGroupRepository.findOneBy).toHaveBeenCalledWith({
         id: rabbitGroups[0].id,
         region: { id: undefined },
+        team: { id: undefined },
       });
     });
 
@@ -195,6 +231,36 @@ describe('RabbitGroupsService', () => {
       expect(rabbitGroupRepository.findOneBy).toHaveBeenCalledWith({
         id: rabbitGroups[0].id,
         region: { id: In(regionsIds) },
+        team: { id: undefined },
+      });
+    });
+
+    it('should return a rabbit group with the specified teams', async () => {
+      const teamIds = [1, 2];
+
+      await expect(
+        service.findOne(rabbitGroups[0].id, undefined, teamIds),
+      ).resolves.toEqual(rabbitGroups[0]);
+
+      expect(rabbitGroupRepository.findOneBy).toHaveBeenCalledWith({
+        id: rabbitGroups[0].id,
+        region: { id: undefined },
+        team: { id: In(teamIds) },
+      });
+    });
+
+    it('should return a rabbit group with the specified regions and teams', async () => {
+      const regionsIds = [1, 2];
+      const teamIds = [1, 2];
+
+      await expect(
+        service.findOne(rabbitGroups[0].id, regionsIds, teamIds),
+      ).resolves.toEqual(rabbitGroups[0]);
+
+      expect(rabbitGroupRepository.findOneBy).toHaveBeenCalledWith({
+        id: rabbitGroups[0].id,
+        region: { id: In(regionsIds) },
+        team: { id: In(teamIds) },
       });
     });
   });
@@ -204,7 +270,13 @@ describe('RabbitGroupsService', () => {
       expect(service.update).toBeDefined();
     });
 
-    // TODO: Add tests
+    it('should throw a NotImplementedException', () => {
+      expect(() => service.update(1)).toThrow(
+        new NotImplementedException(
+          'For now, is nothing to update, in future fields will be added',
+        ),
+      );
+    });
   });
 
   describe('remove', () => {
@@ -225,7 +297,7 @@ describe('RabbitGroupsService', () => {
         id: rabbitGroups[0].id,
         region: { id: undefined },
       });
-      expect(rabbitGroupRepository.remove).toHaveBeenCalledWith(
+      expect(rabbitGroupRepository.softRemove).toHaveBeenCalledWith(
         rabbitGroups[0],
       );
     });

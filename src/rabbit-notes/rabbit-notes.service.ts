@@ -57,6 +57,7 @@ export class RabbitNotesService {
       user: { id: userId },
       ...createRabbitNoteInput,
       rabbitId: undefined,
+      sortDate: createRabbitNoteInput.vetVisit?.date,
     });
 
     // Recalculate the rabbit's fields based on the new rabbit note
@@ -87,7 +88,7 @@ export class RabbitNotesService {
       offset: filters.offset,
       limit: filters.limit,
       totalCount: totalCount
-        ? await this.rabbitNoteRepository.count(options)
+        ? await this.rabbitNoteRepository.countBy(options.where)
         : undefined,
     };
   }
@@ -115,6 +116,9 @@ export class RabbitNotesService {
     return {
       skip: filters.offset,
       take: filters.limit,
+      order: {
+        sortDate: 'DESC',
+      },
       where: {
         rabbit: { id: rabbitId },
         user: { id: filters.createdBy ? In(filters.createdBy) : undefined },
@@ -215,6 +219,7 @@ export class RabbitNotesService {
     if (rabbitNote.vetVisit) {
       rabbitNote.vetVisit.date =
         updateRabbitNoteInput.vetVisit.date ?? rabbitNote.vetVisit.date;
+      rabbitNote.sortDate = rabbitNote.vetVisit.date;
 
       // Update VisitInfo
       if (updateRabbitNoteInput.vetVisit.visitInfo) {
@@ -288,38 +293,18 @@ export class RabbitNotesService {
     const updateDto: UpdateRabbitNoteFieldsDto = {};
 
     // weight
-    const weightFromVisits = await this.rabbitNoteRepository.findOne({
-      relations: {
-        vetVisit: true,
-      },
-      where: {
-        rabbit: { id: rabbitId },
-        vetVisit: { id: Not(IsNull()) },
-        weight: Not(IsNull()),
-      },
-      order: {
-        vetVisit: { date: 'DESC' },
-      },
-    });
-    const weightFromNotes = await this.rabbitNoteRepository.findOne({
-      where: {
-        rabbit: { id: rabbitId },
-        vetVisit: {
-          id: IsNull(),
-        },
-        weight: Not(IsNull()),
-      },
-      order: {
-        createdAt: 'DESC',
-      },
-    });
 
-    if (weightFromVisits) {
-      updateDto.weight = weightFromVisits.weight;
-    }
-    if (weightFromNotes?.createdAt > weightFromVisits?.vetVisit.date) {
-      updateDto.weight = weightFromNotes.weight;
-    }
+    updateDto.weight = (
+      await this.rabbitNoteRepository.findOne({
+        where: {
+          rabbit: { id: rabbitId },
+          weight: Not(IsNull()),
+        },
+        order: {
+          sortDate: 'DESC',
+        },
+      })
+    )?.weight;
 
     // chipNumber
     updateDto.chipNumber = (

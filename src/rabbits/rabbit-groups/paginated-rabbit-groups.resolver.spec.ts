@@ -4,9 +4,14 @@ import { ForbiddenException } from '@nestjs/common';
 import {
   userAdmin,
   userRegionManager,
+  userRegionObserver,
+  userVolunteer,
 } from '../../common/tests/user-details.template';
 import {
-  AuthService,
+  paginatedFields,
+  paginatedFieldsWithTotalCount,
+} from '../../common/tests/paginated-fields.template';
+import {
   FirebaseAuthGuard,
   getCurrentUserPipe,
 } from '../../common/modules/auth/auth.module';
@@ -28,12 +33,10 @@ describe('PaginatedRabbitGroupsResolver', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PaginatedRabbitGroupsResolver,
-        AuthService,
         {
           provide: RabbitGroupsService,
           useValue: {
             findAllPaginated: jest.fn(() => paginatedRabbitGroups),
-            count: jest.fn(() => 10),
           },
         },
       ],
@@ -59,71 +62,89 @@ describe('PaginatedRabbitGroupsResolver', () => {
       expect(resolver.findAll).toBeDefined();
     });
 
-    it('should throw bad permissions error', async () => {
+    it('should throw bad permissions error - Region Manager', async () => {
+      const args = { offset: 0, limit: 10, regionsIds: [1] };
+
       await expect(
-        resolver.findAll(userRegionManager, {
-          regionsIds: [1],
-          offset: 0,
-          limit: 10,
-        }),
+        resolver.findAll(userRegionManager, paginatedFields, args),
       ).rejects.toThrow(
-        new ForbiddenException(
-          'Region ID does not match the Region Manager permissions.',
-        ),
+        new ForbiddenException('Region ID does not match permissions.'),
       );
     });
 
-    it('should return paginated rabbit groups from Region manager', async () => {
+    it('should throw bad permissions error - Region Observer', async () => {
+      const args = { offset: 0, limit: 10, regionsIds: [1] };
+
       await expect(
-        resolver.findAll(userRegionManager, { offset: 0, limit: 10 }),
-      ).resolves.toEqual({
-        ...paginatedRabbitGroups,
-        transferToFieds: {
-          regionsIds: userRegionManager.regions,
-        },
-      });
+        resolver.findAll(userRegionObserver, paginatedFields, args),
+      ).rejects.toThrow(
+        new ForbiddenException('Region ID does not match permissions.'),
+      );
+    });
+
+    it('should return paginated rabbit groups from Region Manager', async () => {
+      const args = { offset: 0, limit: 10 };
+
+      await expect(
+        resolver.findAll(userRegionManager, paginatedFields, args),
+      ).resolves.toEqual(paginatedRabbitGroups);
 
       expect(rabbitGroupsService.findAllPaginated).toHaveBeenCalledWith(
-        0,
-        10,
-        userRegionManager.regions,
+        { ...args, regionsIds: userRegionManager.regions },
+        false,
       );
     });
 
-    it('should return paginated rabbit groups', async () => {
+    it('should return paginated rabbit groups from Region Observer', async () => {
+      const args = { offset: 0, limit: 10 };
+
       await expect(
-        resolver.findAll(userAdmin, { offset: 0, limit: 10 }),
-      ).resolves.toEqual({
-        ...paginatedRabbitGroups,
-        transferToFieds: {
-          regionsIds: undefined,
-        },
-      });
+        resolver.findAll(userRegionObserver, paginatedFields, args),
+      ).resolves.toEqual(paginatedRabbitGroups);
 
       expect(rabbitGroupsService.findAllPaginated).toHaveBeenCalledWith(
-        0,
-        10,
-        undefined,
+        { ...args, regionsIds: userRegionObserver.regions },
+        false,
       );
     });
-  });
 
-  describe('totalCount', () => {
-    it('should be defined', () => {
-      expect(resolver.totalCount).toBeDefined();
-    });
-
-    it('should return total count of rabbit groups', async () => {
-      const regionsIds = [1, 2, 3];
+    it('should return paginated rabbit groups from Volunteer', async () => {
+      const args = { offset: 0, limit: 10, teamIds: [123] };
 
       await expect(
-        resolver.totalCount({
-          ...paginatedRabbitGroups,
-          transferToFieds: { regionsIds },
-        }),
-      ).resolves.toEqual(10);
+        resolver.findAll(userVolunteer, paginatedFields, args),
+      ).resolves.toEqual(paginatedRabbitGroups);
 
-      expect(rabbitGroupsService.count).toHaveBeenCalledWith(regionsIds);
+      expect(rabbitGroupsService.findAllPaginated).toHaveBeenCalledWith(
+        { ...args, teamIds: [userVolunteer.teamId] },
+        false,
+      );
+    });
+
+    it('should return paginated rabbit groups from Admin', async () => {
+      const args = { offset: 0, limit: 10 };
+
+      await expect(
+        resolver.findAll(userAdmin, paginatedFields, args),
+      ).resolves.toEqual(paginatedRabbitGroups);
+
+      expect(rabbitGroupsService.findAllPaginated).toHaveBeenCalledWith(
+        args,
+        false,
+      );
+    });
+
+    it('should return paginated rabbit groups with totalCount', async () => {
+      const args = { offset: 0, limit: 10 };
+
+      await expect(
+        resolver.findAll(userAdmin, paginatedFieldsWithTotalCount, args),
+      ).resolves.toEqual(paginatedRabbitGroups);
+
+      expect(rabbitGroupsService.findAllPaginated).toHaveBeenCalledWith(
+        args,
+        true,
+      );
     });
   });
 });

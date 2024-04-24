@@ -14,46 +14,41 @@ export class UserDetails {
   id?: number;
 
   /**
-   * Checks if the current user is an admin.
-   *
-   * @returns {boolean} True if the current user is an admin, false otherwise.
+   * Checks if the current user has at least one of the specified role(s).
+   * @param role - The role(s) to check.
+   * @returns `true` if the current user has the role(s), `false` otherwise.
    */
-  get isAdmin(): boolean {
-    return this.roles.includes(Role.Admin);
-  }
-
-  /**
-   * Checks if the current user is a region manager.
-   *
-   * @returns {boolean} Returns true if the current user is a region manager, otherwise returns false.
-   */
-  get isRegionManager(): boolean {
-    return this.roles.includes(Role.RegionManager);
-  }
-
-  /**
-   * Checks if the current user is a volunteer.
-   *
-   * @returns {boolean} True if the current user is a volunteer, false otherwise.
-   */
-  get isVolunteer(): boolean {
-    return this.roles.includes(Role.Volunteer);
-  }
-
-  /**
-   * Determines whether the current user has at least the role of a region manager.
-   *
-   * @returns {boolean} True if the user is an admin or a region manager, false otherwise.
-   */
-  get isAtLeastRegionManager(): boolean {
-    return this.isAdmin || this.isRegionManager;
-  }
-
   checkRole(role: Role | Role[]): boolean {
     if (Array.isArray(role)) {
       return role.some((r) => this.roles.includes(r));
     }
 
     return this.roles.includes(role);
+  }
+
+  /**
+   * Checks if the current user has access to all of the specified region(s).
+   * @param regionID - The region(s) to check.
+   * @returns `true` if the current user has the region(s), `false` otherwise.
+   */
+  checkRegion(regionID: number | number[]): boolean {
+    if (!this.regions) {
+      return false;
+    }
+
+    if (Array.isArray(regionID)) {
+      return regionID.every((r) => this.regions.includes(r));
+    }
+
+    return this.regions.includes(regionID);
+  }
+
+  /**
+   * Checks if the current user has access to the specified team.
+   * @param teamId - The team ID to check.
+   * @returns `true` if the current user has access to the team, `false` otherwise.
+   */
+  checkTeam(teamId: number): boolean {
+    return this.teamId === teamId;
   }
 }

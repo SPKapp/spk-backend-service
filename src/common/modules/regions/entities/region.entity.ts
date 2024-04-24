@@ -10,7 +10,7 @@ import {
 } from 'typeorm';
 
 import { Team } from '../../../../users/entities/team.entity';
-import { RabbitGroup } from '../../../../rabbits/entities/rabbit-group.entity';
+import { RabbitGroup } from '../../../../rabbits/entities';
 
 @Entity()
 @ObjectType()

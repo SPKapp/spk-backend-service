@@ -12,8 +12,8 @@ import {
 } from 'typeorm';
 
 import { VetVisit } from './vet-visit.entity';
-import { Rabbit } from '../../rabbits/entities/rabbit.entity';
-import { User } from '../../users/entities/user.entity';
+import { Rabbit } from '../../rabbits/entities';
+import { User } from '../../users/entities';
 
 @Entity()
 @ObjectType()
@@ -57,6 +57,7 @@ export class RabbitNote {
 
   @ManyToOne(() => Rabbit, (rabbit) => rabbit.notes, {
     nullable: false,
+    onDelete: 'CASCADE',
   })
   rabbit?: Rabbit;
 
@@ -86,4 +87,9 @@ export class RabbitNote {
 
   @DeleteDateColumn()
   deletedAt?: Date;
+
+  @Column({
+    default: () => 'CURRENT_TIMESTAMP',
+  })
+  sortDate?: Date;
 }

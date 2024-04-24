@@ -1,71 +1,67 @@
-import { Resolver, Query, Args, ResolveField, Parent } from '@nestjs/graphql';
+import { Resolver, Query, Args } from '@nestjs/graphql';
+import { ForbiddenException } from '@nestjs/common';
 
 import {
-  AuthService,
   FirebaseAuth,
   Role,
   CurrentUser,
   UserDetails,
 } from '../../common/modules/auth/auth.module';
+import {
+  GqlFields,
+  GqlFieldsName,
+} from '../../common/decorators/gql-fields.decorator';
 
 import { RabbitGroupsService } from './rabbit-groups.service';
-
-import { PaginatedRabbitGroups } from '../dto/paginated-rabbit-groups.output';
-import { FindRabbitGroupsArgs } from '../dto/find-rabbit-groups.args';
+import { PaginatedRabbitGroups, FindRabbitGroupsArgs } from '../dto';
 
 @Resolver(() => PaginatedRabbitGroups)
 export class PaginatedRabbitGroupsResolver {
-  constructor(
-    private readonly rabbitGroupsService: RabbitGroupsService,
-    private readonly authService: AuthService,
-  ) {}
+  constructor(private readonly rabbitGroupsService: RabbitGroupsService) {}
 
   /**
    * Retrieves paginated rabbit groups based on the provided arguments.
+   * Roles allowed:
+   * - Admin: Can view all rabbit groups.
+   * - RegionManager: Can view rabbit groups from the regions they manage.
+   * - RegionObserver: Can view rabbit groups from the regions they observe.
+   * - Volunteer: Can view rabbit groups from the regions they are assigned to.
    *
    * @param currentUser - The current user details.
+   * @param gqlFields - The GraphQL resolve info.
    * @param args - The arguments for finding rabbit groups.
    * @returns A promise that resolves to a paginated list of rabbit groups.
    */
-  @FirebaseAuth(Role.Admin, Role.RegionManager)
+  @FirebaseAuth(
+    Role.Admin,
+    Role.RegionManager,
+    Role.RegionObserver,
+    Role.Volunteer,
+  )
   @Query(() => PaginatedRabbitGroups, { name: 'rabbitGroups' })
   async findAll(
-    @CurrentUser() currentUser: UserDetails,
+    @CurrentUser('ALL') currentUser: UserDetails,
+    @GqlFields(PaginatedRabbitGroups.name) gqlFields: GqlFieldsName,
     @Args() args: FindRabbitGroupsArgs,
   ): Promise<PaginatedRabbitGroups> {
-    let regionsIds = args.regionsIds;
-
-    if (!currentUser.isAdmin) {
-      if (regionsIds) {
-        await this.authService.checkRegionManagerPermissions(
-          currentUser,
-          async () => regionsIds,
-        );
-      } else {
-        regionsIds = currentUser.regions;
+    if (currentUser.checkRole(Role.Admin)) {
+    } else if (
+      currentUser.checkRole([Role.RegionManager, Role.RegionObserver])
+    ) {
+      // There is no check that teamIds belongs to one of user regions
+      // In this case, database query will return empty array
+      if (!args.regionsIds) {
+        args.regionsIds = currentUser.regions;
+      } else if (!currentUser.checkRegion(args.regionsIds)) {
+        throw new ForbiddenException('Region ID does not match permissions.');
       }
+    } else if (currentUser.checkRole(Role.Volunteer)) {
+      args.teamIds = [currentUser.teamId];
     }
 
-    return {
-      ...(await this.rabbitGroupsService.findAllPaginated(
-        args.offset,
-        args.limit,
-        regionsIds,
-      )),
-      transferToFieds: {
-        regionsIds,
-      },
-    };
-  }
-
-  /**
-   * Retrieves the total count of rabbit groups.
-   *
-   * @param parent - The parent object that should contain the transfer field `regionsIds`.
-   * @returns The total count of rabbit groups.
-   */
-  @ResolveField('totalCount', () => Number)
-  async totalCount(@Parent() parent: PaginatedRabbitGroups) {
-    return this.rabbitGroupsService.count(parent.transferToFieds.regionsIds);
+    return this.rabbitGroupsService.findAllPaginated(
+      args,
+      gqlFields.totalCount ? true : false,
+    );
   }
 }

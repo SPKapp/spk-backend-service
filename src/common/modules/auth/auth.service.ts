@@ -21,14 +21,4 @@ export class AuthService {
       }
     }
   }
-
-  async checkVolunteerPermissions(
-    user: UserDetails,
-    fn: () => Promise<number>,
-    forbiddenDescription: string = 'Team ID does not match the Volunteer permissions.',
-  ): Promise<void> {
-    if (user.roles.includes(Role.Volunteer) && user.teamId != (await fn())) {
-      throw new ForbiddenException(forbiddenDescription);
-    }
-  }
 }

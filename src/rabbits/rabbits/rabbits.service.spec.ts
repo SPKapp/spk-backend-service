@@ -4,10 +4,8 @@ import { In } from 'typeorm';
 
 import { RabbitsService } from './rabbits.service';
 import { RabbitGroupsService } from '../rabbit-groups/rabbit-groups.service';
-import { Rabbit } from '../entities/rabbit.entity';
-import { RabbitGroup } from '../entities/rabbit-group.entity';
-import { AdmissionType } from '../entities/admissionType.enum';
-import { Region } from '../../common/modules/regions/entities/region.entity';
+import { Rabbit, RabbitGroup, AdmissionType } from '../entities';
+import { Region } from '../../common/modules/regions/entities';
 
 jest.mock('typeorm-transactional', () => ({
   Transactional: () => jest.fn(),
@@ -24,12 +22,18 @@ describe('RabbitsService', () => {
       name: 'Rabbit 1',
       admissionType: AdmissionType.Found,
       color: 'White',
-      rabbitGroup: new RabbitGroup({ id: 1 }),
+      rabbitGroup: new RabbitGroup({
+        id: 1,
+        rabbits: new Promise((resolve) => resolve([])),
+      }),
     }),
     new Rabbit({
       id: 1,
       name: 'Rabbit 1',
-      rabbitGroup: new RabbitGroup({ id: 2 }),
+      rabbitGroup: new RabbitGroup({
+        id: 2,
+        rabbits: new Promise((resolve) => resolve([new Rabbit({ id: 2 })])),
+      }),
     }),
   ];
 
@@ -52,6 +56,7 @@ describe('RabbitsService', () => {
           useValue: {
             save: jest.fn(() => rabbits[0]),
             findOneBy: jest.fn(() => rabbits[0]),
+            softRemove: jest.fn(() => ({ id: 1 })),
           },
         },
       ],
@@ -86,14 +91,6 @@ describe('RabbitsService', () => {
 
       expect(rabbitGroupsService.create).not.toHaveBeenCalled();
     });
-  });
-
-  describe('findAll', () => {
-    it('should be defined', () => {
-      expect(service.findAll).toBeDefined();
-    });
-
-    // TODO: Add tests
   });
 
   describe('findOne', () => {
@@ -260,7 +257,54 @@ describe('RabbitsService', () => {
       expect(service.remove).toBeDefined();
     });
 
-    // TODO: Add tests
+    it('should remove a rabbit and rabbitGroup', async () => {
+      await expect(service.remove(rabbits[0].id)).resolves.toEqual({ id: 1 });
+
+      expect(rabbitRepository.findOneBy).toHaveBeenCalledWith({
+        id: 1,
+        rabbitGroup: {
+          region: {
+            id: undefined,
+          },
+        },
+      });
+      expect(rabbitRepository.softRemove).toHaveBeenCalledWith(rabbits[0]);
+      expect(rabbitGroupsService.remove).toHaveBeenCalledWith(1);
+    });
+
+    it('should remove a rabbit without removing rabbitGroup', async () => {
+      jest.spyOn(rabbitRepository, 'findOneBy').mockResolvedValue(rabbits[1]);
+
+      await expect(service.remove(rabbits[1].id)).resolves.toEqual({ id: 1 });
+
+      expect(rabbitRepository.findOneBy).toHaveBeenCalledWith({
+        id: 1,
+        rabbitGroup: {
+          region: {
+            id: undefined,
+          },
+        },
+      });
+      expect(rabbitRepository.softRemove).toHaveBeenCalledWith(rabbits[1]);
+      expect(rabbitGroupsService.remove).not.toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException if rabbit not found', async () => {
+      jest.spyOn(rabbitRepository, 'findOneBy').mockResolvedValue(null);
+
+      await expect(service.remove(rabbits[0].id, [1])).rejects.toThrow(
+        new NotFoundException('Rabbit not found'),
+      );
+
+      expect(rabbitRepository.findOneBy).toHaveBeenCalledWith({
+        id: 1,
+        rabbitGroup: {
+          region: {
+            id: In([1]),
+          },
+        },
+      });
+    });
   });
 
   describe('updateRabbitGroup', () => {
@@ -407,6 +451,31 @@ describe('RabbitsService', () => {
           'Cannot create a new rabbit group if the current rabbit group has only one rabbit',
         ),
       );
+    });
+  });
+
+  describe('updateRabbitNoteFields', () => {
+    it('should be defined', () => {
+      expect(service.updateRabbitNoteFields).toBeDefined();
+    });
+
+    it('should update rabbit note fields', async () => {
+      const updatedRabbit = { ...rabbits[0], weight: 1 };
+
+      await service.updateRabbitNoteFields(rabbits[0].id, { weight: 1 });
+
+      expect(rabbitRepository.findOneBy).toHaveBeenCalledWith({
+        id: 1,
+      });
+      expect(rabbitRepository.save).toHaveBeenCalledWith(updatedRabbit);
+    });
+
+    it('should throw NotFoundException if rabbit not found', async () => {
+      jest.spyOn(rabbitRepository, 'findOneBy').mockResolvedValue(null);
+
+      await expect(
+        service.updateRabbitNoteFields(rabbits[0].id, { weight: 1 }),
+      ).rejects.toThrow(new NotFoundException('Rabbit not found'));
     });
   });
 });

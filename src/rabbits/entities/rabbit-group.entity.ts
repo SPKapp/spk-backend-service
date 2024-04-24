@@ -1,5 +1,13 @@
 import { ObjectType, Field, ID } from '@nestjs/graphql';
-import { Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  CreateDateColumn,
+  DeleteDateColumn,
+  Entity,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 import { Region } from '../../common/modules/regions/entities/region.entity';
 import { Team } from '../../users/entities/team.entity';
@@ -30,4 +38,13 @@ export class RabbitGroup {
   @ManyToOne(() => Team, (team) => team.rabbitGroups, { eager: true })
   @Field(() => Team, { nullable: true })
   team?: Team;
+
+  @CreateDateColumn()
+  createdAt?: Date;
+
+  @UpdateDateColumn()
+  updatedAt?: Date;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }

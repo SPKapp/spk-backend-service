@@ -57,7 +57,7 @@ describe('RabbitNotesService', () => {
             find: jest.fn(),
             findOne: jest.fn(),
             findOneBy: jest.fn(),
-            count: jest.fn(),
+            countBy: jest.fn(),
             save: jest.fn((data) => data),
             softRemove: jest.fn(),
           },
@@ -138,6 +138,7 @@ describe('RabbitNotesService', () => {
         description: createRabbitNote.description,
         weight: createRabbitNote.weight,
         vetVisit: createRabbitNoteWithVetVisit.vetVisit,
+        sortDate: createRabbitNoteWithVetVisit.vetVisit.date,
       });
     });
 
@@ -184,6 +185,7 @@ describe('RabbitNotesService', () => {
       });
 
       expect(rabbitNoteRepository.find).toHaveBeenCalledWith({
+        order: { sortDate: 'DESC' },
         where: { rabbit: { id: 1 }, user: {} },
         skip: 0,
         take: 10,
@@ -200,6 +202,7 @@ describe('RabbitNotesService', () => {
       });
 
       expect(rabbitNoteRepository.find).toHaveBeenCalledWith({
+        order: { sortDate: 'DESC' },
         where: { rabbit: { id: 1 }, user: {} },
         skip: 5,
         take: 15,
@@ -219,6 +222,7 @@ describe('RabbitNotesService', () => {
       });
 
       expect(rabbitNoteRepository.find).toHaveBeenCalledWith({
+        order: { sortDate: 'DESC' },
         where: {
           rabbit: { id: 1 },
           user: {},
@@ -231,7 +235,7 @@ describe('RabbitNotesService', () => {
     });
 
     it('should add total count to the response', async () => {
-      jest.spyOn(rabbitNoteRepository, 'count').mockResolvedValue(1);
+      jest.spyOn(rabbitNoteRepository, 'countBy').mockResolvedValue(1);
 
       await expect(
         service.findAllPaginated(1, undefined, true),
@@ -242,10 +246,9 @@ describe('RabbitNotesService', () => {
         totalCount: 1,
       });
 
-      expect(rabbitNoteRepository.count).toHaveBeenCalledWith({
-        where: { rabbit: { id: 1 }, user: {} },
-        skip: 0,
-        take: 10,
+      expect(rabbitNoteRepository.countBy).toHaveBeenCalledWith({
+        rabbit: { id: 1 },
+        user: {},
       });
     });
   });
@@ -263,6 +266,7 @@ describe('RabbitNotesService', () => {
       await expect(service.findAll(1)).resolves.toEqual([rabbitNote]);
 
       expect(rabbitNoteRepository.find).toHaveBeenCalledWith({
+        order: { sortDate: 'DESC' },
         where: { rabbit: { id: 1 }, user: {} },
       });
     });
@@ -273,6 +277,7 @@ describe('RabbitNotesService', () => {
       ).resolves.toEqual([rabbitNote]);
 
       expect(rabbitNoteRepository.find).toHaveBeenCalledWith({
+        order: { sortDate: 'DESC' },
         where: { rabbit: { id: 1 }, user: {} },
         skip: 5,
         take: 10,
@@ -288,6 +293,7 @@ describe('RabbitNotesService', () => {
       ).resolves.toEqual([rabbitNote]);
 
       expect(rabbitNoteRepository.find).toHaveBeenCalledWith({
+        order: { sortDate: 'DESC' },
         where: {
           rabbit: { id: 1 },
           user: {},
@@ -302,6 +308,7 @@ describe('RabbitNotesService', () => {
       ]);
 
       expect(rabbitNoteRepository.find).toHaveBeenCalledWith({
+        order: { sortDate: 'DESC' },
         where: { rabbit: { id: 1 }, user: {}, vetVisit: { id: IsNull() } },
       });
     });
@@ -312,6 +319,7 @@ describe('RabbitNotesService', () => {
       ]);
 
       expect(rabbitNoteRepository.find).toHaveBeenCalledWith({
+        order: { sortDate: 'DESC' },
         where: { rabbit: { id: 1 }, user: {}, vetVisit: { id: Not(IsNull()) } },
       });
     });
@@ -326,6 +334,7 @@ describe('RabbitNotesService', () => {
       ).resolves.toEqual([rabbitNote]);
 
       expect(rabbitNoteRepository.find).toHaveBeenCalledWith({
+        order: { sortDate: 'DESC' },
         where: {
           rabbit: { id: 1 },
           user: {},
@@ -347,6 +356,7 @@ describe('RabbitNotesService', () => {
       ).resolves.toEqual([rabbitNote]);
 
       expect(rabbitNoteRepository.find).toHaveBeenCalledWith({
+        order: { sortDate: 'DESC' },
         where: {
           rabbit: { id: 1 },
           user: {},
@@ -365,6 +375,7 @@ describe('RabbitNotesService', () => {
       ]);
 
       expect(rabbitNoteRepository.find).toHaveBeenCalledWith({
+        order: { sortDate: 'DESC' },
         where: { rabbit: { id: 1 }, user: {}, weight: Not(IsNull()) },
       });
     });
@@ -375,6 +386,7 @@ describe('RabbitNotesService', () => {
       ]);
 
       expect(rabbitNoteRepository.find).toHaveBeenCalledWith({
+        order: { sortDate: 'DESC' },
         where: { rabbit: { id: 1 }, user: { id: In([1, 2]) } },
       });
     });
@@ -464,6 +476,7 @@ describe('RabbitNotesService', () => {
     const updateRabbitNoteWithVetVisit = {
       ...updateRabbitNote,
       vetVisit: {
+        date: new Date(2024, 1, 1),
         visitInfo: [
           new VisitInfo({
             visitType: VisitType.Control,
@@ -474,8 +487,10 @@ describe('RabbitNotesService', () => {
     };
     const updatedRabbitNoteWithVetVisit = new RabbitNote({
       ...updatedRabbitNote,
+      sortDate: updateRabbitNoteWithVetVisit.vetVisit.date,
       vetVisit: {
         ...rabbitNoteWithVetVisit.vetVisit,
+        date: updateRabbitNoteWithVetVisit.vetVisit.date,
         visitInfo: updateRabbitNoteWithVetVisit.vetVisit.visitInfo,
       },
     });

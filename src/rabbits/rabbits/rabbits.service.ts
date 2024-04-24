@@ -5,16 +5,18 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, QueryFailedError, Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Transactional } from 'typeorm-transactional';
 
 import { RabbitGroupsService } from '../rabbit-groups/rabbit-groups.service';
 
-import { CreateRabbitInput } from '../dto/create-rabbit.input';
-import { UpdateRabbitInput } from '../dto/update-rabbit.input';
-import { UpdateRabbitNoteFieldsDto } from '../dto/update-rabbit-note-fields.input';
-import { Rabbit } from '../entities/rabbit.entity';
-import { RabbitGroup } from '../entities/rabbit-group.entity';
+import {
+  CreateRabbitInput,
+  UpdateRabbitInput,
+  UpdateRabbitNoteFieldsDto,
+} from '../dto';
+import { Rabbit, RabbitGroup } from '../entities';
+import { EntityWithId } from '../../common/types';
 
 @Injectable()
 export class RabbitsService {
@@ -34,7 +36,6 @@ export class RabbitsService {
    *
    * @param createRabbitInput - The input data for creating a rabbit.
    * @returns A Promise that resolves to the created rabbit.
-   * @throws {BadRequestException} if the provided data is invalid.
    */
   @Transactional()
   async create(createRabbitInput: CreateRabbitInput): Promise<Rabbit> {
@@ -45,29 +46,14 @@ export class RabbitsService {
       createRabbitInput.rabbitGroupId = rabbitGroup.id;
     }
 
-    try {
-      const rabbit = await this.rabbitRespository.save({
-        ...createRabbitInput,
-        rabbitGroup: { id: createRabbitInput.rabbitGroupId },
-      });
+    const rabbit = await this.rabbitRespository.save({
+      ...createRabbitInput,
+      rabbitGroup: { id: createRabbitInput.rabbitGroupId },
+    });
 
-      this.logger.log(`Rabbit with id ${rabbit.id} has been created`);
+    this.logger.log(`Rabbit with id ${rabbit.id} has been created`);
 
-      return rabbit;
-    } catch (error: unknown) {
-      if (error instanceof QueryFailedError) {
-        throw new BadRequestException(
-          'Cannot create a rabbit with the provided data',
-        );
-      } else {
-        throw error;
-      }
-    }
-  }
-
-  findAll() {
-    // TODO: Implement this method
-    return `This action returns all rabbits`;
+    return rabbit;
   }
 
   /**
@@ -101,7 +87,6 @@ export class RabbitsService {
    * @param teamsIds - Optional array of team IDs to filter the team by.
    * @returns The updated rabbit.
    * @throws {NotFoundException} if the rabbit with the provided ID is not found.
-   * @throws {BadRequestException} if the provided data is invalid and cannot be updated.
    */
   async update(
     id: number,
@@ -118,7 +103,6 @@ export class RabbitsService {
       },
     });
     if (!rabbit) {
-      // TODO: Export comunicat to a constant
       throw new NotFoundException('Rabbit not found');
     }
 
@@ -138,24 +122,34 @@ export class RabbitsService {
         updateRabbitInput.admissionType ?? rabbit.admissionType;
     }
 
-    try {
-      await this.rabbitRespository.save(rabbit);
+    await this.rabbitRespository.save(rabbit);
 
-      return rabbit;
-    } catch (error: unknown) {
-      if (error instanceof QueryFailedError) {
-        throw new BadRequestException(
-          'Cannot update a rabbit with the provided data',
-        );
-      } else {
-        throw error;
-      }
-    }
+    return rabbit;
   }
 
-  remove(id: number) {
-    // TODO: Implement this method
-    return `This action removes a #${id} rabbit`;
+  @Transactional()
+  async remove(id: number, regionsIds?: number[]): Promise<EntityWithId> {
+    const rabbit = await this.rabbitRespository.findOneBy({
+      id,
+      rabbitGroup: {
+        region: { id: regionsIds ? In(regionsIds) : undefined },
+      },
+    });
+    if (!rabbit) {
+      throw new NotFoundException('Rabbit not found');
+    }
+
+    const rabbitGroup = rabbit.rabbitGroup;
+
+    // That should remove all related entities
+    await this.rabbitRespository.softRemove(rabbit);
+
+    if ((await rabbitGroup.rabbits).length === 0) {
+      // That should remove all related entities
+      await this.rabbitGroupsService.remove(rabbitGroup.id);
+    }
+
+    return { id };
   }
 
   /**
@@ -210,29 +204,19 @@ export class RabbitsService {
     const oldRabbitGroup = rabbit.rabbitGroup;
     rabbit.rabbitGroup = rabbitGroup;
 
-    try {
-      await this.rabbitRespository.save(rabbit);
+    await this.rabbitRespository.save(rabbit);
 
-      if ((await oldRabbitGroup.rabbits).length === 0) {
-        await this.rabbitGroupsService.remove(oldRabbitGroup.id);
-      }
-
-      return rabbit;
-    } catch (error: unknown) {
-      if (error instanceof QueryFailedError) {
-        throw new BadRequestException(
-          'Cannot update a rabbit with the provided data',
-        );
-      } else {
-        throw error;
-      }
+    if ((await oldRabbitGroup.rabbits).length === 0) {
+      await this.rabbitGroupsService.remove(oldRabbitGroup.id);
     }
+
+    return rabbit;
   }
 
   async updateRabbitNoteFields(
     id: number,
     updateDto: UpdateRabbitNoteFieldsDto,
-  ) {
+  ): Promise<void> {
     const rabbit = await this.rabbitRespository.findOneBy({
       id,
     });

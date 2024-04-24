@@ -3,12 +3,14 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  NotImplementedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, QueryFailedError, Repository } from 'typeorm';
+import { FindManyOptions, In, Repository } from 'typeorm';
 
-import { RabbitGroup } from '../entities/rabbit-group.entity';
-import { PaginatedRabbitGroups } from '../dto/paginated-rabbit-groups.output';
+import { RabbitGroup } from '../entities';
+import { RabbitGroupsFilters, PaginatedRabbitGroups } from '../dto';
+
 import { TeamsService } from '../../users/teams/teams.service';
 
 @Injectable()
@@ -21,74 +23,67 @@ export class RabbitGroupsService {
     private readonly teamsService: TeamsService,
   ) {}
 
-  async create(regionId: number) {
-    // TODO: Implement this method
-    try {
-      return await this.rabbitGroupRespository.save({
-        region: { id: regionId },
-      });
-    } catch (error: unknown) {
-      if (error instanceof QueryFailedError) {
-        throw new BadRequestException(
-          `Cannot create a rabbit group for the region with Id: ${regionId} `,
-        );
-      } else {
-        throw error;
-      }
-    }
+  /**
+   * Creates a new rabbit group.
+   *
+   * @param regionId - The ID of the region to assign to the rabbit group.
+   * @returns A Promise that resolves to the created rabbit group.
+   */
+  async create(regionId: number): Promise<RabbitGroup> {
+    return await this.rabbitGroupRespository.save({
+      region: { id: regionId },
+    });
   }
 
   /**
    * Retrieves paginated rabbit groups.
    *
-   * @param offset - The offset value for pagination. Defaults to 0.
-   * @param limit - The limit value for pagination. Defaults to 10.
-   * @param regionsIds - An optional array of region IDs to filter the results by.
+   * @param filters - The filters to apply to the rabbit groups.
+   * @param totalCount - Whether to include the total count of rabbit groups.
    * @returns A Promise that resolves to a PaginatedRabbitGroups object containing the paginated rabbit groups.
    */
   async findAllPaginated(
-    offset: number = 0,
-    limit: number = 10,
-    regionsIds?: number[],
+    filters: RabbitGroupsFilters = {},
+    totalCount: boolean = false,
   ): Promise<PaginatedRabbitGroups> {
+    filters.offset ??= 0;
+    filters.limit ??= 10;
+
+    const options = this.createFilterOptions(filters);
+
     return {
-      data: await this.findAll(regionsIds, offset, limit),
-      offset,
-      limit,
+      data: await this.rabbitGroupRespository.find(options),
+      offset: filters.offset,
+      limit: filters.limit,
+      totalCount: totalCount
+        ? await this.rabbitGroupRespository.countBy(options.where)
+        : undefined,
     };
   }
 
   /**
    * Retrieves all rabbit groups based on the provided parameters.
    *
-   * @param regionsIds - An optional array of region IDs to filter the rabbit groups by.
-   * @param offset - The number of records to skip before starting to return the records.
-   * @param limit - The maximum number of records to return.
+   * @param filters - The filters to apply to the rabbit groups.
    * @returns A promise that resolves to an array of RabbitGroup objects.
    */
-  async findAll(
-    regionsIds?: number[],
-    offset?: number,
-    limit?: number,
-  ): Promise<RabbitGroup[]> {
-    return await this.rabbitGroupRespository.find({
-      skip: offset,
-      take: limit,
-      where: { region: { id: regionsIds ? In(regionsIds) : undefined } },
-    });
+  async findAll(filters: RabbitGroupsFilters = {}): Promise<RabbitGroup[]> {
+    return await this.rabbitGroupRespository.find(
+      this.createFilterOptions(filters),
+    );
   }
 
-  /**
-   * Counts the number of rabbit groups based on the provided region IDs.
-   * If no region IDs are provided, it counts all rabbit groups.
-   *
-   * @param regionsIds - An optional array of region IDs to filter the rabbit groups.
-   * @returns A promise that resolves to the number of rabbit groups.
-   */
-  async count(regionsIds?: number[]): Promise<number> {
-    return await this.rabbitGroupRespository.countBy({
-      region: { id: regionsIds ? In(regionsIds) : undefined },
-    });
+  private createFilterOptions(
+    filters: RabbitGroupsFilters = {},
+  ): FindManyOptions<RabbitGroup> {
+    return {
+      skip: filters.offset,
+      take: filters.limit,
+      where: {
+        region: { id: filters.regionsIds ? In(filters.regionsIds) : undefined },
+        team: { id: filters.teamIds ? In(filters.teamIds) : undefined },
+      },
+    };
   }
 
   /**
@@ -96,20 +91,25 @@ export class RabbitGroupsService {
    *
    * @param id - The ID of the rabbit group to find.
    * @param regionsIds - An optional array of region IDs to filter the rabbit groups.
+   * @param teamsIds - An optional array of team IDs to filter the rabbit groups.
    * @returns A Promise that resolves to the found rabbit group, or null if not found.
    */
   async findOne(
     id: number,
     regionsIds?: number[],
+    teamsIds?: number[],
   ): Promise<RabbitGroup | null> {
     return await this.rabbitGroupRespository.findOneBy({
       id,
       region: { id: regionsIds ? In(regionsIds) : undefined },
+      team: { id: teamsIds ? In(teamsIds) : undefined },
     });
   }
 
   update(id: number) {
-    // TODO: Implement this method
+    throw new NotImplementedException(
+      'For now, is nothing to update, in future fields will be added',
+    );
     return `This action updates a #${id} rabbitGroup`;
   }
 
@@ -138,7 +138,7 @@ export class RabbitGroupsService {
       );
     }
 
-    await this.rabbitGroupRespository.remove(rabbitGroup);
+    await this.rabbitGroupRespository.softRemove(rabbitGroup);
 
     return id;
   }

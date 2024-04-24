@@ -1,8 +1,7 @@
 import { Resolver, Query, Args, Int, Mutation } from '@nestjs/graphql';
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 
 import {
-  AuthService,
   FirebaseAuth,
   Role,
   CurrentUser,
@@ -10,15 +9,11 @@ import {
 } from '../../common/modules/auth/auth.module';
 
 import { RabbitGroupsService } from './rabbit-groups.service';
-
-import { RabbitGroup } from '../entities/rabbit-group.entity';
+import { RabbitGroup } from '../entities';
 
 @Resolver(() => RabbitGroup)
 export class RabbitGroupsResolver {
-  constructor(
-    private readonly rabbitGroupsService: RabbitGroupsService,
-    private readonly authService: AuthService,
-  ) {}
+  constructor(private readonly rabbitGroupsService: RabbitGroupsService) {}
 
   /**
    * Finds a rabbit group by its ID.
@@ -26,54 +21,33 @@ export class RabbitGroupsResolver {
    * @param currentUser - The current user details.
    * @param id - The ID of the rabbit group to find.
    * @returns A promise that resolves to the found rabbit group.
-   * @throws {NotFoundException} if the rabbit group with the specified ID is not found.
-   * @throws {ForbiddenException} if the current user does not have the required permissions.
+   * @throws {NotFoundException} if the rabbit group with the specified ID is not found based on the user's permissions.
    */
-  @FirebaseAuth(Role.Admin, Role.RegionManager, Role.Volunteer)
+  @FirebaseAuth(
+    Role.Admin,
+    Role.RegionManager,
+    Role.RegionObserver,
+    Role.Volunteer,
+  )
   @Query(() => RabbitGroup, { name: 'rabbitGroup' })
   async findOne(
     @CurrentUser('ALL') currentUser: UserDetails,
     @Args('id', { type: () => Int }) id: number,
   ): Promise<RabbitGroup> {
-    const ERROR_REGION_MANAGER =
-      'Rabbit Group does not belong to the Region Manager permissions.';
-    const ERROR_VOLUNTEER =
-      'Rabbit Group does not belong to the Volunteer permissions.';
+    const isAdmin = currentUser.checkRole(Role.Admin);
+    const regional =
+      !isAdmin &&
+      currentUser.checkRole([Role.RegionManager, Role.RegionObserver]);
+    const volunteer = !isAdmin && !regional;
 
-    let rabbitGroup: RabbitGroup | null = null;
-
-    if (currentUser.isAdmin) {
-      rabbitGroup = await this.rabbitGroupsService.findOne(id);
-      if (!rabbitGroup) {
-        throw new NotFoundException(`Rabbit Group with ID ${id} not found`);
-      }
-      return rabbitGroup;
-    }
-
-    await this.authService.checkRegionManagerPermissions(
-      currentUser,
-      async () => {
-        rabbitGroup = await this.rabbitGroupsService.findOne(id);
-        if (!rabbitGroup) {
-          throw new ForbiddenException(ERROR_REGION_MANAGER);
-        }
-        return rabbitGroup.region.id;
-      },
-      ERROR_REGION_MANAGER,
+    const rabbitGroup = await this.rabbitGroupsService.findOne(
+      id,
+      regional ? currentUser.regions : undefined,
+      volunteer ? [currentUser.teamId] : undefined,
     );
 
     if (!rabbitGroup) {
-      await this.authService.checkVolunteerPermissions(
-        currentUser,
-        async () => {
-          rabbitGroup = await this.rabbitGroupsService.findOne(id);
-          if (!rabbitGroup) {
-            throw new ForbiddenException(ERROR_VOLUNTEER);
-          }
-          return rabbitGroup.team.id;
-        },
-        ERROR_VOLUNTEER,
-      );
+      throw new NotFoundException('Rabbit Group not found.');
     }
 
     return rabbitGroup;
@@ -101,7 +75,7 @@ export class RabbitGroupsResolver {
     return await this.rabbitGroupsService.updateTeam(
       rabbitGroupId,
       teamId,
-      currentUser.isAdmin ? undefined : currentUser.regions,
+      currentUser.checkRole(Role.Admin) ? undefined : currentUser.regions,
     );
   }
 }

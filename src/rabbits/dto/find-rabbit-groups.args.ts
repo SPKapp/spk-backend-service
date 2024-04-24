@@ -8,4 +8,8 @@ export class FindRabbitGroupsArgs extends PaginationArgs {
   @Field(() => [ID], { nullable: true })
   @Transform(({ value }) => value.map((v: string) => parseInt(v, 10)))
   regionsIds?: number[];
+
+  @Field(() => [ID], { nullable: true })
+  @Transform(({ value }) => value.map((v: string) => parseInt(v, 10)))
+  teamIds?: number[];
 }
