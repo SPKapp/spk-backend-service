@@ -4,7 +4,7 @@ import {
   NotFoundException,
   NotImplementedException,
 } from '@nestjs/common';
-import { In } from 'typeorm';
+import { ILike, In } from 'typeorm';
 
 import { RabbitGroup } from '../entities';
 import { Team } from '../../users/entities';
@@ -92,7 +92,16 @@ describe('RabbitGroupsService', () => {
       expect(rabbitGroupRepository.find).toHaveBeenCalledWith({
         skip: 0,
         take: 10,
-        where: { region: { id: undefined }, team: { id: undefined } },
+        relations: {
+          region: true,
+          team: true,
+          rabbits: true,
+        },
+        where: {
+          region: { id: undefined },
+          team: { id: undefined },
+          rabbits: { name: undefined },
+        },
       });
     });
 
@@ -111,7 +120,16 @@ describe('RabbitGroupsService', () => {
       expect(rabbitGroupRepository.find).toHaveBeenCalledWith({
         skip: offset,
         take: limit,
-        where: { region: { id: undefined }, team: { id: undefined } },
+        relations: {
+          region: true,
+          team: true,
+          rabbits: true,
+        },
+        where: {
+          region: { id: undefined },
+          team: { id: undefined },
+          rabbits: { name: undefined },
+        },
       });
     });
 
@@ -126,12 +144,22 @@ describe('RabbitGroupsService', () => {
       expect(rabbitGroupRepository.find).toHaveBeenCalledWith({
         skip: 0,
         take: 10,
-        where: { region: { id: undefined }, team: { id: undefined } },
+        relations: {
+          region: true,
+          team: true,
+          rabbits: true,
+        },
+        where: {
+          region: { id: undefined },
+          team: { id: undefined },
+          rabbits: { name: undefined },
+        },
       });
 
       expect(rabbitGroupRepository.countBy).toHaveBeenCalledWith({
         region: { id: undefined },
         team: { id: undefined },
+        rabbits: { name: undefined },
       });
     });
   });
@@ -147,7 +175,16 @@ describe('RabbitGroupsService', () => {
       expect(rabbitGroupRepository.find).toHaveBeenCalledWith({
         skip: undefined,
         take: undefined,
-        where: { region: { id: undefined }, team: { id: undefined } },
+        relations: {
+          region: true,
+          team: true,
+          rabbits: true,
+        },
+        where: {
+          region: { id: undefined },
+          team: { id: undefined },
+          rabbits: { name: undefined },
+        },
       });
     });
 
@@ -161,7 +198,16 @@ describe('RabbitGroupsService', () => {
       expect(rabbitGroupRepository.find).toHaveBeenCalledWith({
         skip: undefined,
         take: undefined,
-        where: { region: { id: In(regionsIds) }, team: { id: undefined } },
+        relations: {
+          region: true,
+          team: true,
+          rabbits: true,
+        },
+        where: {
+          region: { id: In(regionsIds) },
+          team: { id: undefined },
+          rabbits: { name: undefined },
+        },
       });
     });
 
@@ -173,7 +219,16 @@ describe('RabbitGroupsService', () => {
       expect(rabbitGroupRepository.find).toHaveBeenCalledWith({
         skip: undefined,
         take: undefined,
-        where: { region: { id: undefined }, team: { id: In(teamIds) } },
+        relations: {
+          region: true,
+          team: true,
+          rabbits: true,
+        },
+        where: {
+          region: { id: undefined },
+          team: { id: In(teamIds) },
+          rabbits: { name: undefined },
+        },
       });
     });
 
@@ -188,7 +243,37 @@ describe('RabbitGroupsService', () => {
       expect(rabbitGroupRepository.find).toHaveBeenCalledWith({
         skip: undefined,
         take: undefined,
-        where: { region: { id: In(regionsIds) }, team: { id: In(teamIds) } },
+        relations: {
+          region: true,
+          team: true,
+          rabbits: true,
+        },
+        where: {
+          region: { id: In(regionsIds) },
+          team: { id: In(teamIds) },
+          rabbits: { name: undefined },
+        },
+      });
+    });
+
+    it('should return a list of rabbit groups with the specified rabbit name', async () => {
+      const name = 'rabbit';
+
+      await expect(service.findAll({ name })).resolves.toEqual(rabbitGroups);
+
+      expect(rabbitGroupRepository.find).toHaveBeenCalledWith({
+        skip: undefined,
+        take: undefined,
+        relations: {
+          region: true,
+          team: true,
+          rabbits: true,
+        },
+        where: {
+          region: { id: undefined },
+          team: { id: undefined },
+          rabbits: { name: ILike(`%${name}%`) },
+        },
       });
     });
   });

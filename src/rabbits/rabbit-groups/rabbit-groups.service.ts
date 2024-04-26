@@ -6,7 +6,7 @@ import {
   NotImplementedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindManyOptions, In, Repository } from 'typeorm';
+import { FindManyOptions, ILike, In, Repository } from 'typeorm';
 
 import { RabbitGroup } from '../entities';
 import { RabbitGroupsFilters, PaginatedRabbitGroups } from '../dto';
@@ -79,9 +79,17 @@ export class RabbitGroupsService {
     return {
       skip: filters.offset,
       take: filters.limit,
+      relations: {
+        region: true,
+        team: true,
+        rabbits: true,
+      },
       where: {
         region: { id: filters.regionsIds ? In(filters.regionsIds) : undefined },
         team: { id: filters.teamIds ? In(filters.teamIds) : undefined },
+        rabbits: {
+          name: filters.name ? ILike(`%${filters.name}%`) : undefined,
+        },
       },
     };
   }

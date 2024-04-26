@@ -74,6 +74,8 @@ export class UsersService {
           team,
         }),
       );
+
+      await this.firebaseAuthService.setUserId(firebaseUid, user.id);
     } catch (e) {
       this.logger.error(e);
       if (!createUserInput.teamId) {
@@ -165,6 +167,9 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException('User with the provided id does not exist.');
     }
+
+    // await this.firebaseAuthService.addRegionManagerRole(user.firebaseUid, 1);
+    // await this.firebaseAuthService.removeRegionManagerRole(user.firebaseUid);
 
     if (updateUserInput.email || updateUserInput.phone) {
       await this.checkAvailability(

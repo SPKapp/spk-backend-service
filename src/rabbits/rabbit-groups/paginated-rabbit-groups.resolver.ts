@@ -59,7 +59,7 @@ export class PaginatedRabbitGroupsResolver {
       args.teamIds = [currentUser.teamId];
     }
 
-    return this.rabbitGroupsService.findAllPaginated(
+    return await this.rabbitGroupsService.findAllPaginated(
       args,
       gqlFields.totalCount ? true : false,
     );

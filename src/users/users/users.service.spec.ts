@@ -50,6 +50,7 @@ describe('UsersService', () => {
           provide: FirebaseAuthService,
           useValue: {
             createUser: jest.fn(async () => '123'),
+            setUserId: jest.fn(),
             addRoleToUser: jest.fn(),
             updateUser: jest.fn(),
             deleteUser: jest.fn(),

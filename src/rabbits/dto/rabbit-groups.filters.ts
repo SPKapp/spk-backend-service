@@ -21,4 +21,9 @@ export interface RabbitGroupsFilters {
    * Specifies the IDs of the teams to filter rabbit groups.
    */
   teamIds?: number[];
+
+  /**
+   * Specifies the name of the rabbit group to filter.
+   */
+  name?: string;
 }

@@ -9,6 +9,7 @@ export class UserDetails {
   email: string;
   phone: string;
   roles: Role[];
+  // TODO: change to managerRegions and observerRegions
   regions?: number[];
   teamId?: number;
   id?: number;
