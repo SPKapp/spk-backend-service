@@ -11,10 +11,7 @@ import {
   paginatedFields,
   paginatedFieldsWithTotalCount,
 } from '../../common/tests/paginated-fields.template';
-import {
-  FirebaseAuthGuard,
-  getCurrentUserPipe,
-} from '../../common/modules/auth/auth.module';
+import { FirebaseAuthGuard } from '../../common/modules/auth';
 
 import { PaginatedRabbitGroupsResolver } from './paginated-rabbit-groups.resolver';
 import { RabbitGroupsService } from './rabbit-groups.service';
@@ -41,8 +38,7 @@ describe('PaginatedRabbitGroupsResolver', () => {
         },
       ],
     })
-      .overridePipe(getCurrentUserPipe)
-      .useValue({ transform: jest.fn((currentUser) => currentUser) })
+
       .overrideGuard(FirebaseAuthGuard)
       .useValue({ canActivate: jest.fn(() => true) })
       .compile();
@@ -90,7 +86,7 @@ describe('PaginatedRabbitGroupsResolver', () => {
       ).resolves.toEqual(paginatedRabbitGroups);
 
       expect(rabbitGroupsService.findAllPaginated).toHaveBeenCalledWith(
-        { ...args, regionsIds: userRegionManager.regions },
+        { ...args, regionsIds: userRegionManager.managerRegions },
         false,
       );
     });
@@ -103,7 +99,7 @@ describe('PaginatedRabbitGroupsResolver', () => {
       ).resolves.toEqual(paginatedRabbitGroups);
 
       expect(rabbitGroupsService.findAllPaginated).toHaveBeenCalledWith(
-        { ...args, regionsIds: userRegionObserver.regions },
+        { ...args, regionsIds: userRegionObserver.observerRegions },
         false,
       );
     });

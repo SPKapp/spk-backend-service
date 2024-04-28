@@ -34,8 +34,7 @@ describe('PaginatedUsersResolver', () => {
         AuthService,
       ],
     })
-      .overridePipe(getCurrentUserPipe)
-      .useValue({ transform: jest.fn((currentUser) => currentUser) })
+
       .overrideGuard(FirebaseAuthGuard)
       .useValue({ canActivate: jest.fn(() => true) })
       .compile();

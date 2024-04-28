@@ -10,7 +10,7 @@ import {
   userRegionObserver2Regions,
   userVolunteer,
 } from '../common/tests';
-import { FirebaseAuthGuard, getCurrentUserPipe } from '../common/modules/auth';
+import { FirebaseAuthGuard } from '../common/modules/auth';
 
 import { RabbitNote, VetVisit } from './entities';
 import { Region } from '../common/modules/regions/entities';
@@ -67,8 +67,7 @@ describe('RabbitNotesResolver', () => {
         },
       ],
     })
-      .overridePipe(getCurrentUserPipe)
-      .useValue({ transform: jest.fn((currentUser) => currentUser) })
+
       .overrideGuard(FirebaseAuthGuard)
       .useValue({ canActivate: jest.fn(() => true) })
       .compile();

@@ -4,6 +4,7 @@ import {
   userAdmin,
   userNoRoles,
   userRegionManager,
+  userRegionManagerAndObserver,
   userRegionObserver,
   userVolunteer,
 } from '../common/tests/user-details.template';
@@ -67,7 +68,7 @@ describe('RabbitsAccessService', () => {
 
         expect(rabbitsService.findOne).toHaveBeenCalledWith(
           1,
-          userRegionManager.regions,
+          userRegionManager.managerRegions,
           undefined,
         );
       });
@@ -77,7 +78,7 @@ describe('RabbitsAccessService', () => {
 
         expect(rabbitsService.findOne).toHaveBeenCalledWith(
           1,
-          userRegionObserver.regions,
+          userRegionObserver.observerRegions,
           undefined,
         );
       });
@@ -88,6 +89,18 @@ describe('RabbitsAccessService', () => {
         expect(rabbitsService.findOne).toHaveBeenCalledWith(1, undefined, [
           userVolunteer.teamId,
         ]);
+      });
+
+      it('should allow access for region manager and observer', async () => {
+        expect(
+          await service.validateAccess(2, userRegionManagerAndObserver),
+        ).toBe(true);
+
+        expect(rabbitsService.findOne).toHaveBeenCalledWith(
+          2,
+          userRegionManagerAndObserver.regions,
+          undefined,
+        );
       });
     });
 
@@ -107,7 +120,7 @@ describe('RabbitsAccessService', () => {
 
         expect(rabbitsService.findOne).toHaveBeenCalledWith(
           1,
-          userRegionManager.regions,
+          userRegionManager.managerRegions,
           undefined,
         );
       });
@@ -117,9 +130,17 @@ describe('RabbitsAccessService', () => {
 
         expect(rabbitsService.findOne).toHaveBeenCalledWith(
           1,
-          userRegionObserver.regions,
+          userRegionObserver.observerRegions,
           undefined,
         );
+      });
+
+      it('should deny editable access for region observer', async () => {
+        expect(await service.validateAccess(2, userRegionObserver, true)).toBe(
+          false,
+        );
+
+        expect(rabbitsService.findOne).not.toHaveBeenCalled();
       });
 
       it('should deny access for volunteer', async () => {
@@ -159,7 +180,7 @@ describe('RabbitsAccessService', () => {
 
         expect(rabbitGroupsService.findOne).toHaveBeenCalledWith(
           1,
-          userRegionManager.regions,
+          userRegionManager.managerRegions,
         );
       });
     });
@@ -184,7 +205,7 @@ describe('RabbitsAccessService', () => {
 
         expect(rabbitGroupsService.findOne).toHaveBeenCalledWith(
           1,
-          userRegionManager.regions,
+          userRegionManager.managerRegions,
         );
       });
     });

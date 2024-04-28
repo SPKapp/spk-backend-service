@@ -1,13 +1,7 @@
 import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 
-import {
-  AuthService,
-  FirebaseAuth,
-  Role,
-  CurrentUser,
-  UserDetails,
-} from '../auth/auth.module';
+import { FirebaseAuth, Role, CurrentUser, UserDetails } from '../auth';
 
 import { EntityWithId } from '../../types/remove.entity';
 
@@ -19,10 +13,7 @@ import { UpdateRegionInput } from './dto/update-region.input';
 
 @Resolver(() => Region)
 export class RegionsResolver {
-  constructor(
-    private readonly regionsService: RegionsService,
-    private readonly authService: AuthService,
-  ) {}
+  constructor(private readonly regionsService: RegionsService) {}
 
   /**
    * Creates a new region.
@@ -54,19 +45,20 @@ export class RegionsResolver {
     let region: Region | null = null;
 
     if (!currentUser.checkRole(Role.Admin)) {
-      await this.authService.checkRegionManagerPermissions(
-        currentUser,
-        async () => {
-          region = await this.regionsService.findOne(id);
-          if (!region) {
-            throw new ForbiddenException(
-              'Region does not belong to the Region Manager permissions.',
-            );
-          }
-          return region.id;
-        },
-        'Region does not belong to the Region Manager permissions.',
-      );
+      // TODO: Refactor this
+      // await this.authService.checkRegionManagerPermissions(
+      //   currentUser,
+      //   async () => {
+      //     region = await this.regionsService.findOne(id);
+      //     if (!region) {
+      //       throw new ForbiddenException(
+      //         'Region does not belong to the Region Manager permissions.',
+      //       );
+      //     }
+      //     return region.id;
+      //   },
+      //   'Region does not belong to the Region Manager permissions.',
+      // );
     } else {
       region = await this.regionsService.findOne(id);
       if (!region) {

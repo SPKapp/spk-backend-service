@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 
-import { Role, UserDetails } from '../common/modules/auth/auth.module';
+import { Role, UserDetails } from '../common/modules/auth';
 
 import { RabbitsService } from './rabbits/rabbits.service';
 import { RabbitGroupsService } from './rabbit-groups/rabbit-groups.service';
@@ -38,10 +38,16 @@ export class RabbitsAccessService {
     if (currentUser.checkRole(Role.Admin)) {
       return true;
     }
-    if (currentUser.checkRole(Role.RegionManager)) {
+
+    if (
+      !editable &&
+      currentUser.checkRole([Role.RegionManager, Role.RegionObserver])
+    ) {
       regionIds = currentUser.regions;
+    } else if (currentUser.checkRole(Role.RegionManager)) {
+      regionIds = currentUser.managerRegions;
     } else if (currentUser.checkRole(Role.RegionObserver) && !editable) {
-      regionIds = currentUser.regions;
+      regionIds = currentUser.observerRegions;
     } else if (currentUser.checkRole(Role.Volunteer)) {
       teamIds = [currentUser.teamId];
     } else {
@@ -66,7 +72,7 @@ export class RabbitsAccessService {
       return true;
     }
     if (currentUser.checkRole(Role.RegionManager)) {
-      regionIds = currentUser.regions;
+      regionIds = currentUser.managerRegions;
     } else {
       return false;
     }

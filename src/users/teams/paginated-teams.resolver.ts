@@ -5,8 +5,7 @@ import {
   Role,
   CurrentUser,
   UserDetails,
-  AuthService,
-} from '../../common/modules/auth/auth.module';
+} from '../../common/modules/auth';
 
 import { TeamsService } from './teams.service';
 
@@ -15,10 +14,7 @@ import { FindAllTeamsArgs } from '../dto/find-all-teams.args';
 
 @Resolver(() => PaginatedTeams)
 export class PaginatedTeamsResolver {
-  constructor(
-    private readonly teamsService: TeamsService,
-    private readonly authService: AuthService,
-  ) {}
+  constructor(private readonly teamsService: TeamsService) {}
 
   /**
    * Retrieves all teams.
@@ -36,14 +32,16 @@ export class PaginatedTeamsResolver {
   ): Promise<PaginatedTeams> {
     let regionsIds = args.regionsIds;
 
-    if (!currentUser.roles.includes(Role.Admin)) {
+    if (!currentUser.checkRole(Role.Admin)) {
       if (regionsIds) {
-        await this.authService.checkRegionManagerPermissions(
-          currentUser,
-          async () => regionsIds,
-        );
+        // TODO: Refactor this
+        // await this.authService.checkRegionManagerPermissions(
+        //   currentUser,
+        //   async () => regionsIds,
+        // );
       } else {
-        regionsIds = currentUser.regions;
+        // TODO: Refactor this
+        // regionsIds = currentUser.regions;
       }
     }
 

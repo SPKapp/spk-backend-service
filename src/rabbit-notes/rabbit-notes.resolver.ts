@@ -48,7 +48,7 @@ export class RabbitNotesResolver {
   )
   @Mutation(() => RabbitNote)
   async createRabbitNote(
-    @CurrentUser('ALL') currentUser: UserDetails,
+    @CurrentUser() currentUser: UserDetails,
     @Args('createRabbitNoteInput') createRabbitNoteInput: CreateRabbitNoteInput,
   ): Promise<RabbitNote> {
     const hasEditAccess = await this.rabbitsAccessService.validateAccess(
@@ -100,7 +100,7 @@ export class RabbitNotesResolver {
   )
   @Query(() => RabbitNote, { name: 'rabbitNote' })
   async findOne(
-    @CurrentUser('ALL') currentUser: UserDetails,
+    @CurrentUser() currentUser: UserDetails,
     @Args('id', { type: () => Int }) id: number,
   ) {
     const error = new ForbiddenException(
@@ -123,16 +123,10 @@ export class RabbitNotesResolver {
       throw error;
     }
 
-    if (
-      currentUser.checkRole([Role.RegionManager, Role.RegionObserver]) &&
-      currentUser.regions.includes(rabbitNote.rabbit.rabbitGroup.region.id)
-    ) {
+    if (currentUser.checkRegion(rabbitNote.rabbit.rabbitGroup.region.id)) {
       return rabbitNote;
     }
-    if (
-      currentUser.checkRole(Role.Volunteer) &&
-      rabbitNote.rabbit.rabbitGroup.team.id === currentUser.teamId
-    ) {
+    if (currentUser.checkVolunteer(rabbitNote.rabbit.rabbitGroup.team.id)) {
       return rabbitNote;
     }
 
@@ -228,8 +222,7 @@ export class RabbitNotesResolver {
       }
 
       if (
-        currentUser.checkRole(Role.RegionManager) &&
-        currentUser.regions.includes(rabbitNote.rabbit.rabbitGroup.region.id)
+        currentUser.checkRegionManager(rabbitNote.rabbit.rabbitGroup.region.id)
       ) {
         return;
       }

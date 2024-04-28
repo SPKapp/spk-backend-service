@@ -1,4 +1,4 @@
-import { Role, UserDetails } from '../../common/modules/auth/auth.module';
+import { Role, UserDetails } from '../../common/modules/auth';
 
 const userDetailsTeplate = new UserDetails({
   id: 1,
@@ -34,7 +34,7 @@ export const userVolunteer2 = new UserDetails({
 export const userRegionManager = new UserDetails({
   ...userDetailsTeplate,
   roles: [Role.RegionManager],
-  regions: [2],
+  managerRegions: [2],
 });
 
 /**
@@ -44,7 +44,7 @@ export const userRegionManager = new UserDetails({
 export const userRegionManager2Regions = new UserDetails({
   ...userDetailsTeplate,
   roles: [Role.RegionManager],
-  regions: [1, 3],
+  managerRegions: [1, 3],
 });
 
 /**
@@ -54,7 +54,7 @@ export const userRegionManager2Regions = new UserDetails({
 export const userRegionObserver = new UserDetails({
   ...userDetailsTeplate,
   roles: [Role.RegionObserver],
-  regions: [2],
+  observerRegions: [2],
 });
 
 /**
@@ -64,7 +64,7 @@ export const userRegionObserver = new UserDetails({
 export const userRegionObserver2Regions = new UserDetails({
   ...userDetailsTeplate,
   roles: [Role.RegionObserver],
-  regions: [1, 3],
+  observerRegions: [1, 3],
 });
 
 /**
@@ -81,4 +81,16 @@ export const userAdmin = new UserDetails({
 export const userNoRoles = new UserDetails({
   ...userDetailsTeplate,
   roles: [],
+});
+
+/**
+ * Represents a user with the roles of Region Manager and Region Observer.
+ * managerRegions is set to [1].
+ * observerRegions is set to [2].
+ */
+export const userRegionManagerAndObserver = new UserDetails({
+  ...userDetailsTeplate,
+  roles: [Role.RegionManager, Role.RegionObserver],
+  managerRegions: [1],
+  observerRegions: [2],
 });

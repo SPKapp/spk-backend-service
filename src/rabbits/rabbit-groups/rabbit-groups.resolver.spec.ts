@@ -9,10 +9,7 @@ import {
   userVolunteer,
   userVolunteer2,
 } from '../../common/tests/user-details.template';
-import {
-  FirebaseAuthGuard,
-  getCurrentUserPipe,
-} from '../../common/modules/auth/auth.module';
+import { FirebaseAuthGuard } from '../../common/modules/auth';
 
 import { Region } from '../../common/modules/regions/entities';
 import { Team } from '../../users/entities';
@@ -44,8 +41,7 @@ describe('RabbitGroupsResolver', () => {
         },
       ],
     })
-      .overridePipe(getCurrentUserPipe)
-      .useValue({ transform: jest.fn((currentUser) => currentUser) })
+
       .overrideGuard(FirebaseAuthGuard)
       .useValue({ canActivate: jest.fn(() => true) })
       .compile();
@@ -98,7 +94,7 @@ describe('RabbitGroupsResolver', () => {
 
       expect(rabbitGroupsService.findOne).toHaveBeenCalledWith(
         rabbitGroup.id,
-        userRegionManager.regions,
+        userRegionManager.managerRegions,
         undefined,
       );
     });
@@ -111,7 +107,7 @@ describe('RabbitGroupsResolver', () => {
 
       expect(rabbitGroupsService.findOne).toHaveBeenCalledWith(
         rabbitGroup.id,
-        userRegionObserver.regions,
+        userRegionObserver.observerRegions,
         undefined,
       );
     });
@@ -123,7 +119,7 @@ describe('RabbitGroupsResolver', () => {
 
       expect(rabbitGroupsService.findOne).toHaveBeenCalledWith(
         rabbitGroup.id,
-        userRegionManager2Regions.regions,
+        userRegionManager2Regions.managerRegions,
         undefined,
       );
     });

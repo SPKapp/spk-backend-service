@@ -6,12 +6,11 @@ import {
 } from '@nestjs/common';
 
 import {
-  AuthService,
   FirebaseAuth,
   Role,
   CurrentUser,
   UserDetails,
-} from '../../common/modules/auth/auth.module';
+} from '../../common/modules/auth';
 
 import { EntityWithId } from '../../common/types/remove.entity';
 
@@ -24,10 +23,7 @@ import { UpdateProfileInput } from '../dto/update-profile.input';
 
 @Resolver(() => User)
 export class UsersResolver {
-  constructor(
-    private readonly usersService: UsersService,
-    private readonly authService: AuthService,
-  ) {}
+  constructor(private readonly usersService: UsersService) {}
 
   /**
    * Creates a new user.
@@ -45,8 +41,8 @@ export class UsersResolver {
     @Args('createUserInput') createUserInput: CreateUserInput,
   ): Promise<User> {
     if (
-      (currentUser.roles.includes(Role.Admin) ||
-        currentUser.regions.length > 1) &&
+      (currentUser.checkRole(Role.Admin) ||
+        currentUser.managerRegions.length > 1) &&
       !createUserInput.regionId
     ) {
       throw new BadRequestException(
@@ -54,14 +50,15 @@ export class UsersResolver {
       );
     }
 
-    if (!currentUser.roles.includes(Role.Admin)) {
+    if (!currentUser.checkRole(Role.Admin)) {
       if (!createUserInput.regionId) {
-        createUserInput.regionId = currentUser.regions[0];
+        createUserInput.regionId = currentUser.managerRegions[0];
       } else {
-        await this.authService.checkRegionManagerPermissions(
-          currentUser,
-          async () => createUserInput.regionId,
-        );
+        // TODO: Refactor this
+        // await this.authService.checkRegionManagerPermissions(
+        //   currentUser,
+        //   async () => createUserInput.regionId,
+        // );
       }
     }
 
@@ -179,20 +176,21 @@ export class UsersResolver {
     user: UserDetails,
     userId: number,
   ) {
-    if (!user.roles.includes(Role.Admin)) {
-      await this.authService.checkRegionManagerPermissions(
-        user,
-        async () => {
-          const userToCheck = await this.usersService.findOne(userId);
-          if (!user) {
-            throw new ForbiddenException(
-              'User does not belong to the Region Manager permissions.',
-            );
-          }
-          return userToCheck.team.region.id;
-        },
-        'User does not belong to the Region Manager permissions.',
-      );
+    if (!user.checkRole(Role.Admin)) {
+      // TODO: Refactor this
+      // await this.authService.checkRegionManagerPermissions(
+      //   user,
+      //   async () => {
+      //     const userToCheck = await this.usersService.findOne(userId);
+      //     if (!user) {
+      //       throw new ForbiddenException(
+      //         'User does not belong to the Region Manager permissions.',
+      //       );
+      //     }
+      //     return userToCheck.team.region.id;
+      //   },
+      //   'User does not belong to the Region Manager permissions.',
+      // );
     }
   }
 }

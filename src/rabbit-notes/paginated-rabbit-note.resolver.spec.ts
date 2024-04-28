@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
-import { FirebaseAuthGuard, getCurrentUserPipe } from '../common/modules/auth';
+import { FirebaseAuthGuard } from '../common/modules/auth';
 import {
   userAdmin,
   paginatedFields,
@@ -34,8 +34,7 @@ describe('PaginatedRabbitNoteResolver', () => {
         },
       ],
     })
-      .overridePipe(getCurrentUserPipe)
-      .useValue({ transform: jest.fn((currentUser) => currentUser) })
+
       .overrideGuard(FirebaseAuthGuard)
       .useValue({ canActivate: jest.fn(() => true) })
       .compile();

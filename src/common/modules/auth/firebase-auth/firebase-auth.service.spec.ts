@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 import { FirebaseAuthService } from './firebase-auth.service';
 import { FirebaseService } from '../../firebase/firebase.service';
-import { Role } from '../auth.module';
+import { Role } from '../roles.eum';
 
 describe('FirebaseAuthService', () => {
   let service: FirebaseAuthService;

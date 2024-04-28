@@ -6,7 +6,7 @@ import {
   Role,
   CurrentUser,
   UserDetails,
-} from '../../common/modules/auth/auth.module';
+} from '../../common/modules/auth';
 import {
   GqlFields,
   GqlFieldsName,
@@ -40,7 +40,7 @@ export class PaginatedRabbitGroupsResolver {
   )
   @Query(() => PaginatedRabbitGroups, { name: 'rabbitGroups' })
   async findAll(
-    @CurrentUser('ALL') currentUser: UserDetails,
+    @CurrentUser() currentUser: UserDetails,
     @GqlFields(PaginatedRabbitGroups.name) gqlFields: GqlFieldsName,
     @Args() args: FindRabbitGroupsArgs,
   ): Promise<PaginatedRabbitGroups> {

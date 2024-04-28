@@ -2,12 +2,11 @@ import { Args, ID, Query, Resolver } from '@nestjs/graphql';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 
 import {
-  AuthService,
   FirebaseAuth,
   Role,
   CurrentUser,
   UserDetails,
-} from '../../common/modules/auth/auth.module';
+} from '../../common/modules/auth';
 
 import { TeamsService } from './teams.service';
 
@@ -15,10 +14,7 @@ import { Team } from '../entities/team.entity';
 
 @Resolver(() => Team)
 export class TeamsResolver {
-  constructor(
-    private readonly teamsService: TeamsService,
-    private readonly authService: AuthService,
-  ) {}
+  constructor(private readonly teamsService: TeamsService) {}
 
   /**
    * Retrieves a team by its ID.
@@ -39,20 +35,21 @@ export class TeamsResolver {
   ): Promise<Team> {
     let team: Team | null = null;
 
-    if (!currentUser.roles.includes(Role.Admin)) {
-      await this.authService.checkRegionManagerPermissions(
-        currentUser,
-        async () => {
-          team = await this.teamsService.findOne(id);
-          if (!team) {
-            throw new ForbiddenException(
-              'Team does not belong to the Region Manager permissions.',
-            );
-          }
-          return team.region.id;
-        },
-        'Team does not belong to the Region Manager permissions.',
-      );
+    if (!currentUser.checkRole(Role.Admin)) {
+      // TODO: Refactor this
+      // await this.authService.checkRegionManagerPermissions(
+      //   currentUser,
+      //   async () => {
+      //     team = await this.teamsService.findOne(id);
+      //     if (!team) {
+      //       throw new ForbiddenException(
+      //         'Team does not belong to the Region Manager permissions.',
+      //       );
+      //     }
+      //     return team.region.id;
+      //   },
+      //   'Team does not belong to the Region Manager permissions.',
+      // );
     } else {
       team = await this.teamsService.findOne(id);
       if (!team) {

@@ -6,7 +6,7 @@ import {
   Role,
   CurrentUser,
   UserDetails,
-} from '../../common/modules/auth/auth.module';
+} from '../../common/modules/auth';
 
 import { RabbitGroupsService } from './rabbit-groups.service';
 import { RabbitGroup } from '../entities';
@@ -31,7 +31,7 @@ export class RabbitGroupsResolver {
   )
   @Query(() => RabbitGroup, { name: 'rabbitGroup' })
   async findOne(
-    @CurrentUser('ALL') currentUser: UserDetails,
+    @CurrentUser() currentUser: UserDetails,
     @Args('id', { type: () => Int }) id: number,
   ): Promise<RabbitGroup> {
     const isAdmin = currentUser.checkRole(Role.Admin);
@@ -75,7 +75,9 @@ export class RabbitGroupsResolver {
     return await this.rabbitGroupsService.updateTeam(
       rabbitGroupId,
       teamId,
-      currentUser.checkRole(Role.Admin) ? undefined : currentUser.regions,
+      currentUser.checkRole(Role.Admin)
+        ? undefined
+        : currentUser.managerRegions,
     );
   }
 }

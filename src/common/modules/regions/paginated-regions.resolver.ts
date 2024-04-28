@@ -1,6 +1,6 @@
 import { Args, Query, ResolveField, Resolver } from '@nestjs/graphql';
 
-import { FirebaseAuth, Role } from '../auth/auth.module';
+import { FirebaseAuth, Role } from '../auth';
 
 import { PaginationArgs } from '../../functions/paginate.functions';
 

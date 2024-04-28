@@ -45,7 +45,7 @@ export class PaginatedRabbitNoteResolver {
   )
   @Query(() => PaginatedRabbitNotes, { name: 'rabbitNotes' })
   async findAll(
-    @CurrentUser('ALL') currentUser: UserDetails,
+    @CurrentUser() currentUser: UserDetails,
     @GqlFields(PaginatedRabbitNotes.name) gqlFields: GqlFieldsName,
     @Args()
     args: FindRabbitNotesArgs,

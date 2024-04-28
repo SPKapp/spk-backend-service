@@ -10,7 +10,7 @@ import {
   Role,
   CurrentUser,
   UserDetails,
-} from '../../common/modules/auth/auth.module';
+} from '../../common/modules/auth';
 
 import { EntityWithId } from '../../common/types';
 import { Rabbit } from '../entities';
@@ -85,7 +85,7 @@ export class RabbitsResolver {
   )
   @Query(() => Rabbit, { name: 'rabbit' })
   async findOne(
-    @CurrentUser('ALL') currentUser: UserDetails,
+    @CurrentUser() currentUser: UserDetails,
     @Args('id', { type: () => Int }) id: number,
   ): Promise<Rabbit> {
     const isAdmin = currentUser.checkRole(Role.Admin);
@@ -119,7 +119,7 @@ export class RabbitsResolver {
   @FirebaseAuth(Role.Admin, Role.RegionManager, Role.Volunteer)
   @Mutation(() => Rabbit)
   updateRabbit(
-    @CurrentUser('ALL') currentUser: UserDetails,
+    @CurrentUser() currentUser: UserDetails,
     @Args('updateRabbitInput') updateRabbitInput: UpdateRabbitInput,
   ): Promise<Rabbit> {
     const isAdmin = currentUser.checkRole(Role.Admin);
@@ -130,7 +130,7 @@ export class RabbitsResolver {
       updateRabbitInput.id,
       updateRabbitInput,
       isAdmin || regional,
-      regional ? currentUser.regions : undefined,
+      regional ? currentUser.managerRegions : undefined,
       volunteer ? [currentUser.teamId] : undefined,
     );
   }
@@ -150,7 +150,9 @@ export class RabbitsResolver {
   ): Promise<EntityWithId> {
     return this.rabbitsService.remove(
       id,
-      currentUser.checkRole(Role.Admin) ? undefined : currentUser.regions,
+      currentUser.checkRole(Role.Admin)
+        ? undefined
+        : currentUser.managerRegions,
     );
   }
 
@@ -177,7 +179,9 @@ export class RabbitsResolver {
     return await this.rabbitsService.updateRabbitGroup(
       rabbitId,
       rabbitGroupId,
-      currentUser.checkRole(Role.Admin) ? undefined : currentUser.regions,
+      currentUser.checkRole(Role.Admin)
+        ? undefined
+        : currentUser.managerRegions,
     );
   }
 }

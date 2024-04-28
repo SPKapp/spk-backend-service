@@ -7,10 +7,7 @@ import {
   userRegionObserver,
   userVolunteer,
 } from '../../common/tests/user-details.template';
-import {
-  FirebaseAuthGuard,
-  getCurrentUserPipe,
-} from '../../common/modules/auth/auth.module';
+import { FirebaseAuthGuard } from '../../common/modules/auth';
 
 import { Rabbit, RabbitGroup, AdmissionType, Gender } from '../entities';
 import { Region } from '../../common/modules/regions/entities';
@@ -70,8 +67,7 @@ describe('RabbitsResolver', () => {
         },
       ],
     })
-      .overridePipe(getCurrentUserPipe)
-      .useValue({ transform: jest.fn((currentUser) => currentUser) })
+
       .overrideGuard(FirebaseAuthGuard)
       .useValue({ canActivate: jest.fn(() => true) })
       .compile();
@@ -141,7 +137,7 @@ describe('RabbitsResolver', () => {
       await expect(
         resolver.createRabbit(userRegionManager, {
           ...newRabbit,
-          regionId: userRegionManager.regions[0],
+          regionId: userRegionManager.managerRegions[0],
         }),
       ).resolves.toEqual(rabbits[0]);
     });
@@ -272,7 +268,7 @@ describe('RabbitsResolver', () => {
 
       expect(rabbitsService.remove).toHaveBeenCalledWith(
         1,
-        userRegionManager.regions,
+        userRegionManager.managerRegions,
       );
     });
   });
