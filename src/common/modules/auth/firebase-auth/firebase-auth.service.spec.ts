@@ -93,324 +93,627 @@ describe('FirebaseAuthService', () => {
   });
 
   describe('addRoleToUser', () => {
-    // TODO: Implement tests or remove
+    it('should be defined', () => {
+      expect(service.addRoleToUser).toBeDefined();
+    });
+
+    describe('addVolunteerRole', () => {
+      it('should add the volunteer role', async () => {
+        jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
+          uid: '123',
+          customClaims: {
+            should: 'not be removed',
+          },
+        } as any);
+
+        await service.addRoleToUser('123', Role.Volunteer, 1);
+
+        expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
+          '123',
+          {
+            should: 'not be removed',
+            roles: [Role.Volunteer],
+            teamId: 1,
+          },
+        );
+      });
+
+      it('should change teamId if the user already has the volunteer role', async () => {
+        jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
+          uid: '123',
+          customClaims: {
+            roles: [Role.Volunteer],
+            teamId: 2,
+          },
+        } as any);
+
+        await service.addRoleToUser('123', Role.Volunteer, 1);
+
+        expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
+          '123',
+          {
+            roles: [Role.Volunteer],
+            teamId: 1,
+          },
+        );
+      });
+
+      it('should add the volunteer role if the user has other roles', async () => {
+        jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
+          uid: '123',
+          customClaims: {
+            roles: [Role.Admin],
+          },
+        } as any);
+
+        await service.addRoleToUser('123', Role.Volunteer, 1);
+
+        expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
+          '123',
+          {
+            roles: [Role.Admin, Role.Volunteer],
+            teamId: 1,
+          },
+        );
+      });
+
+      it('should throw an error if additionalInfo is not provided', async () => {
+        await expect(
+          service.addRoleToUser('123', Role.Volunteer),
+        ).rejects.toThrow('Additional information is required for this role.');
+      });
+    });
+
+    describe('addRegionManagerRole', () => {
+      it('should add the region manager role', async () => {
+        jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
+          uid: '123',
+          customClaims: {
+            should: 'not be removed',
+          },
+        } as any);
+
+        await service.addRoleToUser('123', Role.RegionManager, 1);
+
+        expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
+          '123',
+          {
+            should: 'not be removed',
+            roles: [Role.RegionManager],
+            managerRegions: [1],
+          },
+        );
+      });
+
+      it('should add regionId if the user already has the region manager role', async () => {
+        jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
+          uid: '123',
+          customClaims: {
+            roles: [Role.RegionManager],
+            managerRegions: [2],
+          },
+        } as any);
+
+        await service.addRoleToUser('123', Role.RegionManager, 1);
+
+        expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
+          '123',
+          {
+            roles: [Role.RegionManager],
+            managerRegions: [2, 1],
+          },
+        );
+      });
+
+      it('should add the region manager role if the user has other roles', async () => {
+        jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
+          uid: '123',
+          customClaims: {
+            roles: [Role.Admin],
+          },
+        } as any);
+
+        await service.addRoleToUser('123', Role.RegionManager, 1);
+
+        expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
+          '123',
+          {
+            roles: [Role.Admin, Role.RegionManager],
+            managerRegions: [1],
+          },
+        );
+      });
+
+      it('should throw an error if additionalInfo is not provided', async () => {
+        await expect(
+          service.addRoleToUser('123', Role.RegionManager),
+        ).rejects.toThrow('Additional information is required for this role.');
+      });
+    });
+
+    describe('addRegionObserverRole', () => {
+      it('should add the region observer role', async () => {
+        jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
+          uid: '123',
+          customClaims: {
+            should: 'not be removed',
+          },
+        } as any);
+
+        await service.addRoleToUser('123', Role.RegionObserver, 1);
+
+        expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
+          '123',
+          {
+            should: 'not be removed',
+            roles: [Role.RegionObserver],
+            observerRegions: [1],
+          },
+        );
+      });
+
+      it('should add regionId if the user already has the region observer role', async () => {
+        jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
+          uid: '123',
+          customClaims: {
+            roles: [Role.RegionObserver],
+            observerRegions: [2],
+          },
+        } as any);
+
+        await service.addRoleToUser('123', Role.RegionObserver, 1);
+
+        expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
+          '123',
+          {
+            roles: [Role.RegionObserver],
+            observerRegions: [2, 1],
+          },
+        );
+      });
+
+      it('should add the region observer role if the user has other roles', async () => {
+        jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
+          uid: '123',
+          customClaims: {
+            roles: [Role.Admin],
+          },
+        } as any);
+
+        await service.addRoleToUser('123', Role.RegionObserver, 1);
+
+        expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
+          '123',
+          {
+            roles: [Role.Admin, Role.RegionObserver],
+            observerRegions: [1],
+          },
+        );
+      });
+
+      it('should throw an error if additionalInfo is not provided', async () => {
+        await expect(
+          service.addRoleToUser('123', Role.RegionObserver),
+        ).rejects.toThrow('Additional information is required for this role.');
+      });
+    });
+
+    describe('addAdminRole', () => {
+      it('should add the admin role', async () => {
+        jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
+          uid: '123',
+          customClaims: {
+            should: 'not be removed',
+          },
+        } as any);
+
+        await service.addRoleToUser('123', Role.Admin);
+
+        expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
+          '123',
+          {
+            should: 'not be removed',
+            roles: [Role.Admin],
+          },
+        );
+      });
+
+      it('should add the admin role if the user has other roles', async () => {
+        jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
+          uid: '123',
+          customClaims: {
+            roles: [Role.Volunteer],
+            teamId: 1,
+          },
+        } as any);
+
+        await service.addRoleToUser('123', Role.Admin);
+
+        expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
+          '123',
+          {
+            roles: [Role.Volunteer, Role.Admin],
+            teamId: 1,
+          },
+        );
+      });
+    });
   });
 
   describe('removeRoleFromUser', () => {
-    // TODO: Implement tests or remove
-  });
-
-  describe('addVolunteerRole', () => {
     it('should be defined', () => {
-      expect(service.addVolunteerRole).toBeDefined();
+      expect(service.removeRoleFromUser).toBeDefined();
     });
 
-    it('should add the volunteer role', async () => {
-      jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
-        uid: '123',
-        customClaims: {
-          should: 'not be removed',
-        },
-      } as any);
+    describe('removeVolunteerRole', () => {
+      it('should remove the volunteer role', async () => {
+        jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
+          uid: '123',
+          customClaims: {
+            should: 'not be removed',
+            roles: [Role.Volunteer],
+            teamId: 1,
+          },
+        } as any);
 
-      await service.addVolunteerRole('123', 1);
+        await service.removeRoleFromUser('123', Role.Volunteer);
 
-      expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
-        '123',
-        {
-          should: 'not be removed',
-          roles: [Role.Volunteer],
-          teamId: 1,
-        },
-      );
+        expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
+          '123',
+          {
+            should: 'not be removed',
+            roles: [],
+            teamId: undefined,
+          },
+        );
+      });
+
+      it('should remove the volunteer role if the user has other roles', async () => {
+        jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
+          uid: '123',
+          customClaims: {
+            roles: [Role.Volunteer, Role.Admin],
+            teamId: 1,
+          },
+        } as any);
+
+        await service.removeRoleFromUser('123', Role.Volunteer);
+
+        expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
+          '123',
+          {
+            roles: [Role.Admin],
+            teamId: undefined,
+          },
+        );
+      });
+
+      it('should do nothing if the user does not have the volunteer role', async () => {
+        jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
+          uid: '123',
+          customClaims: {
+            roles: [Role.Admin],
+          },
+        } as any);
+
+        await service.removeRoleFromUser('123', Role.Volunteer);
+
+        expect(firebaseService.auth.setCustomUserClaims).not.toHaveBeenCalled();
+      });
+
+      it('should clear the teamId if the user does not have the volunteer role', async () => {
+        jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
+          uid: '123',
+          customClaims: {
+            roles: [Role.Admin],
+            teamId: 1,
+          },
+        } as any);
+
+        await service.removeRoleFromUser('123', Role.Volunteer);
+
+        expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
+          '123',
+          {
+            roles: [Role.Admin],
+            teamId: undefined,
+          },
+        );
+      });
     });
 
-    it('should change teamId if the user already has the volunteer role', async () => {
-      jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
-        uid: '123',
-        customClaims: {
-          roles: [Role.Volunteer],
-          teamId: 2,
-        },
-      } as any);
+    describe('removeRegionManagerRole', () => {
+      it('should remove the region manager role', async () => {
+        jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
+          uid: '123',
+          customClaims: {
+            should: 'not be removed',
+            roles: [Role.RegionManager],
+            managerRegions: [1],
+          },
+        } as any);
 
-      await service.addVolunteerRole('123', 1);
+        await service.removeRoleFromUser('123', Role.RegionManager, 1);
 
-      expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
-        '123',
-        {
-          roles: [Role.Volunteer],
-          teamId: 1,
-        },
-      );
+        expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
+          '123',
+          {
+            should: 'not be removed',
+            roles: [],
+            managerRegions: undefined,
+          },
+        );
+      });
+
+      it('should remove the regionId if the user have other regions', async () => {
+        jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
+          uid: '123',
+          customClaims: {
+            should: 'not be removed',
+            roles: [Role.RegionManager],
+            managerRegions: [1, 2],
+          },
+        } as any);
+
+        await service.removeRoleFromUser('123', Role.RegionManager, 1);
+
+        expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
+          '123',
+          {
+            should: 'not be removed',
+            roles: [Role.RegionManager],
+            managerRegions: [2],
+          },
+        );
+      });
+
+      it('should remove the region manager role if the user has other roles', async () => {
+        jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
+          uid: '123',
+          customClaims: {
+            roles: [Role.RegionManager, Role.Admin],
+            managerRegions: [1],
+          },
+        } as any);
+
+        await service.removeRoleFromUser('123', Role.RegionManager, 1);
+
+        expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
+          '123',
+          {
+            roles: [Role.Admin],
+            managerRegions: undefined,
+          },
+        );
+      });
+
+      it('should do nothing if the user does not have the region manager role', async () => {
+        jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
+          uid: '123',
+          customClaims: {
+            roles: [Role.Admin],
+          },
+        } as any);
+
+        await service.removeRoleFromUser('123', Role.RegionManager, 1);
+
+        expect(firebaseService.auth.setCustomUserClaims).not.toHaveBeenCalled();
+      });
+
+      it('should clear the regionId if the user does not have the region manager role', async () => {
+        jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
+          uid: '123',
+          customClaims: {
+            roles: [Role.Admin],
+            managerRegions: [1],
+          },
+        } as any);
+
+        await service.removeRoleFromUser('123', Role.RegionManager, 1);
+
+        expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
+          '123',
+          {
+            roles: [Role.Admin],
+            managerRegions: undefined,
+          },
+        );
+      });
+
+      it('should remove all regions if the regionId is not provided', async () => {
+        jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
+          uid: '123',
+          customClaims: {
+            roles: [Role.RegionManager],
+            managerRegions: [1, 2],
+          },
+        } as any);
+
+        await service.removeRoleFromUser('123', Role.RegionManager);
+
+        expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
+          '123',
+          {
+            roles: [],
+            managerRegions: undefined,
+          },
+        );
+      });
     });
 
-    it('should add the volunteer role if the user has other roles', async () => {
-      jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
-        uid: '123',
-        customClaims: {
-          roles: [Role.Admin],
-        },
-      } as any);
+    describe('removeRegionObserverRole', () => {
+      it('should remove the region observer role', async () => {
+        jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
+          uid: '123',
+          customClaims: {
+            should: 'not be removed',
+            roles: [Role.RegionObserver],
+            observerRegions: [1],
+          },
+        } as any);
 
-      await service.addVolunteerRole('123', 1);
+        await service.removeRoleFromUser('123', Role.RegionObserver, 1);
 
-      expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
-        '123',
-        {
-          roles: [Role.Admin, Role.Volunteer],
-          teamId: 1,
-        },
-      );
-    });
-  });
+        expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
+          '123',
+          {
+            should: 'not be removed',
+            roles: [],
+            observerRegions: undefined,
+          },
+        );
+      });
 
-  describe('removeVolunteerRole', () => {
-    it('should be defined', () => {
-      expect(service.removeVolunteerRole).toBeDefined();
-    });
+      it('should remove the regionId if the user have other regions', async () => {
+        jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
+          uid: '123',
+          customClaims: {
+            should: 'not be removed',
+            roles: [Role.RegionObserver],
+            observerRegions: [1, 2],
+          },
+        } as any);
 
-    it('should remove the volunteer role', async () => {
-      jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
-        uid: '123',
-        customClaims: {
-          should: 'not be removed',
-          roles: [Role.Volunteer],
-          teamId: 1,
-        },
-      } as any);
+        await service.removeRoleFromUser('123', Role.RegionObserver, 1);
 
-      await service.removeVolunteerRole('123');
+        expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
+          '123',
+          {
+            should: 'not be removed',
+            roles: [Role.RegionObserver],
+            observerRegions: [2],
+          },
+        );
+      });
 
-      expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
-        '123',
-        {
-          should: 'not be removed',
-          roles: [],
-          teamId: undefined,
-        },
-      );
-    });
+      it('should remove the region observer role if the user has other roles', async () => {
+        jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
+          uid: '123',
+          customClaims: {
+            roles: [Role.RegionObserver, Role.Admin],
+            observerRegions: [1],
+          },
+        } as any);
 
-    it('should remove the volunteer role if the user has other roles', async () => {
-      jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
-        uid: '123',
-        customClaims: {
-          roles: [Role.Volunteer, Role.Admin],
-          teamId: 1,
-        },
-      } as any);
+        await service.removeRoleFromUser('123', Role.RegionObserver, 1);
 
-      await service.removeVolunteerRole('123');
+        expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
+          '123',
+          {
+            roles: [Role.Admin],
+            observerRegions: undefined,
+          },
+        );
+      });
 
-      expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
-        '123',
-        {
-          roles: [Role.Admin],
-          teamId: undefined,
-        },
-      );
-    });
+      it('should do nothing if the user does not have the region observer role', async () => {
+        jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
+          uid: '123',
+          customClaims: {
+            roles: [Role.Admin],
+          },
+        } as any);
 
-    it('should do nothing if the user does not have the volunteer role', async () => {
-      jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
-        uid: '123',
-        customClaims: {
-          roles: [Role.Admin],
-        },
-      } as any);
+        await service.removeRoleFromUser('123', Role.RegionObserver, 1);
 
-      await service.removeVolunteerRole('123');
+        expect(firebaseService.auth.setCustomUserClaims).not.toHaveBeenCalled();
+      });
 
-      expect(firebaseService.auth.setCustomUserClaims).not.toHaveBeenCalled();
-    });
+      it('should clear the regionId if the user does not have the region observer role', async () => {
+        jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
+          uid: '123',
+          customClaims: {
+            roles: [Role.Admin],
+            observerRegions: [1],
+          },
+        } as any);
 
-    it('should clear the teamId if the user does not have the volunteer role', async () => {
-      jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
-        uid: '123',
-        customClaims: {
-          roles: [Role.Admin],
-          teamId: 1,
-        },
-      } as any);
+        await service.removeRoleFromUser('123', Role.RegionObserver, 1);
 
-      await service.removeVolunteerRole('123');
+        expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
+          '123',
+          {
+            roles: [Role.Admin],
+            observerRegions: undefined,
+          },
+        );
+      });
 
-      expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
-        '123',
-        {
-          roles: [Role.Admin],
-          teamId: undefined,
-        },
-      );
-    });
-  });
+      it('should remove all regions if the regionId is not provided', async () => {
+        jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
+          uid: '123',
+          customClaims: {
+            roles: [Role.RegionObserver],
+            observerRegions: [1, 2],
+          },
+        } as any);
 
-  describe('addRegionManagerRole', () => {
-    it('should be defined', () => {
-      expect(service.addRegionManagerRole).toBeDefined();
-    });
+        await service.removeRoleFromUser('123', Role.RegionObserver);
 
-    it('should add the region manager role', async () => {
-      jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
-        uid: '123',
-        customClaims: {
-          should: 'not be removed',
-        },
-      } as any);
-
-      await service.addRegionManagerRole('123', 1);
-
-      expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
-        '123',
-        {
-          should: 'not be removed',
-          roles: [Role.RegionManager],
-          managerRegions: [1],
-        },
-      );
+        expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
+          '123',
+          {
+            roles: [],
+            observerRegions: undefined,
+          },
+        );
+      });
     });
 
-    it('should add regionId if the user already has the region manager role', async () => {
-      jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
-        uid: '123',
-        customClaims: {
-          roles: [Role.RegionManager],
-          managerRegions: [2],
-        },
-      } as any);
+    describe('removeAdminRole', () => {
+      it('should remove the admin role', async () => {
+        jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
+          uid: '123',
+          customClaims: {
+            should: 'not be removed',
+            roles: [Role.Admin],
+          },
+        } as any);
 
-      await service.addRegionManagerRole('123', 1);
+        await service.removeRoleFromUser('123', Role.Admin);
 
-      expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
-        '123',
-        {
-          roles: [Role.RegionManager],
-          managerRegions: [2, 1],
-        },
-      );
-    });
+        expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
+          '123',
+          {
+            should: 'not be removed',
+            roles: [],
+          },
+        );
+      });
 
-    it('should add the region manager role if the user has other roles', async () => {
-      jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
-        uid: '123',
-        customClaims: {
-          roles: [Role.Admin],
-        },
-      } as any);
+      it('should remove the admin role if the user has other roles', async () => {
+        jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
+          uid: '123',
+          customClaims: {
+            roles: [Role.Admin, Role.Volunteer],
+            teamId: 1,
+          },
+        } as any);
 
-      await service.addRegionManagerRole('123', 1);
+        await service.removeRoleFromUser('123', Role.Admin);
 
-      expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
-        '123',
-        {
-          roles: [Role.Admin, Role.RegionManager],
-          managerRegions: [1],
-        },
-      );
-    });
-  });
+        expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
+          '123',
+          {
+            roles: [Role.Volunteer],
+            teamId: 1,
+          },
+        );
+      });
 
-  describe('removeRegionManagerRole', () => {
-    it('should be defined', () => {
-      expect(service.removeRegionManagerRole).toBeDefined();
-    });
+      it('should do nothing if the user does not have the admin role', async () => {
+        jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
+          uid: '123',
+          customClaims: {
+            roles: [Role.Volunteer],
+            teamId: 1,
+          },
+        } as any);
 
-    it('should remove the region manager role', async () => {
-      jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
-        uid: '123',
-        customClaims: {
-          should: 'not be removed',
-          roles: [Role.RegionManager],
-          managerRegions: [1],
-        },
-      } as any);
+        await service.removeRoleFromUser('123', Role.Admin);
 
-      await service.removeRegionManagerRole('123', 1);
-
-      expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
-        '123',
-        {
-          should: 'not be removed',
-          roles: [],
-          managerRegions: undefined,
-        },
-      );
-    });
-
-    it('should remove the regionId if the user have other regions', async () => {
-      jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
-        uid: '123',
-        customClaims: {
-          should: 'not be removed',
-          roles: [Role.RegionManager],
-          managerRegions: [1, 2],
-        },
-      } as any);
-
-      await service.removeRegionManagerRole('123', 1);
-
-      expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
-        '123',
-        {
-          should: 'not be removed',
-          roles: [Role.RegionManager],
-          managerRegions: [2],
-        },
-      );
-    });
-
-    it('should remove the region manager role if the user has other roles', async () => {
-      jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
-        uid: '123',
-        customClaims: {
-          roles: [Role.RegionManager, Role.Admin],
-          managerRegions: [1],
-        },
-      } as any);
-
-      await service.removeRegionManagerRole('123', 1);
-
-      expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
-        '123',
-        {
-          roles: [Role.Admin],
-          managerRegions: undefined,
-        },
-      );
-    });
-
-    it('should do nothing if the user does not have the region manager role', async () => {
-      jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
-        uid: '123',
-        customClaims: {
-          roles: [Role.Admin],
-        },
-      } as any);
-
-      await service.removeRegionManagerRole('123', 1);
-
-      expect(firebaseService.auth.setCustomUserClaims).not.toHaveBeenCalled();
-    });
-
-    it('should clear the regionId if the user does not have the region manager role', async () => {
-      jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
-        uid: '123',
-        customClaims: {
-          roles: [Role.Admin],
-          managerRegions: [1],
-        },
-      } as any);
-
-      await service.removeRegionManagerRole('123', 1);
-
-      expect(firebaseService.auth.setCustomUserClaims).toHaveBeenCalledWith(
-        '123',
-        {
-          roles: [Role.Admin],
-          managerRegions: undefined,
-        },
-      );
+        expect(firebaseService.auth.setCustomUserClaims).not.toHaveBeenCalled();
+      });
     });
   });
 });

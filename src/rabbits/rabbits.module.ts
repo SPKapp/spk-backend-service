@@ -10,9 +10,10 @@ import { RabbitGroupsService } from './rabbit-groups/rabbit-groups.service';
 import { RabbitsAccessService } from './rabbits-access.service';
 
 import { Rabbit, RabbitGroup } from './entities';
+import { UsersModule } from 'src/users/users.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Rabbit, RabbitGroup])],
+  imports: [TypeOrmModule.forFeature([Rabbit, RabbitGroup]), UsersModule],
   providers: [
     RabbitsResolver,
     RabbitGroupsResolver,

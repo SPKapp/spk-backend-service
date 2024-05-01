@@ -9,6 +9,7 @@ import {
 
 import { Team } from './team.entity';
 import { RabbitNote } from '../../rabbit-notes/entities';
+import { RoleEntity } from './role.entity';
 
 @Entity()
 @ObjectType()
@@ -41,6 +42,10 @@ export class User {
   @Field(() => ID)
   firebaseUid: string;
 
+  @Column()
+  @Field()
+  active: boolean;
+
   // TODO: Add Adress field
 
   @ManyToOne(() => Team, (team) => team.users, { eager: true })
@@ -49,4 +54,7 @@ export class User {
 
   @OneToMany(() => RabbitNote, (rabbitNote) => rabbitNote.user)
   rabbitNotes: Promise<RabbitNote[]>;
+
+  @OneToMany(() => RoleEntity, (role) => role.user)
+  roles: Promise<RoleEntity[]>;
 }

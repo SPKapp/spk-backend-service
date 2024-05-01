@@ -3,6 +3,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { FirebaseService } from '../../firebase/firebase.service';
 
 import { Role } from '../roles.eum';
+import { UserRecord } from 'firebase-admin/lib/auth/user-record';
 
 @Injectable()
 export class FirebaseAuthService {
@@ -104,93 +105,82 @@ export class FirebaseAuthService {
   }
 
   /**
-   * Adds a role to a user and optionally assigns regions to the user.
+   * Adds a role to a user.
+   *
+   * This method is used to add a role to a user.
+   * If the role is a Region Manager or Region Observer, the additional information is the region ID.
+   * If the role is a Volunteer, the additional information is the team ID.
    *
    * @param uid - The ID of the user.
-   * @param role - The role to be added to the user.
-   * @param regionsIds - An optional array of region IDs to be assigned to the user (only applicable if the role is RegionManager).
-   * @returns A Promise that resolves when the role and regions (if applicable) have been added to the user.
+   * @param role - The role to be added.
+   * @param aditionalInfo - The additional information required for the role.
+   * @returns A Promise that resolves when the role is successfully added.
    */
   async addRoleToUser(
     uid: string,
     role: Role,
-    regionsIds?: number[],
+    aditionalInfo?: number,
   ): Promise<void> {
     const user = await this.firebaseService.auth.getUser(uid);
-    const userRoles = user.customClaims?.roles || [];
 
-    if (!userRoles.includes(role)) {
-      userRoles.push(role);
-      await this.firebaseService.auth.setCustomUserClaims(uid, {
-        ...user.customClaims,
-        roles: userRoles,
-      });
-    }
-
-    if (role === Role.RegionManager && regionsIds) {
-      const userRegions = user.customClaims?.regions || [];
-      regionsIds.forEach((regionId) => {
-        if (!userRegions.includes(regionId)) {
-          userRegions.push(regionId);
+    switch (role) {
+      case Role.Admin:
+        await this.addAdminRole(user);
+        break;
+      case Role.RegionManager:
+        if (!aditionalInfo) {
+          throw new Error('Additional information is required for this role.');
         }
-      });
+        await this.addRegionManagerRole(user, aditionalInfo);
+        break;
 
-      await this.firebaseService.auth.setCustomUserClaims(uid, {
-        ...user.customClaims,
-        roles: userRoles,
-        regions: userRegions,
-      });
+      case Role.RegionObserver:
+        if (!aditionalInfo) {
+          throw new Error('Additional information is required for this role.');
+        }
+        await this.addRegionObserverRole(user, aditionalInfo);
+        break;
+      case Role.Volunteer:
+        if (!aditionalInfo) {
+          throw new Error('Additional information is required for this role.');
+        }
+        this.addVolunteerRole(user, aditionalInfo);
+        break;
     }
   }
 
   /**
    * Removes a role from a user.
    *
+   * This method is used to remove a role from a user.
+   * If the role is a Region Manager or Region Observer, the additional information is the region ID.
+   *       If the region ID is not provided, all regions are removed.
+   *
    * @param uid - The ID of the user.
    * @param role - The role to be removed.
-   * @param regionsIds - Optional. An array of region IDs. Used only when
-   *  the role is a Region Manager.If provided, removes the specified regions,
-   *  if not, removes all regions and role.
+   * @param aditionalInfo - The additional information required for the role.
    * @returns A Promise that resolves when the role is successfully removed.
    */
   async removeRoleFromUser(
     uid: string,
     role: Role,
-    regionsIds?: number[],
+    aditionalInfo?: number,
   ): Promise<void> {
     const user = await this.firebaseService.auth.getUser(uid);
-    const userRoles: Role[] = user.customClaims?.roles || [];
-    const roleIndex = userRoles.indexOf(role);
 
-    if (role === Role.RegionManager) {
-      let userRegions = user.customClaims?.regions || [];
-
-      if (regionsIds) {
-        regionsIds.forEach((regionId) => {
-          const regionIndex = userRegions.indexOf(regionId);
-          if (regionIndex !== -1) {
-            userRegions.splice(regionIndex, 1);
-          }
-        });
-      } else {
-        userRegions = [];
-      }
-
-      if (roleIndex !== -1 && userRegions.length === 0) {
-        userRoles.splice(roleIndex, 1);
-      }
-
-      await this.firebaseService.auth.setCustomUserClaims(uid, {
-        ...user.customClaims,
-        roles: userRoles,
-        regions: userRegions,
-      });
-    } else if (roleIndex !== -1) {
-      userRoles.splice(roleIndex, 1);
-      await this.firebaseService.auth.setCustomUserClaims(uid, {
-        ...user.customClaims,
-        roles: userRoles,
-      });
+    switch (role) {
+      case Role.Admin:
+        await this.removeAdminRole(user);
+        break;
+      case Role.RegionManager:
+        await this.removeRegionManagerRole(user, aditionalInfo);
+        break;
+      case Role.RegionObserver:
+        await this.removeRegionObserverRole(user, aditionalInfo);
+        break;
+      case Role.Volunteer:
+        await this.removeVolunteerRole(user);
+        break;
     }
   }
 
@@ -204,21 +194,23 @@ export class FirebaseAuthService {
    * @param teamId - The ID of the team.
    * @returns A Promise that resolves when the volunteer role is added to the user.
    */
-  async addVolunteerRole(uid: string, teamId: number): Promise<void> {
-    const user = await this.firebaseService.auth.getUser(uid);
+  private async addVolunteerRole(
+    user: UserRecord,
+    teamId: number,
+  ): Promise<void> {
     const userRoles = user.customClaims?.roles || [];
 
     if (!userRoles.includes(Role.Volunteer)) {
       userRoles.push(Role.Volunteer);
     }
 
-    await this.firebaseService.auth.setCustomUserClaims(uid, {
+    await this.firebaseService.auth.setCustomUserClaims(user.uid, {
       ...user.customClaims,
       roles: userRoles,
       teamId: teamId,
     });
     this.logger.log(
-      `Added volunteer role to user ${uid} with teamId ${teamId}`,
+      `Added volunteer role to user ${user.uid} with teamId ${teamId}`,
     );
   }
 
@@ -232,24 +224,23 @@ export class FirebaseAuthService {
    * @param uid - The ID of the user.
    * @returns A Promise that resolves when the volunteer role is removed from the user.
    */
-  async removeVolunteerRole(uid: string): Promise<void> {
-    const user = await this.firebaseService.auth.getUser(uid);
+  private async removeVolunteerRole(user: UserRecord): Promise<void> {
     const userRoles: Role[] = user.customClaims?.roles || [];
     const roleIndex = userRoles.indexOf(Role.Volunteer);
 
     if (roleIndex !== -1) {
       userRoles.splice(roleIndex, 1);
-      await this.firebaseService.auth.setCustomUserClaims(uid, {
+      await this.firebaseService.auth.setCustomUserClaims(user.uid, {
         ...user.customClaims,
         roles: userRoles,
         teamId: undefined,
       });
-      this.logger.log(`Removed volunteer role from user ${uid}`);
+      this.logger.log(`Removed volunteer role from user ${user.uid}`);
     } else if (user.customClaims?.teamId) {
       this.logger.warn(
-        `User ${uid} does not have the volunteer role but has a teamId. Removing teamId.`,
+        `User ${user.uid} does not have the volunteer role but has a teamId. Removing teamId.`,
       );
-      await this.firebaseService.auth.setCustomUserClaims(uid, {
+      await this.firebaseService.auth.setCustomUserClaims(user.uid, {
         ...user.customClaims,
         teamId: undefined,
       });
@@ -259,15 +250,16 @@ export class FirebaseAuthService {
   /**
    * Adds a region manager role to a user.
    *
-   * This method is used to add the region manager role to a user.
-   * If the user already has the region manager role, this method updates the regionIds.
+   * This method is used to add the region manager role with the specified region to a user.
    *
    * @param uid - The ID of the user.
-   * @param regionIds - An array of region IDs.
+   * @param regionId - The ID of the region to add to the user's managerRegions.
    * @returns A Promise that resolves when the region manager role is added to the user.
    */
-  async addRegionManagerRole(uid: string, regionId: number): Promise<void> {
-    const user = await this.firebaseService.auth.getUser(uid);
+  private async addRegionManagerRole(
+    user: UserRecord,
+    regionId: number,
+  ): Promise<void> {
     const userRoles = user.customClaims?.roles || [];
     const managerRegions = user.customClaims?.managerRegions || [];
 
@@ -279,13 +271,13 @@ export class FirebaseAuthService {
       managerRegions.push(regionId);
     }
 
-    await this.firebaseService.auth.setCustomUserClaims(uid, {
+    await this.firebaseService.auth.setCustomUserClaims(user.uid, {
       ...user.customClaims,
       roles: userRoles,
       managerRegions,
     });
     this.logger.log(
-      `Added region manager role to user ${uid} with regionIds ${managerRegions}`,
+      `Added region manager role to user ${user.uid} with regionIds ${managerRegions}`,
     );
   }
 
@@ -302,8 +294,10 @@ export class FirebaseAuthService {
    * @param regionId - The ID of the region to remove from the user's managerRegions.
    * @returns A Promise that resolves when the region manager role is removed from the user.
    */
-  async removeRegionManagerRole(uid: string, regionId?: number): Promise<void> {
-    const user = await this.firebaseService.auth.getUser(uid);
+  private async removeRegionManagerRole(
+    user: UserRecord,
+    regionId?: number,
+  ): Promise<void> {
     const userRoles: Role[] = user.customClaims?.roles || [];
     const roleIndex = userRoles.indexOf(Role.RegionManager);
 
@@ -323,26 +317,159 @@ export class FirebaseAuthService {
         managerRegions = undefined;
       }
 
-      await this.firebaseService.auth.setCustomUserClaims(uid, {
+      await this.firebaseService.auth.setCustomUserClaims(user.uid, {
         ...user.customClaims,
         roles: userRoles,
         managerRegions,
       });
       if (regionId) {
         this.logger.log(
-          `Removed region manager role from user ${uid} for region ${regionId}`,
+          `Removed region manager role from user ${user.uid} for region ${regionId}`,
         );
       } else {
-        this.logger.log(`Removed region manager role from user ${uid}`);
+        this.logger.log(`Removed region manager role from user ${user.uid}`);
       }
     } else if (user.customClaims?.managerRegions) {
       this.logger.warn(
-        `User ${uid} does not have the region manager role but has managerRegions. Removing managerRegions.`,
+        `User ${user.uid} does not have the region manager role but has managerRegions. Removing managerRegions.`,
       );
-      await this.firebaseService.auth.setCustomUserClaims(uid, {
+      await this.firebaseService.auth.setCustomUserClaims(user.uid, {
         ...user.customClaims,
         managerRegions: undefined,
       });
+    }
+  }
+
+  /**
+   * Adds a region observer role to a user.
+   *
+   * This method is used to add the region observer role with the specified region to a user.
+   *
+   * @param uid - The ID of the user.
+   * @param regionId - The ID of the region to add to the user's observerRegions.
+   * @returns A Promise that resolves when the region observer role is added to the user.
+   */
+  private async addRegionObserverRole(
+    user: UserRecord,
+    regionId: number,
+  ): Promise<void> {
+    const userRoles = user.customClaims?.roles || [];
+    const observerRegions = user.customClaims?.observerRegions || [];
+
+    if (!userRoles.includes(Role.RegionObserver)) {
+      userRoles.push(Role.RegionObserver);
+    }
+
+    if (!observerRegions.includes(regionId)) {
+      observerRegions.push(regionId);
+    }
+
+    await this.firebaseService.auth.setCustomUserClaims(user.uid, {
+      ...user.customClaims,
+      roles: userRoles,
+      observerRegions,
+    });
+    this.logger.log(
+      `Added region observer role to user ${user.uid} with regionIds ${observerRegions}`,
+    );
+  }
+
+  /**
+   * Removes the region observer role from spcified region.
+   *
+   * This method is used to remove the region observer role from a user.
+   * If regionId is provided, it removes the region from the user's observerRegions.
+   * If regionId is not provided, it removes all regions from the user's observerRegions.
+   * If the user does not have the region observer role, this method does nothing.
+   *
+   *
+   * @param uid - The ID of the user.
+   * @param regionId - The ID of the region to remove from the user's observerRegions.
+   * @returns A Promise that resolves when the region observer role is removed from the user.
+   */
+  private async removeRegionObserverRole(
+    user: UserRecord,
+    regionId?: number,
+  ): Promise<void> {
+    const userRoles: Role[] = user.customClaims?.roles || [];
+    const roleIndex = userRoles.indexOf(Role.RegionObserver);
+
+    if (roleIndex !== -1) {
+      let observerRegions: number[] = [];
+
+      if (regionId) {
+        observerRegions = user.customClaims?.observerRegions || [];
+        const regionIndex = observerRegions.indexOf(regionId);
+        if (regionIndex !== -1) {
+          observerRegions.splice(regionIndex, 1);
+        }
+      }
+
+      if (observerRegions.length === 0) {
+        userRoles.splice(roleIndex, 1);
+        observerRegions = undefined;
+      }
+
+      await this.firebaseService.auth.setCustomUserClaims(user.uid, {
+        ...user.customClaims,
+        roles: userRoles,
+        observerRegions,
+      });
+      if (regionId) {
+        this.logger.log(
+          `Removed region observer role from user ${user.uid} for region ${regionId}`,
+        );
+      } else {
+        this.logger.log(`Removed region observer role from user ${user.uid}`);
+      }
+    } else if (user.customClaims?.observerRegions) {
+      this.logger.warn(
+        `User ${user.uid} does not have the region observer role but has observerRegions. Removing observerRegions.`,
+      );
+      await this.firebaseService.auth.setCustomUserClaims(user.uid, {
+        ...user.customClaims,
+        observerRegions: undefined,
+      });
+    }
+  }
+
+  /**
+   * Adds the admin role to a user.
+   *
+   * @param user - The user to add the admin role to.
+   * @returns A Promise that resolves when the admin role is added to the user.
+   */
+  private async addAdminRole(user: UserRecord): Promise<void> {
+    const userRoles = user.customClaims?.roles || [];
+
+    if (!userRoles.includes(Role.Admin)) {
+      userRoles.push(Role.Admin);
+    }
+
+    await this.firebaseService.auth.setCustomUserClaims(user.uid, {
+      ...user.customClaims,
+      roles: userRoles,
+    });
+    this.logger.log(`Added admin role to user ${user.uid}`);
+  }
+
+  /**
+   * Removes the admin role from a user.
+   *
+   * @param user - The user to remove the admin role from.
+   * @returns A Promise that resolves when the admin role is removed from the user.
+   */
+  private async removeAdminRole(user: UserRecord): Promise<void> {
+    const userRoles: Role[] = user.customClaims?.roles || [];
+    const roleIndex = userRoles.indexOf(Role.Admin);
+
+    if (roleIndex !== -1) {
+      userRoles.splice(roleIndex, 1);
+      await this.firebaseService.auth.setCustomUserClaims(user.uid, {
+        ...user.customClaims,
+        roles: userRoles,
+      });
+      this.logger.log(`Removed admin role from user ${user.uid}`);
     }
   }
 }
