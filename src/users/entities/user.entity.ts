@@ -10,6 +10,7 @@ import {
 import { Team } from './team.entity';
 import { RabbitNote } from '../../rabbit-notes/entities';
 import { RoleEntity } from './role.entity';
+import { TeamHistory } from './team-history.entity';
 
 @Entity()
 @ObjectType()
@@ -57,4 +58,7 @@ export class User {
 
   @OneToMany(() => RoleEntity, (role) => role.user)
   roles: Promise<RoleEntity[]>;
+
+  @OneToMany(() => TeamHistory, (teamHistory) => teamHistory.user)
+  teamsHistory: Promise<TeamHistory[]>;
 }

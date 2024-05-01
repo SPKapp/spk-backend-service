@@ -6,31 +6,32 @@ import {
   userRegionManager2Regions,
 } from '../../common/tests/user-details.template';
 import {
-  AuthService,
-  FirebaseAuthGuard,
-  getCurrentUserPipe,
-} from '../../common/modules/auth/auth.module';
+  paginatedFields,
+  paginatedFieldsWithTotalCount,
+} from '../../common/tests/paginated-fields.template';
+import { FirebaseAuthGuard } from '../../common/modules/auth';
 
 import { PaginatedTeamsResolver } from './paginated-teams.resolver';
 import { TeamsService } from './teams.service';
-import { Team } from '../entities/team.entity';
 
 describe('PaginatedTeamsResolver', () => {
   let resolver: PaginatedTeamsResolver;
   let teamsService: TeamsService;
 
-  const teams = [new Team({ id: 1 }), new Team({ id: 2 })];
+  const paginatedTeams = {
+    data: [],
+    offset: 0,
+    limit: 10,
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PaginatedTeamsResolver,
-        AuthService,
         {
           provide: TeamsService,
           useValue: {
-            findAll: jest.fn(() => teams),
-            count: jest.fn(() => teams.length),
+            findAllPaginated: jest.fn(() => paginatedTeams),
           },
         },
       ],
@@ -54,107 +55,68 @@ describe('PaginatedTeamsResolver', () => {
     });
 
     it('should return all teams if the user is an Admin', async () => {
-      await expect(
-        resolver.findAll(userAdmin, { offset: 0, limit: 10 }),
-      ).resolves.toEqual({
-        data: teams,
-        offset: 0,
-        limit: 10,
-        transferToFieds: {
-          regionsIds: undefined,
-        },
-      });
+      const args = { offset: 0, limit: 10 };
 
-      expect(teamsService.findAll).toHaveBeenCalledWith(undefined, 0, 10);
+      await expect(
+        resolver.findAll(userAdmin, paginatedFields, args),
+      ).resolves.toEqual(paginatedTeams);
+
+      expect(teamsService.findAllPaginated).toHaveBeenCalledWith(args, false);
     });
 
     it('should return all teams if the user is an Admin and regionsIds are provided', async () => {
-      await expect(
-        resolver.findAll(userAdmin, {
-          offset: 0,
-          limit: 10,
-          regionsIds: [1],
-        }),
-      ).resolves.toEqual({
-        data: teams,
-        offset: 0,
-        limit: 10,
-        transferToFieds: {
-          regionsIds: [1],
-        },
-      });
+      const args = { offset: 0, limit: 10, regionsIds: [1] };
 
-      expect(teamsService.findAll).toHaveBeenCalledWith([1], 0, 10);
+      await expect(
+        resolver.findAll(userAdmin, paginatedFields, args),
+      ).resolves.toEqual(paginatedTeams);
+
+      expect(teamsService.findAllPaginated).toHaveBeenCalledWith(args, false);
     });
 
     it('should return all teams from the user regions if the user is a Region Manager', async () => {
-      await expect(
-        resolver.findAll(userRegionManager2Regions, { offset: 0, limit: 10 }),
-      ).resolves.toEqual({
-        data: teams,
-        offset: 0,
-        limit: 10,
-        transferToFieds: {
-          regionsIds: [1, 3],
-        },
-      });
+      const args = { offset: 0, limit: 10 };
 
-      expect(teamsService.findAll).toHaveBeenCalledWith([1, 3], 0, 10);
+      await expect(
+        resolver.findAll(userRegionManager2Regions, paginatedFields, args),
+      ).resolves.toEqual(paginatedTeams);
+
+      expect(teamsService.findAllPaginated).toHaveBeenCalledWith(
+        { ...args, regionsIds: userRegionManager2Regions.managerRegions },
+        false,
+      );
     });
 
     it('should throw a BadRequestException if the user is a Region Manager and tries to access teams from other regions', async () => {
+      const args = { offset: 0, limit: 10, regionsIds: [1, 2] };
+
       await expect(
-        resolver.findAll(userRegionManager2Regions, {
-          offset: 0,
-          limit: 10,
-          regionsIds: [2],
-        }),
+        resolver.findAll(userRegionManager2Regions, paginatedFields, args),
       ).rejects.toThrow(
         new ForbiddenException(
-          'Region ID does not match the Region Manager permissions.',
+          'User does not have access to at least one of the regions.',
         ),
       );
     });
 
     it('should return all teams from the user regions if the user is a Region Manager and regionsIds are provided', async () => {
+      const args = { offset: 0, limit: 10, regionsIds: [1] };
+
       await expect(
-        resolver.findAll(userRegionManager2Regions, {
-          offset: 0,
-          limit: 10,
-          regionsIds: [1],
-        }),
-      ).resolves.toEqual({
-        data: teams,
-        offset: 0,
-        limit: 10,
-        transferToFieds: {
-          regionsIds: [1],
-        },
-      });
+        resolver.findAll(userRegionManager2Regions, paginatedFields, args),
+      ).resolves.toEqual(paginatedTeams);
 
-      expect(teamsService.findAll).toHaveBeenCalledWith([1], 0, 10);
-    });
-  });
-
-  describe('totalCount', () => {
-    it('should be defined', () => {
-      expect(resolver.totalCount).toBeDefined();
+      expect(teamsService.findAllPaginated).toHaveBeenCalledWith(args, false);
     });
 
-    it('should return the total count of teams', async () => {
-      const paginatedTeams = {
-        data: teams,
-        offset: 0,
-        limit: 10,
-        transferToFieds: {
-          regionsIds: [1, 2],
-        },
-      };
+    it('should return data with totalCount if totalCount is requested', async () => {
+      const args = { offset: 0, limit: 10 };
 
-      await expect(resolver.totalCount(paginatedTeams)).resolves.toEqual(
-        teams.length,
-      );
-      expect(teamsService.count).toHaveBeenCalledWith([1, 2]);
+      await expect(
+        resolver.findAll(userAdmin, paginatedFieldsWithTotalCount, args),
+      ).resolves.toEqual(paginatedTeams);
+
+      expect(teamsService.findAllPaginated).toHaveBeenCalledWith(args, true);
     });
   });
 });

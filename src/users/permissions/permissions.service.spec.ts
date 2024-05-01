@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { IsNull, Not, Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 
 import { PermissionsService } from './permissions.service';
 import { TeamsService } from '../teams/teams.service';
 import { FirebaseAuthService, Role } from '../../common/modules/auth';
-import { RegionsService } from '../../common/modules/regions/regions.service';
+import { RegionsService } from '../../common/modules/regions';
 import { RoleEntity, Team, TeamHistory, User } from '../entities';
 import { Region } from '../../common/modules/regions/entities';
 
@@ -68,6 +68,7 @@ describe('PermissionsService', () => {
         {
           provide: RegionsService,
           useValue: {
+            findOne: jest.fn(),
             addRoleToUser: jest.fn(),
           },
         },
@@ -75,6 +76,7 @@ describe('PermissionsService', () => {
           provide: TeamsService,
           useValue: {
             create: jest.fn(),
+            maybeDeactivate: jest.fn(),
           },
         },
       ],
@@ -277,24 +279,11 @@ describe('PermissionsService', () => {
         team: undefined,
       };
 
-      expect(userRepository.find).toHaveBeenCalledWith({
-        relations: {
-          team: true,
-        },
-        where: {
-          id: Not(teamUser.id),
-          active: true,
-          team: {
-            id: teamUser.team.id,
-          },
-        },
-      });
-      // TODO: add remove team test
+      expect(teamsService.maybeDeactivate).toHaveBeenCalledWith(teamUser.team);
 
       expect(teamHistoryRepository.update).toHaveBeenCalledWith(
         {
           user: { id: userWithoutTeam.id },
-          team: { id: teamUser.team.id },
           endDate: IsNull(),
         },
         {
@@ -356,24 +345,11 @@ describe('PermissionsService', () => {
         team: undefined,
       };
 
-      expect(userRepository.find).toHaveBeenCalledWith({
-        relations: {
-          team: true,
-        },
-        where: {
-          id: Not(teamUser.id),
-          active: true,
-          team: {
-            id: teamUser.team.id,
-          },
-        },
-      });
-      // TODO: add remove team test - not called
+      expect(teamsService.maybeDeactivate).toHaveBeenCalledWith(teamUser.team);
 
       expect(teamHistoryRepository.update).toHaveBeenCalledWith(
         {
           user: { id: userWithoutTeam.id },
-          team: { id: teamUser.team.id },
           endDate: IsNull(),
         },
         {
@@ -425,11 +401,10 @@ describe('PermissionsService', () => {
       // addVolunteerRole
       expect(teamRepository.findOneBy).toHaveBeenCalledWith({
         id: 2,
-        active: true,
       });
 
       // removeUserFromTeam
-      expect(userRepository.find).not.toHaveBeenCalled();
+      expect(teamsService.maybeDeactivate).not.toHaveBeenCalled();
 
       expect(teamHistoryRepository.update).not.toHaveBeenCalled();
 
@@ -638,19 +613,7 @@ describe('PermissionsService', () => {
         user: { id: activeUser.id },
       });
 
-      expect(userRepository.find).toHaveBeenCalledWith({
-        relations: {
-          team: true,
-        },
-        where: {
-          id: Not(teamUser.id),
-          active: true,
-          team: {
-            id: teamUser.team.id,
-          },
-        },
-      });
-      // TODO: add remove team test
+      expect(teamsService.maybeDeactivate).toHaveBeenCalledWith(teamUser.team);
 
       expect(teamHistoryRepository.update).toHaveBeenCalledWith(
         {

@@ -1,18 +1,20 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
-  NotImplementedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { FindManyOptions, In, Repository } from 'typeorm';
 
-import { RegionsService } from '../../common/modules/regions/regions.service';
-
-import { Team } from '../entities/team.entity';
+import { RegionsService } from '../../common/modules/regions';
+import { Team } from '../entities';
+import { PaginatedTeams, TeamsFilters } from '../dto';
 
 @Injectable()
 export class TeamsService {
+  logger = new Logger(TeamsService.name);
+
   constructor(
     @InjectRepository(Team) private readonly teamRepository: Repository<Team>,
     private readonly regionsService: RegionsService,
@@ -37,39 +39,55 @@ export class TeamsService {
   }
 
   /**
-   * Retrieves all teams based on the provided regions IDs.
-   * If regions IDs are not provided, retrieves all teams.
+   * Retrieves paginated teams based on the provided filters.
    *
-   * @param regionsIds - (optional) The IDs of the regions to filter by.
-   * @param offset - (optional) The number of teams to skip.
-   * @param limit - (optional) The maximum number of teams to retrieve.
-   * @returns A promise that resolves to an array of Team objects.
+   * @param filters - The filters to apply to the teams.
+   * @param totalCount - Whether to include the total count of teams.
+   * @returns A Promise that resolves to a PaginatedTeams object containing the paginated teams.
    */
-  async findAll(
-    regionsIds?: number[],
-    offset?: number,
-    limit?: number,
-  ): Promise<Team[]> {
-    return await this.teamRepository.find({
-      skip: offset,
-      take: limit,
-      where: {
-        region: { id: regionsIds ? In(regionsIds) : undefined },
-      },
-    });
+  async findAllPaginated(
+    filters: TeamsFilters = {},
+    totalCount: boolean = false,
+  ): Promise<PaginatedTeams> {
+    filters.offset ??= 0;
+    filters.limit ??= 10;
+
+    const options = this.createFilterOptions(filters);
+
+    return {
+      data: await this.teamRepository.find(options),
+      offset: filters.offset,
+      limit: filters.limit,
+      totalCount: totalCount
+        ? await this.teamRepository.countBy(options.where)
+        : undefined,
+    };
   }
 
   /**
-   * Counts the number of teams based on the provided region IDs.
-   * If no region IDs are provided, it counts all teams.
+   * Retrieves all teams based on the provided filters.
    *
-   * @param regionsIds - An optional array of region IDs.
-   * @returns A Promise that resolves to the number of teams.
+   * @param filters - The filters to apply to the teams.
+   * @returns A Promise that resolves to an array of Team objects.
    */
-  async count(regionsIds?: number[]): Promise<number> {
-    return await this.teamRepository.countBy({
-      region: { id: regionsIds ? In(regionsIds) : undefined },
-    });
+  async findAll(filters: TeamsFilters = {}): Promise<Team[]> {
+    return await this.teamRepository.find(this.createFilterOptions(filters));
+  }
+
+  private createFilterOptions(
+    filters: TeamsFilters = {},
+  ): FindManyOptions<Team> {
+    return {
+      skip: filters.offset,
+      take: filters.limit,
+      relations: {
+        region: true,
+        users: true,
+      },
+      where: {
+        region: { id: filters.regionsIds ? In(filters.regionsIds) : undefined },
+      },
+    };
   }
 
   /**
@@ -86,50 +104,62 @@ export class TeamsService {
     });
   }
 
-  // TODO: Implement this method
-  async update(id: number, regionId: number): Promise<Team> {
-    // Try Remove and Recreate with same users in new region
-    console.log(`Update team ${id} to region ${regionId}`);
-    throw new NotImplementedException();
-  }
-
   /**
-   * Removes a team by its ID.
-   * @param id - The ID of the team to be removed.
-   * @returns A Promise that resolves to the removed team id.
-   * @throws {NotFoundException} if the team with the provided ID does not exist.
-   * @throws {BadRequestException} if the team with the provided ID cannot be removed.
-   */
-  async remove(id: number): Promise<number> {
-    if (!(await this.canRemove(id))) {
-      throw new BadRequestException('Team cannot be removed');
-    }
-    await this.teamRepository.delete({ id });
-    return id;
-  }
-
-  /**
-   * Checks if a team can be removed.
-   * A team can be removed if it has no users and no active rabbits connected to it.
+   * Try to deactivate or remove a team by its ID.
    *
-   * @param id - The ID of the team to be checked.
-   * @param userId - The ID of the user that should be excluded from the check.
-   * @returns A Promise that resolves to a boolean value indicating if the team can be removed.
+   * If the team has active users, nothing happens.
+   * If the team hasn't active users, but has active RabbitGroups, the team cannot be deactivated. - throw BadRequestException
+   * If the team hasn't active users and hasn't active RabbitGroups, the team is deactivated.
+   * If the team hasn't active users, hasn't any RabbitGroups, the team is removed.
+   *
+   * @param TeamOrId - The team or ID of the team to deactivate.
+   * @returns A Promise that resolves to void.
    * @throws {NotFoundException} if the team with the provided ID does not exist.
+   * @throws {BadRequestException} if the team with the provided ID cannot be deactivated.
    */
-  async canRemove(id: number, userId?: number): Promise<boolean> {
-    const team = await this.teamRepository.findOneBy({ id });
-    if (!team) {
-      throw new NotFoundException(`Team with ID ${id} not found`);
+  async maybeDeactivate(TeamOrId: number | Team): Promise<void> {
+    let team: Team;
+    if (TeamOrId instanceof Team) {
+      team = TeamOrId;
+    } else {
+      team = await this.teamRepository.findOneBy({ id: TeamOrId });
+      if (!team) {
+        throw new NotFoundException(`Team with the provided id not found.`);
+      }
     }
 
-    let users = await team.users;
-    users = users.filter((user) => user.id !== userId);
-    if (users.length > 0) {
-      return false;
+    // This variable is null if there are no active users
+    const teamWithActiveUsers = await this.teamRepository.findOne({
+      relations: {
+        users: true,
+      },
+      where: {
+        id: team.id,
+        users: {
+          active: true,
+        },
+      },
+    });
+
+    if (teamWithActiveUsers) {
+      return;
     }
 
-    // TODO: Check if there are active rabbits connected to the team
-    return true;
+    // TODO: Check if there are active RabbitGroups connected to the team
+    const activeGroups = 0;
+    const inactiveGroups = 0;
+
+    if (activeGroups !== 0) {
+      throw new BadRequestException('Team cannot be deactivated');
+    } else if (inactiveGroups !== 0 || (await team.users).length !== 0) {
+      team.active = false;
+      await this.teamRepository.save(team);
+
+      this.logger.log(`Deactivating team with ID ${team.id}`);
+    } else {
+      const id = team.id;
+      await this.teamRepository.remove(team);
+      this.logger.log(`Removing team with ID ${id}`);
+    }
   }
 }

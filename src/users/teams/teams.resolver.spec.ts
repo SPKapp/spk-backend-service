@@ -1,21 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 
 import {
   userAdmin,
   userRegionManager,
 } from '../../common/tests/user-details.template';
-import {
-  AuthService,
-  FirebaseAuthGuard,
-  getCurrentUserPipe,
-} from '../../common/modules/auth/auth.module';
+import { FirebaseAuthGuard } from '../../common/modules/auth';
 
 import { TeamsResolver } from './teams.resolver';
 import { TeamsService } from './teams.service';
 
-import { Team } from '../entities/team.entity';
-import { Region } from '../../common/modules/regions/entities/region.entity';
+import { Team } from '../entities';
+import { Region } from '../../common/modules/regions/entities';
 
 describe('TeamsResolver', () => {
   let resolver: TeamsResolver;
@@ -33,7 +29,6 @@ describe('TeamsResolver', () => {
             findOne: jest.fn(() => team),
           }),
         },
-        AuthService,
       ],
     })
 
@@ -58,20 +53,27 @@ describe('TeamsResolver', () => {
       jest.spyOn(teamsService, 'findOne').mockResolvedValue(null);
 
       await expect(resolver.findOne(userAdmin, 1)).rejects.toThrow(
-        new NotFoundException(`Team with ID 1 not found`),
+        new NotFoundException(`Team with the provided id not found.`),
       );
+      expect(teamsService.findOne).toHaveBeenCalledWith(1, undefined);
     });
 
     it('should throw an permission error', async () => {
+      jest.spyOn(teamsService, 'findOne').mockResolvedValue(null);
+
       await expect(resolver.findOne(userRegionManager, 1)).rejects.toThrow(
-        new ForbiddenException(
-          'Team does not belong to the Region Manager permissions.',
-        ),
+        new NotFoundException(`Team with the provided id not found.`),
+      );
+
+      expect(teamsService.findOne).toHaveBeenCalledWith(
+        1,
+        userRegionManager.managerRegions,
       );
     });
 
     it('should return a team', async () => {
       await expect(resolver.findOne(userAdmin, 1)).resolves.toEqual(team);
+      expect(teamsService.findOne).toHaveBeenCalledWith(1, undefined);
     });
   });
 });

@@ -5,7 +5,6 @@ import {
   Entity,
   ManyToOne,
   PrimaryGeneratedColumn,
-  Unique,
   UpdateDateColumn,
 } from 'typeorm';
 
@@ -13,7 +12,6 @@ import { Team } from './team.entity';
 import { User } from './user.entity';
 
 @Entity()
-@Unique(['team', 'user'])
 export class TeamHistory {
   constructor(partial?: Partial<TeamHistory>) {
     Object.assign(this, partial);
@@ -22,10 +20,10 @@ export class TeamHistory {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne('Team', 'teamHistories')
+  @ManyToOne(() => Team, (team) => team.usersHistory, { onDelete: 'CASCADE' })
   team: Team;
 
-  @ManyToOne('User', 'teamHistories')
+  @ManyToOne(() => User, (user) => user.teamsHistory, { onDelete: 'CASCADE' })
   user: User;
 
   @Column({

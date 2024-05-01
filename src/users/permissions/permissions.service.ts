@@ -5,12 +5,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Not, Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { Transactional } from 'typeorm-transactional';
 
 import { RoleEntity, Team, TeamHistory, User } from '../entities';
 import { FirebaseAuthService, Role } from '../../common/modules/auth';
-import { RegionsService } from '../../common/modules/regions/regions.service';
+import { RegionsService } from '../../common/modules/regions';
 import { TeamsService } from '../teams/teams.service';
 
 @Injectable()
@@ -122,7 +122,7 @@ export class PermissionsService {
       newRoleEntity.additionalInfo,
     );
     this.logger.log(
-      `Added role ${role} with info: ${newRoleEntity.additionalInfo} with to user ${user.id}`,
+      `Added role ${role} with info: ${newRoleEntity.additionalInfo} to user ${user.id}`,
     );
   }
 
@@ -136,8 +136,7 @@ export class PermissionsService {
     const oldTeam = user.team;
 
     if (teamId) {
-      // User can be added to active team only
-      team = await this.teamRepository.findOneBy({ id: teamId, active: true });
+      team = await this.teamRepository.findOneBy({ id: teamId });
       if (!team) {
         throw new BadRequestException(
           'Team with the provided id does not exist.',
@@ -154,10 +153,9 @@ export class PermissionsService {
       );
     }
 
-    if (oldTeam) {
+    if (oldTeam && oldTeam.id !== team.id) {
       await this.removeUserFromTeam(user);
     }
-
     await this.addUserToTeam(user, team);
 
     return new RoleEntity({
@@ -247,7 +245,7 @@ export class PermissionsService {
   /**
    * Adds a user to a team.
    *
-   * This function only adds the user to the team.
+   * This function assumes that the user is active.
    * It does not check if the user has the necessary permissions to be added to the team.
    * It does not check if user is already a member of any team.
    *
@@ -257,6 +255,13 @@ export class PermissionsService {
   @Transactional()
   private async addUserToTeam(user: User, team: Team): Promise<void> {
     user.team = team;
+
+    if (team.active === false) {
+      // This situation should not happen, but we should handle it
+      team.active = true;
+      await this.teamRepository.save(team);
+      this.logger.warn(`Team ${team.id} was inactive, activating it`);
+    }
 
     await this.userRepository.save(user);
 
@@ -296,31 +301,12 @@ export class PermissionsService {
   private async removeUserFromTeam(user: User): Promise<void> {
     const team = user.team;
 
-    if (team) {
-      // If team have other active users, do nothing
-      const users = await this.userRepository.find({
-        relations: {
-          team: true,
-        },
-        where: {
-          id: Not(user.id),
-          active: true,
-          team: {
-            id: team.id,
-          },
-        },
-      });
-
-      if (users.length === 0) {
-        // TODO:
-        // If team have active rabbits - error
-        // If team have inactive rabbits - archive them
-        // If team have no rabbits, remove it
-      }
-    }
-
-    user.team = undefined;
+    user.team = null;
     await this.userRepository.save(user);
+
+    if (team) {
+      await this.teamsSerivce.maybeDeactivate(team);
+    }
 
     // We shoud update the end date for every team
     await this.teamHistoryRepository.update(

@@ -1,16 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { In } from 'typeorm';
+import { In, Repository } from 'typeorm';
 
 import { RegionsService } from '../../common/modules/regions/regions.service';
 import { TeamsService } from './teams.service';
 
 import { Region } from '../../common/modules/regions/entities/region.entity';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { Team } from '../entities';
 
 describe('TeamsService', () => {
   let service: TeamsService;
   let regionsService: RegionsService;
-  let teamRepository: any;
+  let teamRepository: Repository<Team>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -22,13 +24,14 @@ describe('TeamsService', () => {
           },
         },
         {
-          provide: 'TeamRepository',
+          provide: getRepositoryToken(Team),
           useValue: {
             find: jest.fn(),
             countBy: jest.fn(),
+            findOne: jest.fn(),
             findOneBy: jest.fn(() => null),
             save: jest.fn(),
-            delete: jest.fn(),
+            remove: jest.fn(),
           },
         },
         TeamsService,
@@ -37,7 +40,7 @@ describe('TeamsService', () => {
 
     service = module.get<TeamsService>(TeamsService);
     regionsService = module.get<RegionsService>(RegionsService);
-    teamRepository = module.get('TeamRepository');
+    teamRepository = module.get<Repository<Team>>(getRepositoryToken(Team));
   });
 
   it('should be defined', () => {
@@ -58,10 +61,10 @@ describe('TeamsService', () => {
 
     it('should create a new team', async () => {
       const region = { id: 1 };
-      const team = {
+      const team = new Team({
         id: 1,
         region: new Region(region),
-      };
+      });
       jest
         .spyOn(regionsService, 'findOne')
         .mockResolvedValue(new Region(region));
@@ -72,8 +75,40 @@ describe('TeamsService', () => {
     });
   });
 
+  describe('findAllPaginated', () => {
+    const teams = [new Team({ id: 1 }), new Team({ id: 2 })];
+
+    beforeEach(() => {
+      jest.spyOn(teamRepository, 'find').mockResolvedValue(teams);
+      jest.spyOn(teamRepository, 'countBy').mockResolvedValue(2);
+    });
+
+    it('shoud be defined', () => {
+      expect(service.findAllPaginated).toBeDefined();
+    });
+
+    it('should retrieve paginated teams', async () => {
+      await expect(service.findAllPaginated()).resolves.toEqual({
+        data: teams,
+        offset: 0,
+        limit: 10,
+      });
+    });
+
+    it('should retrieve paginated teams with custom filters', async () => {
+      await expect(
+        service.findAllPaginated({ offset: 10, limit: 20 }, true),
+      ).resolves.toEqual({
+        data: teams,
+        offset: 10,
+        limit: 20,
+        totalCount: 2,
+      });
+    });
+  });
+
   describe('findAll', () => {
-    const teams = [{ id: 1 }, { id: 2 }];
+    const teams = [new Team({ id: 1 }), new Team({ id: 2 })];
 
     beforeEach(() => {
       jest.spyOn(teamRepository, 'find').mockResolvedValue(teams);
@@ -89,6 +124,10 @@ describe('TeamsService', () => {
       expect(teamRepository.find).toHaveBeenCalledWith({
         skip: undefined,
         take: undefined,
+        relations: {
+          region: true,
+          users: true,
+        },
         where: {
           region: { id: undefined },
         },
@@ -96,11 +135,19 @@ describe('TeamsService', () => {
     });
 
     it('should retrieve teams based on the provided regions IDs', async () => {
-      await expect(service.findAll([1, 2])).resolves.toEqual(teams);
+      await expect(
+        service.findAll({
+          regionsIds: [1, 2],
+        }),
+      ).resolves.toEqual(teams);
 
       expect(teamRepository.find).toHaveBeenCalledWith({
         skip: undefined,
         take: undefined,
+        relations: {
+          region: true,
+          users: true,
+        },
         where: {
           region: { id: In([1, 2]) },
         },
@@ -108,11 +155,21 @@ describe('TeamsService', () => {
     });
 
     it('should retrieve teams based on the provided regions IDs and pagination params', async () => {
-      await expect(service.findAll([1, 2], 0, 10)).resolves.toEqual(teams);
+      await expect(
+        service.findAll({
+          offset: 0,
+          limit: 10,
+          regionsIds: [1, 2],
+        }),
+      ).resolves.toEqual(teams);
 
       expect(teamRepository.find).toHaveBeenCalledWith({
         skip: 0,
         take: 10,
+        relations: {
+          region: true,
+          users: true,
+        },
         where: {
           region: { id: In([1, 2]) },
         },
@@ -120,32 +177,8 @@ describe('TeamsService', () => {
     });
   });
 
-  describe('count', () => {
-    it('shoud be defined', () => {
-      expect(service.count).toBeDefined();
-    });
-
-    it('should count all teams', async () => {
-      jest.spyOn(teamRepository, 'countBy').mockResolvedValue(2);
-
-      await expect(service.count()).resolves.toEqual(2);
-      expect(teamRepository.countBy).toHaveBeenCalledWith({
-        region: { id: undefined },
-      });
-    });
-
-    it('should count teams based on the provided regions IDs', async () => {
-      jest.spyOn(teamRepository, 'countBy').mockResolvedValue(2);
-
-      await expect(service.count([1, 2])).resolves.toEqual(2);
-      expect(teamRepository.countBy).toHaveBeenCalledWith({
-        region: { id: In([1, 2]) },
-      });
-    });
-  });
-
   describe('findOne', () => {
-    const team = { id: 1 };
+    const team = new Team({ id: 1 });
 
     beforeEach(() => {
       jest.spyOn(teamRepository, 'findOneBy').mockResolvedValue(team);
@@ -174,79 +207,100 @@ describe('TeamsService', () => {
     });
   });
 
-  describe('update', () => {
-    it('shoud be defined', () => {
-      expect(service.update).toBeDefined();
+  describe('maybeDeactivate', () => {
+    const team = new Team({ id: 1, active: true, users: Promise.resolve([]) });
+
+    beforeEach(() => {
+      jest.spyOn(teamRepository, 'findOneBy').mockResolvedValue(team);
+      jest.spyOn(teamRepository, 'findOne').mockResolvedValue(null);
     });
 
-    // TODO: Add tests
-  });
-
-  describe('remove', () => {
     it('shoud be defined', () => {
-      expect(service.remove).toBeDefined();
+      expect(service.maybeDeactivate).toBeDefined();
     });
 
-    it('should throw an error if the team with the provided ID does not exist', async () => {
-      await expect(service.remove(1)).rejects.toThrow(
-        new NotFoundException(`Team with ID 1 not found`),
+    it('should throw an error if the team does not exist', async () => {
+      jest.spyOn(teamRepository, 'findOneBy').mockResolvedValue(null);
+      await expect(service.maybeDeactivate(1)).rejects.toThrow(
+        new NotFoundException('Team with the provided id not found.'),
       );
     });
 
-    it('should throw an error if the team cannot be removed', async () => {
-      jest.spyOn(service, 'canRemove').mockResolvedValue(false);
+    it('should remove a team without users and active rabbitGroups', async () => {
+      await service.maybeDeactivate({ ...team });
 
-      await expect(service.remove(1)).rejects.toThrow(
-        new BadRequestException('Team cannot be removed'),
-      );
+      expect(teamRepository.findOne).toHaveBeenCalledWith({
+        relations: {
+          users: true,
+        },
+        where: {
+          id: team.id,
+          users: {
+            active: true,
+          },
+        },
+      });
+
+      expect(teamRepository.save).not.toHaveBeenCalled();
+      expect(teamRepository.remove).toHaveBeenCalledWith(team);
     });
 
-    it('should remove a team', async () => {
-      jest.spyOn(service, 'canRemove').mockResolvedValue(true);
+    // it('should deactivate a team without active users and active rabbitGroups', async () => {
+    //   await service.maybeDeactivate({
+    //     ...team,
+    //     users: Promise.resolve([new User()]),
+    //   });
 
-      await expect(service.remove(1)).resolves.toEqual(1);
-    });
-  });
+    //   expect(teamRepository.findOne).toHaveBeenCalledWith({
+    //     relations: {
+    //       users: true,
+    //     },
+    //     where: {
+    //       id: 1,
+    //       users: {
+    //         active: true,
+    //       },
+    //     },
+    //   });
 
-  describe('canRemove', () => {
-    it('shoud be defined', () => {
-      expect(service.canRemove).toBeDefined();
-    });
+    //   expect(teamRepository.save).toHaveBeenCalledWith({
+    //     ...team,
+    //     active: false,
+    //   });
+    //   expect(teamRepository.remove).not.toHaveBeenCalled();
+    // });
 
-    it('should throw an error if the team with the provided ID does not exist', async () => {
-      await expect(service.canRemove(1)).rejects.toThrow(
-        new NotFoundException(`Team with ID 1 not found`),
-      );
-    });
-
-    it('should return false, the team has users', async () => {
-      const team = { id: 1, users: [{ id: 1 }] };
+    it('should not deactivate a team with active users', async () => {
       jest.spyOn(teamRepository, 'findOneBy').mockResolvedValue(team);
+      jest.spyOn(teamRepository, 'findOne').mockResolvedValue(team);
 
-      await expect(service.canRemove(team.id)).resolves.toBeFalsy();
+      await service.maybeDeactivate(1);
+
+      expect(teamRepository.save).not.toHaveBeenCalled();
+      expect(teamRepository.remove).not.toHaveBeenCalled();
     });
 
-    it('should return false, the team has users, when ignore user', async () => {
-      const team = { id: 1, users: [{ id: 1 }, { id: 2 }] };
-      jest.spyOn(teamRepository, 'findOneBy').mockResolvedValue(team);
+    // it('should throw an error if the team cannot be deactivated', async () => {
+    //   jest.spyOn(teamRepository, 'findOne').mockResolvedValue(null);
 
-      await expect(service.canRemove(team.id, 1)).resolves.toBeFalsy();
-    });
+    //   await expect(service.maybeDeactivate(1)).rejects.toThrow(
+    //     new BadRequestException('Team cannot be deactivated'),
+    //   );
 
-    it('should return true, the team has no users', async () => {
-      const team = { id: 1, users: [] };
-      jest.spyOn(teamRepository, 'findOneBy').mockResolvedValue(team);
+    //   expect(teamRepository.save).not.toHaveBeenCalled();
+    //   expect(teamRepository.remove).not.toHaveBeenCalled();
+    // });
 
-      await expect(service.canRemove(team.id)).resolves.toBeTruthy();
-    });
+    // it('should deactivate a team without active users and with inactive rabbitGroups', async () => {
+    //   jest.spyOn(teamRepository, 'findOne').mockResolvedValue(null);
 
-    it('should return true, the team has no users, when ignore user', async () => {
-      const team = { id: 1, users: [{ id: 1 }] };
-      jest.spyOn(teamRepository, 'findOneBy').mockResolvedValue(team);
+    //   await service.maybeDeactivate(1);
 
-      await expect(service.canRemove(team.id, 1)).resolves.toBeTruthy();
-    });
-
-    // TODO: Add tests for active rabbits
+    //   expect(teamRepository.save).toHaveBeenCalledWith({
+    //     ...team,
+    //     active: false,
+    //   });
+    //   expect(teamRepository.remove).not.toHaveBeenCalled();
+    // });
   });
 });

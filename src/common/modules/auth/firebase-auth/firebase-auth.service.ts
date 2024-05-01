@@ -25,19 +25,14 @@ export class FirebaseAuthService {
     displayName: string,
     password: string,
   ): Promise<string> {
-    try {
-      const user = await this.firebaseService.auth.createUser({
-        email,
-        phoneNumber,
-        displayName,
-        password,
-      });
+    const user = await this.firebaseService.auth.createUser({
+      email,
+      phoneNumber,
+      displayName,
+      password,
+    });
 
-      return user.uid;
-    } catch (err) {
-      this.logger.error(err);
-      throw err;
-    }
+    return user.uid;
   }
 
   /**
@@ -144,7 +139,7 @@ export class FirebaseAuthService {
         if (!aditionalInfo) {
           throw new Error('Additional information is required for this role.');
         }
-        this.addVolunteerRole(user, aditionalInfo);
+        await this.addVolunteerRole(user, aditionalInfo);
         break;
     }
   }
