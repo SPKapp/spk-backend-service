@@ -5,6 +5,7 @@ import {
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
+  VirtualColumn,
 } from 'typeorm';
 
 import { Team } from './team.entity';
@@ -30,6 +31,9 @@ export class User {
   @Column()
   @Field()
   lastname: string;
+
+  @VirtualColumn({ query: () => "CONCAT(firstname, ' ', lastname)" })
+  fullName: string;
 
   @Column({ unique: true })
   @Field({})

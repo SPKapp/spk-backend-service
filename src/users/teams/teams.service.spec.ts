@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { DataSource, In, Not, Repository } from 'typeorm';
+import { DataSource, ILike, In, Not, Repository } from 'typeorm';
 
 import { RegionsService } from '../../common/modules/regions/regions.service';
 import { TeamsService } from './teams.service';
@@ -141,14 +141,19 @@ describe('TeamsService', () => {
         },
         where: {
           region: { id: undefined },
+          users: {
+            active: undefined,
+            fullName: undefined,
+          },
         },
       });
     });
 
-    it('should retrieve teams based on the provided regions IDs', async () => {
+    it('should retrieve teams based on the provided regions IDs and isActive', async () => {
       await expect(
         service.findAll({
           regionsIds: [1, 2],
+          isActive: true,
         }),
       ).resolves.toEqual(teams);
 
@@ -161,16 +166,21 @@ describe('TeamsService', () => {
         },
         where: {
           region: { id: In([1, 2]) },
+          users: {
+            active: true,
+            fullName: undefined,
+          },
         },
       });
     });
 
-    it('should retrieve teams based on the provided regions IDs and pagination params', async () => {
+    it('should retrieve teams based on the provided regions IDs and pagination params and fullname', async () => {
       await expect(
         service.findAll({
           offset: 0,
           limit: 10,
           regionsIds: [1, 2],
+          name: 'John Doe',
         }),
       ).resolves.toEqual(teams);
 
@@ -183,6 +193,10 @@ describe('TeamsService', () => {
         },
         where: {
           region: { id: In([1, 2]) },
+          users: {
+            active: undefined,
+            fullName: ILike('%John Doe%'),
+          },
         },
       });
     });

@@ -5,7 +5,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, FindManyOptions, In, Not, Repository } from 'typeorm';
+import {
+  DataSource,
+  FindManyOptions,
+  ILike,
+  In,
+  Not,
+  Repository,
+} from 'typeorm';
 
 import { RegionsService } from '../../common/modules/regions';
 import { Team, User } from '../entities';
@@ -88,6 +95,10 @@ export class TeamsService {
       },
       where: {
         region: { id: filters.regionsIds ? In(filters.regionsIds) : undefined },
+        users: {
+          active: filters.isActive,
+          fullName: filters.name ? ILike(`%${filters.name}%`) : undefined,
+        },
       },
     };
   }

@@ -13,4 +13,14 @@ export interface TeamsFilters {
    * Specifies the IDs of the regions to filter teams.
    */
   regionsIds?: number[];
+
+  /**
+   * Specifies whether to filter active teams and users.
+   */
+  isActive?: boolean;
+
+  /**
+   * Specifies the name of users to filter.
+   */
+  name?: string;
 }
