@@ -1,18 +1,20 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { In, Repository } from 'typeorm';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { DataSource, In, Not, Repository } from 'typeorm';
 
 import { RegionsService } from '../../common/modules/regions/regions.service';
 import { TeamsService } from './teams.service';
 
-import { Region } from '../../common/modules/regions/entities/region.entity';
-import { getRepositoryToken } from '@nestjs/typeorm';
-import { Team } from '../entities';
+import { Region } from '../../common/modules/regions/entities';
+import { Team, User } from '../entities';
+import { RabbitGroup, RabbitGroupStatus } from '../../rabbits/entities';
 
 describe('TeamsService', () => {
   let service: TeamsService;
   let regionsService: RegionsService;
   let teamRepository: Repository<Team>;
+  let dataSource: DataSource;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -34,6 +36,14 @@ describe('TeamsService', () => {
             remove: jest.fn(),
           },
         },
+        {
+          provide: DataSource,
+          useValue: {
+            manager: {
+              countBy: jest.fn(),
+            },
+          },
+        },
         TeamsService,
       ],
     }).compile();
@@ -41,6 +51,7 @@ describe('TeamsService', () => {
     service = module.get<TeamsService>(TeamsService);
     regionsService = module.get<RegionsService>(RegionsService);
     teamRepository = module.get<Repository<Team>>(getRepositoryToken(Team));
+    dataSource = module.get<DataSource>(DataSource);
   });
 
   it('should be defined', () => {
@@ -212,7 +223,6 @@ describe('TeamsService', () => {
 
     beforeEach(() => {
       jest.spyOn(teamRepository, 'findOneBy').mockResolvedValue(team);
-      jest.spyOn(teamRepository, 'findOne').mockResolvedValue(null);
     });
 
     it('shoud be defined', () => {
@@ -227,52 +237,68 @@ describe('TeamsService', () => {
     });
 
     it('should remove a team without users and active rabbitGroups', async () => {
+      jest.spyOn(dataSource.manager, 'countBy').mockResolvedValueOnce(0);
+      jest.spyOn(dataSource.manager, 'countBy').mockResolvedValueOnce(0);
+      jest.spyOn(dataSource.manager, 'countBy').mockResolvedValueOnce(0);
+
       await service.maybeDeactivate({ ...team });
 
-      expect(teamRepository.findOne).toHaveBeenCalledWith({
-        relations: {
-          users: true,
-        },
-        where: {
-          id: team.id,
-          users: {
-            active: true,
-          },
-        },
+      expect(dataSource.manager.countBy).toHaveBeenNthCalledWith(1, User, {
+        team: { id: team.id },
+        active: true,
       });
+      expect(dataSource.manager.countBy).toHaveBeenNthCalledWith(
+        2,
+        RabbitGroup,
+        { team: { id: team.id }, status: Not(RabbitGroupStatus.Inactive) },
+      );
+      expect(dataSource.manager.countBy).toHaveBeenNthCalledWith(
+        3,
+        RabbitGroup,
+        { team: { id: team.id }, status: RabbitGroupStatus.Inactive },
+      );
 
       expect(teamRepository.save).not.toHaveBeenCalled();
       expect(teamRepository.remove).toHaveBeenCalledWith(team);
     });
 
-    // it('should deactivate a team without active users and active rabbitGroups', async () => {
-    //   await service.maybeDeactivate({
-    //     ...team,
-    //     users: Promise.resolve([new User()]),
-    //   });
+    it('should deactivate a team without active users and active rabbitGroups', async () => {
+      jest.spyOn(dataSource.manager, 'countBy').mockResolvedValueOnce(0);
+      jest.spyOn(dataSource.manager, 'countBy').mockResolvedValueOnce(0);
+      jest.spyOn(dataSource.manager, 'countBy').mockResolvedValueOnce(0);
 
-    //   expect(teamRepository.findOne).toHaveBeenCalledWith({
-    //     relations: {
-    //       users: true,
-    //     },
-    //     where: {
-    //       id: 1,
-    //       users: {
-    //         active: true,
-    //       },
-    //     },
-    //   });
+      await service.maybeDeactivate(
+        new Team({
+          ...team,
+          users: Promise.resolve([new User()]),
+        }),
+      );
 
-    //   expect(teamRepository.save).toHaveBeenCalledWith({
-    //     ...team,
-    //     active: false,
-    //   });
-    //   expect(teamRepository.remove).not.toHaveBeenCalled();
-    // });
+      expect(dataSource.manager.countBy).toHaveBeenNthCalledWith(1, User, {
+        team: { id: team.id },
+        active: true,
+      });
+      expect(dataSource.manager.countBy).toHaveBeenNthCalledWith(
+        2,
+        RabbitGroup,
+        { team: { id: team.id }, status: Not(RabbitGroupStatus.Inactive) },
+      );
+      expect(dataSource.manager.countBy).toHaveBeenNthCalledWith(
+        3,
+        RabbitGroup,
+        { team: { id: team.id }, status: RabbitGroupStatus.Inactive },
+      );
+
+      expect(teamRepository.save).toHaveBeenCalledWith({
+        ...team,
+        active: false,
+      });
+      expect(teamRepository.remove).not.toHaveBeenCalled();
+    });
 
     it('should not deactivate a team with active users', async () => {
       jest.spyOn(teamRepository, 'findOneBy').mockResolvedValue(team);
-      jest.spyOn(teamRepository, 'findOne').mockResolvedValue(team);
+      jest.spyOn(dataSource.manager, 'countBy').mockResolvedValueOnce(1);
 
       await service.maybeDeactivate(1);
 
@@ -280,27 +306,56 @@ describe('TeamsService', () => {
       expect(teamRepository.remove).not.toHaveBeenCalled();
     });
 
-    // it('should throw an error if the team cannot be deactivated', async () => {
-    //   jest.spyOn(teamRepository, 'findOne').mockResolvedValue(null);
+    it('should throw an error if the team cannot be deactivated', async () => {
+      jest.spyOn(dataSource.manager, 'countBy').mockResolvedValueOnce(0);
+      jest.spyOn(dataSource.manager, 'countBy').mockResolvedValueOnce(1);
 
-    //   await expect(service.maybeDeactivate(1)).rejects.toThrow(
-    //     new BadRequestException('Team cannot be deactivated'),
-    //   );
+      await expect(service.maybeDeactivate(1)).rejects.toThrow(
+        new BadRequestException('Team cannot be deactivated'),
+      );
 
-    //   expect(teamRepository.save).not.toHaveBeenCalled();
-    //   expect(teamRepository.remove).not.toHaveBeenCalled();
-    // });
+      expect(dataSource.manager.countBy).toHaveBeenNthCalledWith(1, User, {
+        team: { id: team.id },
+        active: true,
+      });
+      expect(dataSource.manager.countBy).toHaveBeenNthCalledWith(
+        2,
+        RabbitGroup,
+        { team: { id: team.id }, status: Not(RabbitGroupStatus.Inactive) },
+      );
+      expect(dataSource.manager.countBy).toHaveBeenCalledTimes(2);
 
-    // it('should deactivate a team without active users and with inactive rabbitGroups', async () => {
-    //   jest.spyOn(teamRepository, 'findOne').mockResolvedValue(null);
+      expect(teamRepository.save).not.toHaveBeenCalled();
+      expect(teamRepository.remove).not.toHaveBeenCalled();
+    });
 
-    //   await service.maybeDeactivate(1);
+    it('should deactivate a team without active users and with inactive rabbitGroups', async () => {
+      jest.spyOn(dataSource.manager, 'countBy').mockResolvedValueOnce(0);
+      jest.spyOn(dataSource.manager, 'countBy').mockResolvedValueOnce(0);
+      jest.spyOn(dataSource.manager, 'countBy').mockResolvedValueOnce(1);
 
-    //   expect(teamRepository.save).toHaveBeenCalledWith({
-    //     ...team,
-    //     active: false,
-    //   });
-    //   expect(teamRepository.remove).not.toHaveBeenCalled();
-    // });
+      await service.maybeDeactivate(1);
+
+      expect(dataSource.manager.countBy).toHaveBeenNthCalledWith(1, User, {
+        team: { id: team.id },
+        active: true,
+      });
+      expect(dataSource.manager.countBy).toHaveBeenNthCalledWith(
+        2,
+        RabbitGroup,
+        { team: { id: team.id }, status: Not(RabbitGroupStatus.Inactive) },
+      );
+      expect(dataSource.manager.countBy).toHaveBeenNthCalledWith(
+        3,
+        RabbitGroup,
+        { team: { id: team.id }, status: RabbitGroupStatus.Inactive },
+      );
+
+      expect(teamRepository.save).toHaveBeenCalledWith({
+        ...team,
+        active: false,
+      });
+      expect(teamRepository.remove).not.toHaveBeenCalled();
+    });
   });
 });

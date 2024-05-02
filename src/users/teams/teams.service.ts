@@ -5,11 +5,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindManyOptions, In, Repository } from 'typeorm';
+import { DataSource, FindManyOptions, In, Not, Repository } from 'typeorm';
 
 import { RegionsService } from '../../common/modules/regions';
-import { Team } from '../entities';
+import { Team, User } from '../entities';
 import { PaginatedTeams, TeamsFilters } from '../dto';
+import { RabbitGroup, RabbitGroupStatus } from '../../rabbits/entities';
 
 @Injectable()
 export class TeamsService {
@@ -18,10 +19,11 @@ export class TeamsService {
   constructor(
     @InjectRepository(Team) private readonly teamRepository: Repository<Team>,
     private readonly regionsService: RegionsService,
+    private dataSource: DataSource,
   ) {}
 
   /**
-   * Creates a new team based on the provided region ID.
+   * Creates a new active team based on the provided region ID.
    *
    * @param regionId - The ID of the region for the team.
    * @returns A Promise that resolves to the created team.
@@ -128,30 +130,30 @@ export class TeamsService {
       }
     }
 
-    // This variable is null if there are no active users
-    const teamWithActiveUsers = await this.teamRepository.findOne({
-      relations: {
-        users: true,
-      },
-      where: {
-        id: team.id,
-        users: {
-          active: true,
-        },
-      },
+    const activeUsers = await this.dataSource.manager.countBy(User, {
+      team: { id: team.id },
+      active: true,
     });
 
-    if (teamWithActiveUsers) {
+    if (activeUsers) {
       return;
     }
 
-    // TODO: Check if there are active RabbitGroups connected to the team
-    const activeGroups = 0;
-    const inactiveGroups = 0;
+    const activeGroups = await this.dataSource.manager.countBy(RabbitGroup, {
+      team: { id: team.id },
+      status: Not(RabbitGroupStatus.Inactive),
+    });
 
     if (activeGroups !== 0) {
       throw new BadRequestException('Team cannot be deactivated');
-    } else if (inactiveGroups !== 0 || (await team.users).length !== 0) {
+    }
+
+    const inactiveGroups = await this.dataSource.manager.countBy(RabbitGroup, {
+      team: { id: team.id },
+      status: RabbitGroupStatus.Inactive,
+    });
+
+    if (inactiveGroups !== 0 || (await team.users).length !== 0) {
       team.active = false;
       await this.teamRepository.save(team);
 

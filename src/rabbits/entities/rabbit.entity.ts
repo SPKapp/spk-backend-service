@@ -10,9 +10,10 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
-import { AdmissionType } from './admissionType.enum';
+import { AdmissionType } from './enums/admissionType.enum';
+import { Gender } from './enums/gender.enum';
+import { RabbitStatus } from './enums/rabbit-status.enum';
 import { RabbitGroup } from './rabbit-group.entity';
-import { Gender } from './gender.enum';
 import { RabbitNote } from '../../rabbit-notes/entities';
 
 @Entity()
@@ -147,6 +148,14 @@ export class Rabbit {
     description: 'The date of the vaccination. Can be set only by RabbitNote.',
   })
   vaccinationDate?: Date;
+
+  @Column({
+    type: 'enum',
+    enum: RabbitStatus,
+    default: RabbitStatus.Submitted,
+  })
+  @Field(() => RabbitStatus)
+  status?: RabbitStatus;
 
   @ManyToOne(() => RabbitGroup, (rabbitGroup) => rabbitGroup.rabbits, {
     eager: true,

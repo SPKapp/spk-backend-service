@@ -1,5 +1,6 @@
 import { ObjectType, Field, ID } from '@nestjs/graphql';
 import {
+  Column,
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
@@ -12,6 +13,7 @@ import {
 import { Region } from '../../common/modules/regions/entities/region.entity';
 import { Team } from '../../users/entities/team.entity';
 import { Rabbit } from './rabbit.entity';
+import { RabbitGroupStatus } from './enums/group-status.enum';
 
 @Entity()
 @ObjectType({
@@ -26,6 +28,14 @@ export class RabbitGroup {
   @PrimaryGeneratedColumn()
   @Field(() => ID)
   id: number;
+
+  @Column({
+    type: 'enum',
+    enum: RabbitGroupStatus,
+    default: RabbitGroupStatus.Submitted,
+  })
+  @Field(() => RabbitGroupStatus)
+  status: RabbitGroupStatus;
 
   @ManyToOne(() => Region, (region) => region.rabbitGroups, { eager: true })
   @Field(() => Region)
