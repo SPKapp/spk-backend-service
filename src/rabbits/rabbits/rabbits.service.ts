@@ -69,13 +69,22 @@ export class RabbitsService {
     regionsIds?: number[],
     teamsIds?: number[],
   ): Promise<Rabbit | null> {
-    return await this.rabbitRespository.findOneBy({
-      id,
-      rabbitGroup: {
-        region: { id: regionsIds ? In(regionsIds) : undefined },
-        team: { id: teamsIds ? In(teamsIds) : undefined },
-      },
-    });
+    let qb = this.rabbitRespository.manager
+      .createQueryBuilder(Rabbit, 'rabbit')
+      .leftJoinAndSelect('rabbit.rabbitGroup', 'rabbitGroup')
+      .leftJoinAndSelect('rabbitGroup.region', 'region')
+      .leftJoinAndSelect('rabbitGroup.team', 'team')
+      .leftJoinAndSelect('team.users', 'user', 'user.active = true')
+      .where('rabbit.id = :id', { id });
+
+    if (regionsIds) {
+      qb = qb.andWhere('region.id IN (:...regionsIds)', { regionsIds });
+    }
+    if (teamsIds) {
+      qb = qb.andWhere('team.id IN (:...teamsIds)', { teamsIds });
+    }
+
+    return await qb.getOne();
   }
 
   /**

@@ -91,7 +91,9 @@ export class TeamsService {
       take: filters.limit,
       relations: {
         region: true,
-        users: true,
+        users: {
+          roles: true,
+        },
       },
       where: {
         region: { id: filters.regionsIds ? In(filters.regionsIds) : undefined },

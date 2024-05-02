@@ -15,6 +15,7 @@ describe('RabbitsService', () => {
   let service: RabbitsService;
   let rabbitGroupsService: RabbitGroupsService;
   let rabbitRepository: any;
+  let queryBuilder: any;
 
   const rabbits = [
     new Rabbit({
@@ -38,6 +39,12 @@ describe('RabbitsService', () => {
   ];
 
   beforeEach(async () => {
+    queryBuilder = {
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getOne: jest.fn(() => rabbits[0]),
+    };
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RabbitsService,
@@ -57,6 +64,9 @@ describe('RabbitsService', () => {
             save: jest.fn(() => rabbits[0]),
             findOneBy: jest.fn(() => rabbits[0]),
             softRemove: jest.fn(() => ({ id: 1 })),
+            manager: {
+              createQueryBuilder: jest.fn(() => queryBuilder),
+            },
           },
         },
       ],
@@ -101,50 +111,40 @@ describe('RabbitsService', () => {
     it('should return a rabbit by id', () => {
       expect(service.findOne(1)).resolves.toEqual(rabbits[0]);
 
-      expect(rabbitRepository.findOneBy).toHaveBeenCalledWith({
-        id: 1,
-        rabbitGroup: {
-          region: {
-            id: undefined,
-          },
-          team: {
-            id: undefined,
-          },
-        },
+      expect(queryBuilder.where).toHaveBeenCalledWith('rabbit.id = :id', {
+        id: rabbits[0].id,
       });
+      expect(queryBuilder.andWhere).not.toHaveBeenCalled();
     });
 
     it('should return null', () => {
-      jest.spyOn(rabbitRepository, 'findOneBy').mockResolvedValue(null);
+      jest.spyOn(queryBuilder, 'getOne').mockResolvedValue(null);
       expect(service.findOne(1, undefined, [1])).resolves.toBeNull();
 
-      expect(rabbitRepository.findOneBy).toHaveBeenCalledWith({
-        id: 1,
-        rabbitGroup: {
-          region: {
-            id: undefined,
-          },
-          team: {
-            id: In([1]),
-          },
+      expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+        'team.id IN (:...teamsIds)',
+        {
+          teamsIds: [1],
         },
-      });
+      );
+      expect(queryBuilder.andWhere).toHaveBeenCalledTimes(1);
     });
 
     it('should return a rabbit by id with regionId and teamId filter', () => {
       expect(service.findOne(1, [1], [1])).resolves.toEqual(rabbits[0]);
 
-      expect(rabbitRepository.findOneBy).toHaveBeenCalledWith({
-        id: 1,
-        rabbitGroup: {
-          region: {
-            id: In([1]),
-          },
-          team: {
-            id: In([1]),
-          },
+      expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+        'region.id IN (:...regionsIds)',
+        {
+          regionsIds: [1],
         },
-      });
+      );
+      expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+        'team.id IN (:...teamsIds)',
+        {
+          teamsIds: [1],
+        },
+      );
     });
   });
 

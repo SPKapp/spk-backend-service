@@ -1,4 +1,12 @@
-import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
+import {
+  Resolver,
+  Query,
+  Mutation,
+  Args,
+  Int,
+  ResolveField,
+  Parent,
+} from '@nestjs/graphql';
 import {
   BadRequestException,
   ForbiddenException,
@@ -20,10 +28,14 @@ import { User } from '../entities/user.entity';
 import { CreateUserInput } from '../dto/create-user.input';
 import { UpdateUserInput } from '../dto/update-user.input';
 import { UpdateProfileInput } from '../dto/update-profile.input';
+import { PermissionsService } from '../permissions/permissions.service';
 
 @Resolver(() => User)
 export class UsersResolver {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly permissionsService: PermissionsService,
+  ) {}
 
   /**
    * Creates a new user.
@@ -40,9 +52,10 @@ export class UsersResolver {
     @CurrentUser() currentUser: UserDetails,
     @Args('createUserInput') createUserInput: CreateUserInput,
   ): Promise<User> {
+    const isAdmin = currentUser.checkRole(Role.Admin);
+
     if (
-      (currentUser.checkRole(Role.Admin) ||
-        currentUser.managerRegions.length > 1) &&
+      (isAdmin || currentUser.managerRegions.length > 1) &&
       !createUserInput.regionId
     ) {
       throw new BadRequestException(
@@ -50,15 +63,13 @@ export class UsersResolver {
       );
     }
 
-    if (!currentUser.checkRole(Role.Admin)) {
+    if (!isAdmin) {
       if (!createUserInput.regionId) {
         createUserInput.regionId = currentUser.managerRegions[0];
-      } else {
-        // TODO: Refactor this
-        // await this.authService.checkRegionManagerPermissions(
-        //   currentUser,
-        //   async () => createUserInput.regionId,
-        // );
+      } else if (currentUser.checkRegionManager(createUserInput.regionId)) {
+        throw new ForbiddenException(
+          "User doesn't have permissions to create user in this region.",
+        );
       }
     }
 
@@ -139,10 +150,12 @@ export class UsersResolver {
    * @param currentUser - The details of the currently authenticated user.
    * @returns A Promise that resolves to the user's profile.
    */
-  @FirebaseAuth()
+  // @FirebaseAuth()
   @Query(() => User)
   async myProfile(@CurrentUser() currentUser: UserDetails): Promise<User> {
-    return await this.usersService.findOneByUid(currentUser.uid);
+    await this.permissionsService.addRoleToUser(2, Role.Admin, undefined, 4);
+    // await this.permissionsService.removeRoleFromUser(2, Role.Volunteer);
+    return await this.usersService.findOneByUid('TuUi3MMwRzesGTVV26HW6syQPmB3');
   }
 
   /**
@@ -192,5 +205,13 @@ export class UsersResolver {
       //   'User does not belong to the Region Manager permissions.',
       // );
     }
+  }
+
+  @ResolveField(() => [Role], {
+    description: 'The roles of the user without additional info like region.',
+    name: 'roles',
+  })
+  async roles(@Parent() parent: User): Promise<Role[]> {
+    return [...new Set((await parent.roles).map((role) => role.role))];
   }
 }

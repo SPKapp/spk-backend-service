@@ -34,6 +34,7 @@ export class RoleEntity {
     - RegionObserver: regionId
     - TeamManager: teamId
     `,
+    nullable: true,
   })
   additionalInfo: number;
 
