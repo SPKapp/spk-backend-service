@@ -5,6 +5,7 @@ import { ConfigModule, ConfigType } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { addTransactionalDataSource } from 'typeorm-transactional';
+import { MailerModule } from '@nestjs-modules/mailer';
 
 import { RegionsModule } from './common/modules/regions/regions.module';
 import { FirebaseModule } from './common/modules/firebase/firebase.module';
@@ -13,7 +14,7 @@ import { UsersModule } from './users/users.module';
 import { RabbitsModule } from './rabbits/rabbits.module';
 import { RabbitNotesModule } from './rabbit-notes/rabbit-notes.module';
 
-import databaseConfig from './config/database.config';
+import { DatabaseConfig, EmailConfig, CommonConfig } from './config';
 
 @Module({
   imports: [
@@ -24,12 +25,15 @@ import databaseConfig from './config/database.config';
     }),
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: [`.env/${process.env.NODE_ENV}.env`],
-      load: [databaseConfig],
+      envFilePath: [
+        `.env/${process.env.NODE_ENV}.env`,
+        `.env/local.${process.env.NODE_ENV}.env`,
+      ],
+      load: [DatabaseConfig, EmailConfig, CommonConfig],
     }),
     TypeOrmModule.forRootAsync({
-      inject: [databaseConfig.KEY],
-      useFactory: (config: ConfigType<typeof databaseConfig>) => config,
+      inject: [DatabaseConfig.KEY],
+      useFactory: (config: ConfigType<typeof DatabaseConfig>) => config,
       async dataSourceFactory(options) {
         if (!options) {
           throw new Error('Invalid options passed');
@@ -37,6 +41,10 @@ import databaseConfig from './config/database.config';
 
         return addTransactionalDataSource(new DataSource(options));
       },
+    }),
+    MailerModule.forRootAsync({
+      inject: [EmailConfig.KEY],
+      useFactory: (config: ConfigType<typeof EmailConfig>) => config,
     }),
 
     RegionsModule,

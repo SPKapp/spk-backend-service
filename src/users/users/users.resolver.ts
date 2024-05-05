@@ -23,12 +23,10 @@ import {
 import { EntityWithId } from '../../common/types/remove.entity';
 
 import { UsersService } from './users.service';
-
-import { User } from '../entities/user.entity';
-import { CreateUserInput } from '../dto/create-user.input';
-import { UpdateUserInput } from '../dto/update-user.input';
-import { UpdateProfileInput } from '../dto/update-profile.input';
 import { PermissionsService } from '../permissions/permissions.service';
+
+import { User } from '../entities';
+import { CreateUserInput, UpdateUserInput, UpdateProfileInput } from '../dto';
 
 @Resolver(() => User)
 export class UsersResolver {
@@ -62,11 +60,13 @@ export class UsersResolver {
         'Region ID is required for Admin and Region Manager with more than 1 region.',
       );
     }
+    console.log('createUserInput', createUserInput);
+    console.log('currentUser', currentUser);
 
     if (!isAdmin) {
       if (!createUserInput.regionId) {
         createUserInput.regionId = currentUser.managerRegions[0];
-      } else if (currentUser.checkRegionManager(createUserInput.regionId)) {
+      } else if (!currentUser.checkRegionManager(createUserInput.regionId)) {
         throw new ForbiddenException(
           "User doesn't have permissions to create user in this region.",
         );
@@ -153,9 +153,7 @@ export class UsersResolver {
   // @FirebaseAuth()
   @Query(() => User)
   async myProfile(@CurrentUser() currentUser: UserDetails): Promise<User> {
-    await this.permissionsService.addRoleToUser(2, Role.Admin, undefined, 4);
-    // await this.permissionsService.removeRoleFromUser(2, Role.Volunteer);
-    return await this.usersService.findOneByUid('TuUi3MMwRzesGTVV26HW6syQPmB3');
+    return await this.usersService.findOneByUid(currentUser.uid);
   }
 
   /**

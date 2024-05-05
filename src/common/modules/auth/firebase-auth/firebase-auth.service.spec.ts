@@ -1,12 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { MailerService } from '@nestjs-modules/mailer';
 
 import { FirebaseAuthService } from './firebase-auth.service';
 import { FirebaseService } from '../../firebase/firebase.service';
 import { Role } from '../roles.eum';
+import { CommonConfig } from '../../../../config';
 
 describe('FirebaseAuthService', () => {
   let service: FirebaseAuthService;
   let firebaseService: FirebaseService;
+  let mailService: MailerService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -20,8 +23,22 @@ describe('FirebaseAuthService', () => {
                 uid: '123',
               })),
               getUser: jest.fn(),
+              generatePasswordResetLink: jest.fn(() => 'http://link'),
               setCustomUserClaims: jest.fn(),
+              deleteUser: jest.fn(),
             },
+          },
+        },
+        {
+          provide: MailerService,
+          useValue: {
+            sendMail: jest.fn(),
+          },
+        },
+        {
+          provide: CommonConfig.KEY,
+          useValue: {
+            appName: 'Test App',
           },
         },
       ],
@@ -29,6 +46,7 @@ describe('FirebaseAuthService', () => {
 
     service = module.get<FirebaseAuthService>(FirebaseAuthService);
     firebaseService = module.get<FirebaseService>(FirebaseService);
+    mailService = module.get<MailerService>(MailerService);
   });
 
   it('should be defined', () => {
@@ -42,13 +60,21 @@ describe('FirebaseAuthService', () => {
 
     it('should create a user', async () => {
       await expect(
-        service.createUser(
-          'email@example.com',
-          '123456789',
-          'John Doe',
-          'password',
-        ),
+        service.createUser('email@example.com', '123456789', 'John Doe'),
       ).resolves.toEqual('123');
+    });
+
+    it('should throw an error if the email cannot be sent', async () => {
+      const deleteuser = jest.spyOn(service, 'deleteUser');
+      jest
+        .spyOn(mailService, 'sendMail')
+        .mockRejectedValue(new Error('Test Error'));
+
+      await expect(
+        service.createUser('email@example.com', '123456789', 'John Doe'),
+      ).rejects.toThrow(new Error('Test Error'));
+
+      expect(deleteuser).toHaveBeenCalledWith('123');
     });
   });
 

@@ -6,20 +6,16 @@ import {
   userRegionManager,
   userRegionManager2Regions,
 } from '../../common/tests/user-details.template';
-import {
-  AuthService,
-  FirebaseAuthGuard,
-  getCurrentUserPipe,
-} from '../../common/modules/auth/auth.module';
+import { FirebaseAuthGuard } from '../../common/modules/auth';
 
-import { Region } from '../../common/modules/regions/entities/region.entity';
+import { Region } from '../../common/modules/regions/entities';
 
 import { UsersResolver } from './users.resolver';
 import { UsersService } from './users.service';
 
-import { CreateUserInput } from '../dto/create-user.input';
-import { User } from '../entities/user.entity';
-import { Team } from '../entities/team.entity';
+import { CreateUserInput } from '../dto';
+import { User, Team } from '../entities';
+import { PermissionsService } from '../permissions/permissions.service';
 
 describe('UsersResolver', () => {
   let resolver: UsersResolver;
@@ -30,6 +26,10 @@ describe('UsersResolver', () => {
       providers: [
         UsersResolver,
         {
+          provide: PermissionsService,
+          useValue: {},
+        },
+        {
           provide: UsersService,
           useValue: {
             create: jest.fn(),
@@ -39,7 +39,6 @@ describe('UsersResolver', () => {
             remove: jest.fn(() => 1),
           },
         },
-        AuthService,
       ],
     })
 
@@ -114,7 +113,7 @@ describe('UsersResolver', () => {
           resolver.createUser(userRegionManager, { ...user, regionId: 1 }),
         ).rejects.toThrow(
           new ForbiddenException(
-            'Region ID does not match the Region Manager permissions.',
+            "User doesn't have permissions to create user in this region.",
           ),
         );
         expect(createSpy).not.toHaveBeenCalled();

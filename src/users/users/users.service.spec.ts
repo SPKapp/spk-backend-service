@@ -6,14 +6,17 @@ import {
 } from '@nestjs/common';
 import { In } from 'typeorm';
 
-import { FirebaseAuthService } from '../../common/modules/auth/firebase-auth/firebase-auth.service';
+import { FirebaseAuthService } from '../../common/modules/auth';
 import { UsersService } from './users.service';
 import { TeamsService } from '../teams/teams.service';
 
-import { CreateUserInput } from '../dto/create-user.input';
-import { User } from '../entities/user.entity';
-import { Team } from '../entities/team.entity';
-import { Region } from '../../common/modules/regions/entities/region.entity';
+import { CreateUserInput } from '../dto';
+import { User, Team } from '../entities';
+import { Region } from '../../common/modules/regions/entities';
+
+jest.mock('typeorm-transactional', () => ({
+  Transactional: () => jest.fn(),
+}));
 
 describe('UsersService', () => {
   let service: UsersService;
@@ -124,6 +127,7 @@ describe('UsersService', () => {
         ...user,
         id: 1,
         firebaseUid: '123',
+        active: true,
         team: new Team({ id: 1 }),
       });
     });
@@ -346,7 +350,7 @@ describe('UsersService', () => {
     });
 
     it('should throw last member of the team error', async () => {
-      jest.spyOn(teamsService, 'canRemove').mockResolvedValue(false);
+      // jest.spyOn(teamsService, 'canRemove').mockResolvedValue(false);
       jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(
         new User({
           ...user,
@@ -365,7 +369,7 @@ describe('UsersService', () => {
     });
 
     it('should remove user, when is last in a team', async () => {
-      jest.spyOn(teamsService, 'canRemove').mockResolvedValue(true);
+      // jest.spyOn(teamsService, 'canRemove').mockResolvedValue(true);
       jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(
         new User({
           ...user,

@@ -36,6 +36,7 @@ lerna-debug.log*
 
 # Project Specific
 test.env
+local.*.env
 firebaseSeviceAccountKey.json
 
 documentation/

@@ -7,23 +7,21 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
-import { randomBytes } from 'crypto';
+import { Transactional } from 'typeorm-transactional';
 
-import { FirebaseAuthService } from '../../common/modules/auth/firebase-auth/firebase-auth.service';
+import { FirebaseAuthService } from '../../common/modules/auth';
 import { TeamsService } from '../teams/teams.service';
 
-import { Team } from '../entities/team.entity';
-import { User } from '../entities/user.entity';
-import { CreateUserInput } from '../dto/create-user.input';
-import { UpdateUserInput } from '../dto/update-user.input';
-import { Role } from '../../common/modules/auth/roles.eum';
+import { User, Team } from '../entities';
+import { CreateUserInput, UpdateUserInput } from '../dto';
 
 @Injectable()
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
 
   constructor(
-    @InjectRepository(User) private readonly userRepository: Repository<User>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
     private readonly teamsSerivce: TeamsService,
     private readonly firebaseAuthService: FirebaseAuthService,
   ) {}
@@ -31,13 +29,13 @@ export class UsersService {
   /**
    * Creates a new user and register him in Firebase Auth
    * It also creates a new team for the user, if 'teamId' is not provided
-   * Default role for the user is 'Role.Volunteer'
    *
    * @param createUserInput - The input data for creating a user.
    * @returns A promise that resolves to the created user.
    * @throws {ConflictException} If a user with the provided email or phone already exists.
    * @throws {BadRequestException} If the team with the provided id does not exist.
    */
+  @Transactional()
   async create(createUserInput: CreateUserInput): Promise<User> {
     await this.checkAvailability(createUserInput.email, createUserInput.phone);
 
@@ -45,9 +43,7 @@ export class UsersService {
     if (!createUserInput.teamId) {
       team = await this.teamsSerivce.create(createUserInput.regionId);
     } else {
-      team = await this.teamsSerivce.findOne(createUserInput.teamId, [
-        createUserInput.regionId,
-      ]);
+      team = await this.teamsSerivce.findOne(createUserInput.teamId);
       if (!team) {
         throw new BadRequestException(
           'Team with the provided id does not exist',
@@ -55,15 +51,11 @@ export class UsersService {
       }
     }
 
-    const password = randomBytes(8).toString('hex');
-
     const firebaseUid = await this.firebaseAuthService.createUser(
       createUserInput.email,
       createUserInput.phone,
       `${createUserInput.firstname} ${createUserInput.lastname}`,
-      password,
     );
-    await this.firebaseAuthService.addRoleToUser(firebaseUid, Role.Volunteer);
 
     let user: User;
     try {
@@ -71,25 +63,17 @@ export class UsersService {
         new User({
           ...createUserInput,
           firebaseUid: firebaseUid,
+          active: true,
           team,
         }),
       );
 
       await this.firebaseAuthService.setUserId(firebaseUid, user.id);
     } catch (e) {
-      this.logger.error(e);
-      if (!createUserInput.teamId) {
-        try {
-          await this.teamsSerivce.remove(team.id);
-        } finally {
-        }
-      }
+      // Rollback Firebase user creation
       await this.firebaseAuthService.deleteUser(firebaseUid);
       throw e;
     }
-
-    // TODO: Add email sending
-    console.log(`User ${createUserInput.email} password: ${password}`);
 
     this.logger.log(`Created user ${user.email}`);
     return user;
@@ -262,14 +246,14 @@ export class UsersService {
     const team = user.team;
 
     if ((await team.users).length === 1) {
-      if (!(await this.teamsSerivce.canRemove(user.team.id, user.id))) {
-        throw new BadRequestException(
-          'User cannot be removed. Last member of the team.',
-        );
-      }
-      user.team = null;
-      await this.userRepository.save(user);
-      await this.teamsSerivce.remove(team.id);
+      //   if (!(await this.teamsSerivce.canRemove(user.team.id, user.id))) {
+      //     throw new BadRequestException(
+      //       'User cannot be removed. Last member of the team.',
+      //     );
+      //   }
+      //   user.team = null;
+      //   await this.userRepository.save(user);
+      //   await this.teamsSerivce.remove(team.id);
     }
   }
 

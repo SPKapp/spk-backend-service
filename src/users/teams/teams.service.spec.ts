@@ -137,7 +137,9 @@ describe('TeamsService', () => {
         take: undefined,
         relations: {
           region: true,
-          users: true,
+          users: {
+            roles: true,
+          },
         },
         where: {
           region: { id: undefined },
@@ -162,7 +164,9 @@ describe('TeamsService', () => {
         take: undefined,
         relations: {
           region: true,
-          users: true,
+          users: {
+            roles: true,
+          },
         },
         where: {
           region: { id: In([1, 2]) },
@@ -189,7 +193,9 @@ describe('TeamsService', () => {
         take: 10,
         relations: {
           region: true,
-          users: true,
+          users: {
+            roles: true,
+          },
         },
         where: {
           region: { id: In([1, 2]) },

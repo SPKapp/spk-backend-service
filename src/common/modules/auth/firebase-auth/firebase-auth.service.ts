@@ -1,15 +1,23 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { MailerService } from '@nestjs-modules/mailer';
 
 import { FirebaseService } from '../../firebase/firebase.service';
 
 import { Role } from '../roles.eum';
 import { UserRecord } from 'firebase-admin/lib/auth/user-record';
+import { ConfigType } from '@nestjs/config';
+import { CommonConfig } from '../../../../config/';
 
 @Injectable()
 export class FirebaseAuthService {
   logger = new Logger(FirebaseAuthService.name);
 
-  constructor(private readonly firebaseService: FirebaseService) {}
+  constructor(
+    private readonly firebaseService: FirebaseService,
+    private readonly mailerService: MailerService,
+    @Inject(CommonConfig.KEY)
+    private readonly commonConfig: ConfigType<typeof CommonConfig>,
+  ) {}
 
   /**
    * Creates a new user with the provided information.
@@ -23,14 +31,35 @@ export class FirebaseAuthService {
     email: string,
     phoneNumber: string,
     displayName: string,
-    password: string,
   ): Promise<string> {
     const user = await this.firebaseService.auth.createUser({
       email,
+      emailVerified: true,
       phoneNumber,
       displayName,
-      password,
     });
+
+    try {
+      await this.mailerService.sendMail({
+        to: user.email,
+        subject: `Witaj w aplikacji ${this.commonConfig.appName}!`,
+        template: 'create-account',
+        context: {
+          name: user.displayName,
+          appName: this.commonConfig.appName,
+          link: await this.firebaseService.auth.generatePasswordResetLink(
+            email,
+            {
+              // TODO: Implement Redirect
+              url: 'http://localhost:3000',
+            },
+          ),
+        },
+      });
+    } catch (err) {
+      this.deleteUser(user.uid);
+      throw err;
+    }
 
     return user.uid;
   }
