@@ -129,6 +129,36 @@ export class FirebaseAuthService {
   }
 
   /**
+   * Deactivates a user.
+   *
+   * This method is used to deactivate a user.
+   * Deactivating a user disables the user account.
+   *
+   * @param uid - The ID of the user to deactivate.
+   * @returns A Promise that resolves when the user is successfully deactivated.
+   */
+  async deactivateUser(uid: string): Promise<void> {
+    await this.firebaseService.auth.updateUser(uid, {
+      disabled: true,
+    });
+  }
+
+  /**
+   * Activates a user.
+   *
+   * This method is used to activate a user.
+   * Activating a user enables the user account.
+   *
+   * @param uid - The ID of the user to activate.
+   * @returns A Promise that resolves when the user is successfully activated.
+   */
+  async activateUser(uid: string): Promise<void> {
+    await this.firebaseService.auth.updateUser(uid, {
+      disabled: false,
+    });
+  }
+
+  /**
    * Adds a role to a user.
    *
    * This method is used to add a role to a user.

@@ -333,4 +333,55 @@ export class PermissionsService {
       this.logger.warn(`User ${user.id} is not a member of any team`);
     }
   }
+
+  @Transactional()
+  async deactivateUser(userId: number): Promise<void> {
+    const user = await this.userRepository.findOne({
+      relations: {
+        team: true,
+      },
+      where: { id: userId },
+    });
+    if (!user) {
+      throw new NotFoundException('User with the provided id does not exist.');
+    }
+
+    user.active = false;
+    await this.userRepository.save(user);
+
+    // If the user is a member of a team, maybe deactivate the team
+    if (user.team) {
+      await this.teamsSerivce.maybeDeactivate(user.team);
+    }
+
+    await this.firebaseAuthService.deactivateUser(user.firebaseUid);
+
+    this.logger.log(`Deactivated user ${user.id}`);
+  }
+
+  @Transactional()
+  async activateUser(userId: number): Promise<void> {
+    const user = await this.userRepository.findOne({
+      relations: {
+        team: true,
+      },
+      where: { id: userId },
+    });
+    if (!user) {
+      throw new NotFoundException('User with the provided id does not exist.');
+    }
+
+    user.active = true;
+    await this.userRepository.save(user);
+
+    // If the user is a member of a team, activate the team
+    if (user.team) {
+      user.team.active = true;
+      await this.teamRepository.save(user.team);
+    }
+
+    await this.firebaseAuthService.activateUser(user.firebaseUid);
+
+    this.logger.log(`Activated user ${user.id}`);
+  }
 }

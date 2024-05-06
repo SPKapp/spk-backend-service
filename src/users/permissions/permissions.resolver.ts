@@ -191,4 +191,68 @@ export class PermissionsResolver {
 
     return role;
   }
+
+  @FirebaseAuth(Role.Admin, Role.RegionManager)
+  @Mutation(() => Boolean, {
+    description: `Deactivates a user.`,
+  })
+  async deactivateUser(
+    @CurrentUser() currentUser: UserDetails,
+    @Args('userId', {
+      type: () => ID,
+    })
+    userIdArg: string,
+  ): Promise<boolean> {
+    const userId = Number(userIdArg);
+
+    if (currentUser.id === userId) {
+      throw new ForbiddenException("User can't deactivate himself.");
+    }
+
+    if (!currentUser.checkRole(Role.Admin)) {
+      const user = await this.usersService.findOne(userId);
+      if (!user) {
+        throw new BadRequestException('User not found.');
+      }
+      if (!currentUser.checkRegionManager(user.region.id)) {
+        throw new ForbiddenException(
+          "User doesn't have permissions to deactivate the user.",
+        );
+      }
+    }
+
+    await this.permissionsService.deactivateUser(userId);
+
+    return false;
+  }
+
+  @FirebaseAuth(Role.Admin, Role.RegionManager)
+  @Mutation(() => Boolean, {
+    description: `Activates a user.`,
+  })
+  async activateUser(
+    @CurrentUser() currentUser: UserDetails,
+    @Args('userId', {
+      type: () => ID,
+    })
+    userIdArg: string,
+  ): Promise<boolean> {
+    const userId = Number(userIdArg);
+
+    if (!currentUser.checkRole(Role.Admin)) {
+      const user = await this.usersService.findOne(userId);
+      if (!user) {
+        throw new BadRequestException('User not found.');
+      }
+      if (!currentUser.checkRegionManager(user.region.id)) {
+        throw new ForbiddenException(
+          "User doesn't have permissions to activate the user.",
+        );
+      }
+    }
+
+    await this.permissionsService.activateUser(userId);
+
+    return true;
+  }
 }

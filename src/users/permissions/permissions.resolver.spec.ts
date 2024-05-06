@@ -30,6 +30,8 @@ describe('PermissionsResolver', () => {
           useValue: {
             addRoleToUser: jest.fn(),
             removeRoleFromUser: jest.fn(),
+            deactivateUser: jest.fn(),
+            activateUser: jest.fn(),
           },
         },
         {
@@ -270,6 +272,128 @@ describe('PermissionsResolver', () => {
           'Region ID is required for RegionManager and RegionObserver roles.',
         ),
       );
+    });
+  });
+
+  describe('deactivateUser', () => {
+    it('should be defined', () => {
+      expect(resolver.deactivateUser).toBeDefined();
+    });
+
+    it('should deactivate user', async () => {
+      const userIdArg = '2';
+
+      await expect(resolver.deactivateUser(userAdmin, userIdArg)).resolves.toBe(
+        false,
+      );
+
+      expect(permissionsService.deactivateUser).toHaveBeenCalledWith(2);
+    });
+
+    it('should throw error if user not found', async () => {
+      const userIdArg = '2';
+
+      jest.spyOn(usersService, 'findOne').mockResolvedValue(null);
+
+      await expect(
+        resolver.deactivateUser(userRegionManager, userIdArg),
+      ).rejects.toThrow(new BadRequestException('User not found.'));
+    });
+
+    it('should throw error if user tries to deactivate himself', async () => {
+      const userIdArg = '1';
+
+      await expect(
+        resolver.deactivateUser(userAdmin, userIdArg),
+      ).rejects.toThrow(
+        new ForbiddenException("User can't deactivate himself."),
+      );
+    });
+
+    it('should throw error if user does not have permissions', async () => {
+      const userIdArg = '2';
+
+      jest
+        .spyOn(usersService, 'findOne')
+        .mockResolvedValue(new User({ id: 2, region: new Region({ id: 1 }) }));
+
+      await expect(
+        resolver.deactivateUser(userRegionManager, userIdArg),
+      ).rejects.toThrow(
+        new ForbiddenException(
+          "User doesn't have permissions to deactivate the user.",
+        ),
+      );
+    });
+
+    it('should deactivate user if user is region manager', async () => {
+      const userIdArg = '2';
+
+      jest
+        .spyOn(usersService, 'findOne')
+        .mockResolvedValue(new User({ id: 2, region: new Region({ id: 2 }) }));
+
+      await expect(
+        resolver.deactivateUser(userRegionManager, userIdArg),
+      ).resolves.toBe(false);
+
+      expect(permissionsService.deactivateUser).toHaveBeenCalledWith(2);
+    });
+  });
+
+  describe('activateUser', () => {
+    it('should be defined', () => {
+      expect(resolver.activateUser).toBeDefined();
+    });
+
+    it('should activate user', async () => {
+      const userIdArg = '2';
+
+      await expect(resolver.activateUser(userAdmin, userIdArg)).resolves.toBe(
+        true,
+      );
+
+      expect(permissionsService.activateUser).toHaveBeenCalledWith(2);
+    });
+
+    it('should throw error if user not found', async () => {
+      const userIdArg = '2';
+
+      jest.spyOn(usersService, 'findOne').mockResolvedValue(null);
+
+      await expect(
+        resolver.activateUser(userRegionManager, userIdArg),
+      ).rejects.toThrow(new BadRequestException('User not found.'));
+    });
+
+    it('should throw error if user does not have permissions', async () => {
+      const userIdArg = '2';
+
+      jest
+        .spyOn(usersService, 'findOne')
+        .mockResolvedValue(new User({ id: 2, region: new Region({ id: 1 }) }));
+
+      await expect(
+        resolver.activateUser(userRegionManager, userIdArg),
+      ).rejects.toThrow(
+        new ForbiddenException(
+          "User doesn't have permissions to activate the user.",
+        ),
+      );
+    });
+
+    it('should activate user if user is region manager', async () => {
+      const userIdArg = '2';
+
+      jest
+        .spyOn(usersService, 'findOne')
+        .mockResolvedValue(new User({ id: 2, region: new Region({ id: 2 }) }));
+
+      await expect(
+        resolver.activateUser(userRegionManager, userIdArg),
+      ).resolves.toBe(true);
+
+      expect(permissionsService.activateUser).toHaveBeenCalledWith(2);
     });
   });
 });

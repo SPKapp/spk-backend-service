@@ -23,6 +23,7 @@ describe('FirebaseAuthService', () => {
                 uid: '123',
               })),
               getUser: jest.fn(),
+              updateUser: jest.fn(),
               generatePasswordResetLink: jest.fn(() => 'http://link'),
               setCustomUserClaims: jest.fn(),
               deleteUser: jest.fn(),
@@ -116,6 +117,34 @@ describe('FirebaseAuthService', () => {
 
   describe('deleteUser', () => {
     // TODO: Implement tests
+  });
+
+  describe('deactivateUser', () => {
+    it('should be defined', () => {
+      expect(service.deactivateUser).toBeDefined();
+    });
+
+    it('should deactivate the user', async () => {
+      await service.deactivateUser('123');
+
+      expect(firebaseService.auth.updateUser).toHaveBeenCalledWith('123', {
+        disabled: true,
+      });
+    });
+  });
+
+  describe('activateUser', () => {
+    it('should be defined', () => {
+      expect(service.activateUser).toBeDefined();
+    });
+
+    it('should activate the user', async () => {
+      await service.activateUser('123');
+
+      expect(firebaseService.auth.updateUser).toHaveBeenCalledWith('123', {
+        disabled: false,
+      });
+    });
   });
 
   describe('addRoleToUser', () => {

@@ -48,6 +48,7 @@ describe('PermissionsService', () => {
           provide: getRepositoryToken(Team),
           useValue: {
             findOneBy: jest.fn(),
+            save: jest.fn(),
           },
         },
         {
@@ -63,6 +64,8 @@ describe('PermissionsService', () => {
           useValue: {
             addRoleToUser: jest.fn(),
             removeRoleFromUser: jest.fn(),
+            deactivateUser: jest.fn(),
+            activateUser: jest.fn(),
           },
         },
         {
@@ -632,6 +635,108 @@ describe('PermissionsService', () => {
         activeUser.firebaseUid,
         Role.Volunteer,
         undefined,
+      );
+    });
+  });
+
+  describe('deactivateUser', () => {
+    it('should be defined', () => {
+      expect(service.deactivateUser).toBeDefined();
+    });
+
+    it('should throw an error if user does not exist', async () => {
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(undefined);
+
+      await expect(service.deactivateUser(1)).rejects.toThrow(
+        new NotFoundException('User with the provided id does not exist.'),
+      );
+    });
+
+    it('should deactivate user', async () => {
+      const user = new User({ active: true, firebaseUid: 'firebaseUid' });
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(user);
+
+      await service.deactivateUser(1);
+
+      expect(userRepository.save).toHaveBeenCalledWith(
+        new User({ ...user, active: false }),
+      );
+
+      expect(firebaseAuthService.deactivateUser).toHaveBeenCalledWith(
+        user.firebaseUid,
+      );
+      expect(teamsService.maybeDeactivate).not.toHaveBeenCalled();
+    });
+
+    it('should deactivate user with team', async () => {
+      const user = new User({
+        active: true,
+        firebaseUid: 'firebaseUid',
+        team: new Team({ id: 1 }),
+      });
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(user);
+
+      await service.deactivateUser(1);
+
+      expect(userRepository.save).toHaveBeenCalledWith(
+        new User({ ...user, active: false }),
+      );
+
+      expect(firebaseAuthService.deactivateUser).toHaveBeenCalledWith(
+        user.firebaseUid,
+      );
+      expect(teamsService.maybeDeactivate).toHaveBeenCalledWith(user.team);
+    });
+  });
+
+  describe('activateUser', () => {
+    it('should be defined', () => {
+      expect(service.activateUser).toBeDefined();
+    });
+
+    it('should throw an error if user does not exist', async () => {
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(undefined);
+
+      await expect(service.activateUser(1)).rejects.toThrow(
+        new NotFoundException('User with the provided id does not exist.'),
+      );
+    });
+
+    it('should activate user', async () => {
+      const user = new User({ active: false, firebaseUid: 'firebaseUid' });
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(user);
+
+      await service.activateUser(1);
+
+      expect(userRepository.save).toHaveBeenCalledWith(
+        new User({ ...user, active: true }),
+      );
+
+      expect(firebaseAuthService.activateUser).toHaveBeenCalledWith(
+        user.firebaseUid,
+      );
+      expect(teamRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('should activate user with team', async () => {
+      const user = new User({
+        active: false,
+        firebaseUid: 'firebaseUid',
+        team: new Team({ id: 1 }),
+      });
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(user);
+
+      await service.activateUser(1);
+
+      expect(userRepository.save).toHaveBeenCalledWith(
+        new User({ ...user, active: true }),
+      );
+
+      expect(firebaseAuthService.activateUser).toHaveBeenCalledWith(
+        user.firebaseUid,
+      );
+      expect(teamRepository.save).toHaveBeenCalledWith(
+        new Team({ ...user.team, active: true }),
       );
     });
   });
