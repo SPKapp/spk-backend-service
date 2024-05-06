@@ -25,7 +25,7 @@ import { EntityWithId } from '../../common/types/remove.entity';
 import { UsersService } from './users.service';
 import { PermissionsService } from '../permissions/permissions.service';
 
-import { User } from '../entities';
+import { RoleEntity, User } from '../entities';
 import { CreateUserInput, UpdateUserInput, UpdateProfileInput } from '../dto';
 
 @Resolver(() => User)
@@ -60,8 +60,6 @@ export class UsersResolver {
         'Region ID is required for Admin and Region Manager with more than 1 region.',
       );
     }
-    console.log('createUserInput', createUserInput);
-    console.log('currentUser', currentUser);
 
     if (!isAdmin) {
       if (!createUserInput.regionId) {
@@ -211,5 +209,14 @@ export class UsersResolver {
   })
   async roles(@Parent() parent: User): Promise<Role[]> {
     return [...new Set((await parent.roles).map((role) => role.role))];
+  }
+
+  @ResolveField(() => [RoleEntity], {
+    description:
+      'The roles of the user with additional info like region or team.',
+    name: 'rolesWithDetails',
+  })
+  async rolesWithDetails(@Parent() parent: User): Promise<RoleEntity[]> {
+    return await parent.roles;
   }
 }

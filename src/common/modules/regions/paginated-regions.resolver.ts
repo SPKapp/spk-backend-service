@@ -2,10 +2,9 @@ import { Args, Query, ResolveField, Resolver } from '@nestjs/graphql';
 
 import { FirebaseAuth, Role } from '../auth';
 
-import { PaginationArgs } from '../../functions/paginate.functions';
-
 import { RegionsService } from './regions.service';
 import { PaginatedRegions } from './dto/paginated-regions.output';
+import { FindRegionsArgs } from './dto/find-regions.args';
 
 @Resolver(() => PaginatedRegions)
 export class PaginatedRegionsResolver {
@@ -19,7 +18,7 @@ export class PaginatedRegionsResolver {
    */
   @FirebaseAuth(Role.Admin)
   @Query(() => PaginatedRegions, { name: 'regions' })
-  async findAll(@Args() args: PaginationArgs): Promise<PaginatedRegions> {
+  async findAll(@Args() args: FindRegionsArgs): Promise<PaginatedRegions> {
     return {
       data: await this.regionsService.findAll(args.offset, args.limit),
       offset: args.offset,

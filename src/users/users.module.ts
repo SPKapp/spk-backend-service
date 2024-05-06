@@ -12,6 +12,7 @@ import { User, Team, RoleEntity, TeamHistory } from './entities';
 import { PaginatedUsersResolver } from './users/paginated-users.resolver';
 import { PaginatedTeamsResolver } from './teams/paginated-teams.resolver';
 import { PermissionsService } from './permissions/permissions.service';
+import { PermissionsResolver } from './permissions/permissions.resolver';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { PermissionsService } from './permissions/permissions.service';
     PaginatedUsersResolver,
     PaginatedTeamsResolver,
     PermissionsService,
+    PermissionsResolver,
   ],
   exports: [UsersService, TeamsService],
 })

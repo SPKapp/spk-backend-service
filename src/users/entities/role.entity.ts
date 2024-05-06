@@ -8,12 +8,14 @@ import {
   Unique,
   UpdateDateColumn,
 } from 'typeorm';
+import { Field, ID, ObjectType } from '@nestjs/graphql';
 
 import { Role } from '../../common/modules/auth';
 import { User } from './user.entity';
 
 @Entity()
 @Unique(['role', 'additionalInfo', 'user'])
+@ObjectType()
 export class RoleEntity {
   constructor(partial?: Partial<RoleEntity>) {
     Object.assign(this, partial);
@@ -26,6 +28,7 @@ export class RoleEntity {
     type: 'enum',
     enum: Role,
   })
+  @Field(() => Role)
   role: Role;
 
   @Column({
@@ -36,6 +39,7 @@ export class RoleEntity {
     `,
     nullable: true,
   })
+  @Field(() => ID, { nullable: true })
   additionalInfo: number;
 
   @ManyToOne(() => User, (user) => user.roles)

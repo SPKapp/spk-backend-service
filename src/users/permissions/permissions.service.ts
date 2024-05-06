@@ -155,6 +155,13 @@ export class PermissionsService {
 
     if (oldTeam && oldTeam.id !== team.id) {
       await this.removeUserFromTeam(user);
+
+      // Remove old RoleEntity
+      const oldRoleEntities = await this.roleRepository.findBy({
+        user: { id: user.id },
+        role: Role.Volunteer,
+      });
+      await this.roleRepository.remove(oldRoleEntities);
     }
     await this.addUserToTeam(user, team);
 
@@ -263,6 +270,7 @@ export class PermissionsService {
       this.logger.warn(`Team ${team.id} was inactive, activating it`);
     }
 
+    user.region = team.region;
     await this.userRepository.save(user);
 
     const result = await this.teamHistoryRepository.findBy({

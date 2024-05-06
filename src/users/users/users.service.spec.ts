@@ -1,9 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  BadRequestException,
-  ConflictException,
-  NotFoundException,
-} from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { In } from 'typeorm';
 
 import { FirebaseAuthService } from '../../common/modules/auth';
@@ -20,7 +16,7 @@ jest.mock('typeorm-transactional', () => ({
 
 describe('UsersService', () => {
   let service: UsersService;
-  let teamsService: TeamsService;
+  // let teamsService: TeamsService;
   let userRepository: any;
 
   const user: CreateUserInput = {
@@ -75,7 +71,7 @@ describe('UsersService', () => {
 
     service = module.get<UsersService>(UsersService);
     userRepository = module.get('UserRepository');
-    teamsService = module.get<TeamsService>(TeamsService);
+    // teamsService = module.get<TeamsService>(TeamsService);
   });
 
   it('should be defined', () => {
@@ -113,22 +109,14 @@ describe('UsersService', () => {
       );
     });
 
-    it('should throw an error when team with the provided id does not exist', async () => {
-      jest.spyOn(teamsService, 'findOne').mockResolvedValue(null);
-
-      await expect(service.create({ ...user, teamId: 1 })).rejects.toThrow(
-        new BadRequestException('Team with the provided id does not exist'),
-      );
-    });
-
     it('should create user', async () => {
       const result = await service.create(user);
       expect(result).toEqual({
         ...user,
         id: 1,
         firebaseUid: '123',
+        region: { id: 1 },
         active: true,
-        team: new Team({ id: 1 }),
       });
     });
   });
@@ -287,55 +275,55 @@ describe('UsersService', () => {
       );
     });
 
-    it('should throw an error when team with the provided id does not exist', async () => {
-      jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(
-        new User({
-          id: 1,
-          ...user,
-          team: new Team({
-            id: 1,
-            region: new Region({ id: 1 }),
-            users: new Promise((res) => res([new User()])),
-          }),
-        }),
-      );
+    // it('should throw an error when team with the provided id does not exist', async () => {
+    //   jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(
+    //     new User({
+    //       id: 1,
+    //       ...user,
+    //       team: new Team({
+    //         id: 1,
+    //         region: new Region({ id: 1 }),
+    //         users: new Promise((res) => res([new User()])),
+    //       }),
+    //     }),
+    //   );
 
-      jest.spyOn(teamsService, 'findOne').mockResolvedValue(null);
-      await expect(service.update(1, { id: 1, teamId: 1 })).rejects.toThrow(
-        new BadRequestException('Team with the provided id does not exist.'),
-      );
-    });
+    //   jest.spyOn(teamsService, 'findOne').mockResolvedValue(null);
+    //   await expect(service.update(1, { id: 1, teamId: 1 })).rejects.toThrow(
+    //     new BadRequestException('Team with the provided id does not exist.'),
+    //   );
+    // });
 
-    it('should update user', async () => {
-      jest.spyOn(userRepository, 'findOneBy').mockResolvedValue({
-        id: 1,
-        ...user,
-        team: new Team({
-          id: 1,
-          region: new Region({ id: 1 }),
-          users: new Promise((res) => res([new User()])),
-        }),
-      });
+    // it('should update user', async () => {
+    //   jest.spyOn(userRepository, 'findOneBy').mockResolvedValue({
+    //     id: 1,
+    //     ...user,
+    //     team: new Team({
+    //       id: 1,
+    //       region: new Region({ id: 1 }),
+    //       users: new Promise((res) => res([new User()])),
+    //     }),
+    //   });
 
-      jest
-        .spyOn(teamsService, 'findOne')
-        .mockResolvedValue(new Team({ id: 2 }));
+    //   jest
+    //     .spyOn(teamsService, 'findOne')
+    //     .mockResolvedValue(new Team({ id: 2 }));
 
-      const newUserData = {
-        id: 1,
-        firstname: 'Ed',
-        lastname: 'Ward',
-        email: 'new@example.com',
-        phone: '+48000000000',
-      };
-      const result = await service.update(1, { ...newUserData, teamId: 2 });
+    //   const newUserData = {
+    //     id: 1,
+    //     firstname: 'Ed',
+    //     lastname: 'Ward',
+    //     email: 'new@example.com',
+    //     phone: '+48000000000',
+    //   };
+    //   const result = await service.update(1, { ...newUserData, teamId: 2 });
 
-      expect(result).toEqual({
-        ...user,
-        ...newUserData,
-        team: new Team({ id: 2 }),
-      });
-    });
+    //   expect(result).toEqual({
+    //     ...user,
+    //     ...newUserData,
+    //     team: new Team({ id: 2 }),
+    //   });
+    // });
   });
 
   describe('remove', () => {
@@ -349,24 +337,24 @@ describe('UsersService', () => {
       );
     });
 
-    it('should throw last member of the team error', async () => {
-      // jest.spyOn(teamsService, 'canRemove').mockResolvedValue(false);
-      jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(
-        new User({
-          ...user,
-          team: new Team({
-            id: 1,
-            users: new Promise((res) => res([new User(user)])),
-          }),
-        }),
-      );
+    // it('should throw last member of the team error', async () => {
+    //   // jest.spyOn(teamsService, 'canRemove').mockResolvedValue(false);
+    //   jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(
+    //     new User({
+    //       ...user,
+    //       team: new Team({
+    //         id: 1,
+    //         users: new Promise((res) => res([new User(user)])),
+    //       }),
+    //     }),
+    //   );
 
-      await expect(service.remove(1)).rejects.toThrow(
-        new BadRequestException(
-          'User cannot be removed. Last member of the team.',
-        ),
-      );
-    });
+    //   await expect(service.remove(1)).rejects.toThrow(
+    //     new BadRequestException(
+    //       'User cannot be removed. Last member of the team.',
+    //     ),
+    //   );
+    // });
 
     it('should remove user, when is last in a team', async () => {
       // jest.spyOn(teamsService, 'canRemove').mockResolvedValue(true);

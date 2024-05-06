@@ -11,6 +11,7 @@ import {
 
 import { Team } from '../../../../users/entities/team.entity';
 import { RabbitGroup } from '../../../../rabbits/entities';
+import { User } from '../../../../users/entities/user.entity';
 
 @Entity()
 @ObjectType()
@@ -32,6 +33,9 @@ export class Region {
   @OneToMany(() => Team, (team) => team.region)
   @Field(() => [Team], { nullable: true })
   teams: Promise<Team[]>;
+
+  @OneToMany(() => User, (user) => user.region)
+  users: Promise<User[]>;
 
   @OneToMany(() => RabbitGroup, (team) => team.region)
   rabbitGroups: Promise<RabbitGroup[]>;

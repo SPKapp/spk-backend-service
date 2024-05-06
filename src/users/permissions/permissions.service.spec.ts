@@ -238,6 +238,7 @@ describe('PermissionsService', () => {
       id: 1,
       firebaseUid: 'firebaseUid',
       active: true,
+      region: new Region({ id: 1 }),
       roles: Promise.resolve([]),
     });
 
@@ -262,7 +263,7 @@ describe('PermissionsService', () => {
     });
 
     it('should add Volunteer role to user - same region', async () => {
-      const newTeam = new Team({ id: 2, region: new Region({ id: 1 }) });
+      const newTeam = new Team({ id: 2, region: new Region({ id: 2 }) });
       jest.spyOn(userRepository, 'findOne').mockResolvedValue({ ...teamUser });
       jest.spyOn(teamsService, 'create').mockResolvedValue({ ...newTeam });
       jest.spyOn(userRepository, 'find').mockResolvedValue([]);
@@ -294,6 +295,7 @@ describe('PermissionsService', () => {
       // addUserToTeam
       const userwithNewTeam = {
         ...userWithoutTeam,
+        region: newTeam.region,
         team: newTeam,
       };
 

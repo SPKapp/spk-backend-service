@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   ConflictException,
   Injectable,
   Logger,
@@ -7,12 +6,11 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
-import { Transactional } from 'typeorm-transactional';
 
 import { FirebaseAuthService } from '../../common/modules/auth';
 import { TeamsService } from '../teams/teams.service';
 
-import { User, Team } from '../entities';
+import { User } from '../entities';
 import { CreateUserInput, UpdateUserInput } from '../dto';
 
 @Injectable()
@@ -28,28 +26,13 @@ export class UsersService {
 
   /**
    * Creates a new user and register him in Firebase Auth
-   * It also creates a new team for the user, if 'teamId' is not provided
    *
    * @param createUserInput - The input data for creating a user.
    * @returns A promise that resolves to the created user.
    * @throws {ConflictException} If a user with the provided email or phone already exists.
-   * @throws {BadRequestException} If the team with the provided id does not exist.
    */
-  @Transactional()
   async create(createUserInput: CreateUserInput): Promise<User> {
     await this.checkAvailability(createUserInput.email, createUserInput.phone);
-
-    let team: Team;
-    if (!createUserInput.teamId) {
-      team = await this.teamsSerivce.create(createUserInput.regionId);
-    } else {
-      team = await this.teamsSerivce.findOne(createUserInput.teamId);
-      if (!team) {
-        throw new BadRequestException(
-          'Team with the provided id does not exist',
-        );
-      }
-    }
 
     const firebaseUid = await this.firebaseAuthService.createUser(
       createUserInput.email,
@@ -59,14 +42,12 @@ export class UsersService {
 
     let user: User;
     try {
-      user = await this.userRepository.save(
-        new User({
-          ...createUserInput,
-          firebaseUid: firebaseUid,
-          active: true,
-          team,
-        }),
-      );
+      user = await this.userRepository.save({
+        ...createUserInput,
+        firebaseUid: firebaseUid,
+        active: true,
+        region: { id: createUserInput.regionId },
+      });
 
       await this.firebaseAuthService.setUserId(firebaseUid, user.id);
     } catch (e) {
@@ -177,20 +158,20 @@ export class UsersService {
       user.phone = updateUserInput.phone;
     }
 
-    if (updateUserInput.teamId) {
-      const regionId = user.team.region.id;
-      await this.leaveTeam(user);
+    // if (updateUserInput.teamId) {
+    //   const regionId = user.team.region.id;
+    //   await this.leaveTeam(user);
 
-      const team = await this.teamsSerivce.findOne(updateUserInput.teamId, [
-        regionId,
-      ]);
-      if (!team) {
-        throw new BadRequestException(
-          'Team with the provided id does not exist.',
-        );
-      }
-      user.team = team;
-    }
+    //   const team = await this.teamsSerivce.findOne(updateUserInput.teamId, [
+    //     regionId,
+    //   ]);
+    //   if (!team) {
+    //     throw new BadRequestException(
+    //       'Team with the provided id does not exist.',
+    //     );
+    //   }
+    //   user.team = team;
+    // }
 
     if (updateUserInput.newTeam) {
       const regionId = user.team.region.id;
