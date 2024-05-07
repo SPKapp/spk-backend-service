@@ -1,20 +1,31 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { FindManyOptions, ILike, In, Repository } from 'typeorm';
+import { Transactional } from 'typeorm-transactional';
 
-import { Region } from './entities/region.entity';
-import { CreateRegionInput } from './dto/create-region.input';
-import { UpdateRegionInput } from './dto/update-region.input';
+import { PermissionsService } from '../../../users';
+
+import { Region } from './entities';
+import {
+  CreateRegionInput,
+  UpdateRegionInput,
+  PaginatedRegions,
+  FindRegionsArgs,
+} from './dto';
 
 @Injectable()
 export class RegionsService {
+  logger = new Logger(RegionsService.name);
+
   constructor(
     @InjectRepository(Region)
     private readonly regionRepository: Repository<Region>,
+    private readonly permissionsService: PermissionsService,
   ) {}
 
   /**
@@ -23,30 +34,61 @@ export class RegionsService {
    * @returns A Promise that resolves to the created region.
    */
   async create(input: CreateRegionInput): Promise<Region> {
-    return await this.regionRepository.save(new Region(input));
+    const result = await this.regionRepository.save(new Region(input));
+
+    this.logger.log(
+      `Created region with ID: ${result.id} and name: ${result.name}`,
+    );
+    return result;
   }
 
   /**
-   * Retrieves all regions with pagination.
+   * Retrieves paginated regions based on the provided filters.
    *
-   * @param offset - (optional) The number of records to skip.
-   * @param limit - (optional) The maximum number of records to retrieve.
-   * @returns A promise that resolves to an array of Region objects.
+   * @param filters - The filters to apply to the regions.
+   * @param totalCount - Whether to include the total count of regions.
+   * @returns A Promise that resolves to a PaginatedRegions object containing the paginated regions.
    */
-  async findAll(offset?: number, limit?: number): Promise<Region[]> {
-    return await this.regionRepository.find({
-      skip: offset,
-      take: limit,
-    });
+  async findAllPaginated(
+    filters: FindRegionsArgs = {},
+    totalCount: boolean = false,
+  ): Promise<PaginatedRegions> {
+    filters.offset ??= 0;
+    filters.limit ??= 10;
+
+    const options = this.createFilterOptions(filters);
+
+    return {
+      data: await this.regionRepository.find(options),
+      offset: filters.offset,
+      limit: filters.limit,
+      totalCount: totalCount
+        ? await this.regionRepository.countBy(options.where)
+        : undefined,
+    };
   }
 
   /**
-   * Returns the number of regions.
+   * Retrieves all regions based on the provided filters.
    *
-   * @returns A Promise that resolves to the number of regions.
+   * @param filters - The filters to apply to the regions.
+   * @returns A Promise that resolves to an array of regions.
    */
-  async count(): Promise<number> {
-    return await this.regionRepository.count();
+  async findAll(filters: FindRegionsArgs = {}): Promise<Region[]> {
+    return await this.regionRepository.find(this.createFilterOptions(filters));
+  }
+
+  private createFilterOptions(
+    filters: FindRegionsArgs,
+  ): FindManyOptions<Region> {
+    return {
+      skip: filters.offset,
+      take: filters.limit,
+      where: {
+        id: filters.ids ? In(filters.ids) : undefined,
+        name: filters.name ? ILike(`%${filters.name}%`) : undefined,
+      },
+    };
   }
 
   /**
@@ -70,13 +112,19 @@ export class RegionsService {
   async update(id: number, input: UpdateRegionInput): Promise<Region> {
     const region = await this.regionRepository.findOneBy({ id });
     if (!region) {
-      throw new NotFoundException(`Region with ID ${id} not found`);
+      throw new NotFoundException(`Region not found`);
     }
     if (input.name) {
       region.name = input.name;
     }
 
-    return await this.regionRepository.save(region);
+    const result = await this.regionRepository.save(region);
+
+    this.logger.log(
+      `Updated region with ID: ${result.id} and name: ${result.name}`,
+    );
+
+    return result;
   }
 
   /**
@@ -85,23 +133,33 @@ export class RegionsService {
    * @param id - The ID of the region to remove.
    * @returns The ID of the removed region.
    * @throws {NotFoundException} If the region with the specified ID is not found.
-   * @throws {BadRequestException} If the region is in use by a team.
+   * @throws {BadRequestException} If the region cannot be removed.
    */
+  @Transactional()
   async remove(id: number) {
     const region = await this.regionRepository.findOneBy({ id });
     if (!region) {
-      throw new NotFoundException(`Region with ID ${id} not found`);
+      throw new NotFoundException(`Region not found`);
     }
 
     const teams = await region.teams;
+    const users = await region.users;
+    const rabbitgroups = await region.rabbitGroups;
 
-    if (teams.length > 0) {
-      throw new BadRequestException('Region is in use by a team');
+    if (teams.length > 0 || users.length > 0 || rabbitgroups.length > 0) {
+      throw new BadRequestException('Region cannot be removed. It is in use.');
     }
 
-    // TODO: Check if the region is used by any rabbit before deleting
+    // Remove permissions to the region
+    await this.permissionsService.removePermissionsForRegion(id);
 
-    await this.regionRepository.softDelete(id);
+    await this.regionRepository.softRemove(region);
+    // Due to a bug in TypeORM,
+    // https://github.com/typeorm/typeorm/issues/9155
+    await this.regionRepository.save(region);
+
+    this.logger.log(`Removed region with ID: ${id}`);
+
     return id;
   }
 }

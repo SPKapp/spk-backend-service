@@ -1,19 +1,24 @@
 import { ObjectType, Field, ID } from '@nestjs/graphql';
 import {
+  BeforeSoftRemove,
   Column,
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
+  Index,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 
-import { Team } from '../../../../users/entities/team.entity';
+import { User, Team } from '../../../../users/entities';
 import { RabbitGroup } from '../../../../rabbits/entities';
-import { User } from '../../../../users/entities/user.entity';
 
-@Entity()
+@Entity({
+  orderBy: {
+    name: 'ASC',
+  },
+})
 @ObjectType()
 export class Region {
   constructor(partial?: Partial<Region>) {
@@ -24,14 +29,15 @@ export class Region {
   @Field(() => ID)
   id: number;
 
-  @Column({
+  @Column()
+  @Index({
     unique: true,
+    where: '"deletedAt" IS NULL',
   })
   @Field()
   name: string;
 
   @OneToMany(() => Team, (team) => team.region)
-  @Field(() => [Team], { nullable: true })
   teams: Promise<Team[]>;
 
   @OneToMany(() => User, (user) => user.region)
@@ -48,4 +54,9 @@ export class Region {
 
   @DeleteDateColumn()
   deletedAt?: Date;
+
+  @BeforeSoftRemove()
+  softRemove() {
+    this.name = `deleted_${this.name}`;
+  }
 }

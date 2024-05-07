@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
+import { In, IsNull, Repository } from 'typeorm';
 
 import { PermissionsService } from './permissions.service';
 import { TeamsService } from '../teams/teams.service';
@@ -737,6 +737,46 @@ describe('PermissionsService', () => {
       );
       expect(teamRepository.save).toHaveBeenCalledWith(
         new Team({ ...user.team, active: true }),
+      );
+    });
+  });
+
+  describe('removePermissionsForRegion', () => {
+    it('should be defined', () => {
+      expect(service.removePermissionsForRegion).toBeDefined();
+    });
+
+    it('should remove permissions for region', async () => {
+      jest.spyOn(roleRepository, 'findBy').mockResolvedValue([
+        new RoleEntity({
+          role: Role.RegionManager,
+          user: new User({ id: 1 }),
+        }),
+        new RoleEntity({
+          role: Role.RegionObserver,
+          user: new User({ id: 1 }),
+        }),
+      ]);
+      jest.spyOn(service, 'removeRoleFromUser').mockResolvedValue(undefined);
+
+      await service.removePermissionsForRegion(1);
+
+      expect(roleRepository.findBy).toHaveBeenCalledWith({
+        role: In([Role.RegionManager, Role.RegionObserver]),
+        additionalInfo: 1,
+      });
+
+      expect(service.removeRoleFromUser).toHaveBeenNthCalledWith(
+        1,
+        1,
+        Role.RegionManager,
+        1,
+      );
+      expect(service.removeRoleFromUser).toHaveBeenNthCalledWith(
+        2,
+        1,
+        Role.RegionObserver,
+        1,
       );
     });
   });

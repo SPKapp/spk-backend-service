@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
+import { In, IsNull, Repository } from 'typeorm';
 import { Transactional } from 'typeorm-transactional';
 
 import { RoleEntity, Team, TeamHistory, User } from '../entities';
@@ -334,6 +334,13 @@ export class PermissionsService {
     }
   }
 
+  /**
+   * Deactivates a user.
+   *
+   * If the user is a member of a team, maybe deactivate the team.
+   *
+   * @param userId - The ID of the user to deactivate.
+   */
   @Transactional()
   async deactivateUser(userId: number): Promise<void> {
     const user = await this.userRepository.findOne({
@@ -359,6 +366,13 @@ export class PermissionsService {
     this.logger.log(`Deactivated user ${user.id}`);
   }
 
+  /**
+   * Activates a user.
+   *
+   * If the user is a member of a team, activate the team.
+   *
+   * @param userId - The ID of the user to activate.
+   */
   @Transactional()
   async activateUser(userId: number): Promise<void> {
     const user = await this.userRepository.findOne({
@@ -383,5 +397,30 @@ export class PermissionsService {
     await this.firebaseAuthService.activateUser(user.firebaseUid);
 
     this.logger.log(`Activated user ${user.id}`);
+  }
+
+  /**
+   * Removes all permissions for a region.
+   *
+   * Removes all 'Role.RegionManager' and 'Role.RegionObserver' roles for the region.
+   *
+   * @param regionId - The ID of the region to remove permissions for.
+   */
+  @Transactional()
+  async removePermissionsForRegion(regionId: number): Promise<void> {
+    const roleEntities = await this.roleRepository.findBy({
+      role: In([Role.RegionManager, Role.RegionObserver]),
+      additionalInfo: regionId,
+    });
+
+    for (const roleEntity of roleEntities) {
+      await this.removeRoleFromUser(
+        roleEntity.user.id,
+        roleEntity.role,
+        regionId,
+      );
+    }
+
+    this.logger.log(`Removed permissions for region ${regionId}`);
   }
 }

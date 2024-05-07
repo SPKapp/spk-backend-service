@@ -1,10 +1,14 @@
-import { Args, Query, ResolveField, Resolver } from '@nestjs/graphql';
+import { Args, Query, Resolver } from '@nestjs/graphql';
+import { ForbiddenException } from '@nestjs/common';
 
-import { FirebaseAuth, Role } from '../auth';
+import { CurrentUser, FirebaseAuth, Role, UserDetails } from '../auth';
+import {
+  GqlFields,
+  GqlFieldsName,
+} from '../../decorators/gql-fields.decorator';
 
 import { RegionsService } from './regions.service';
-import { PaginatedRegions } from './dto/paginated-regions.output';
-import { FindRegionsArgs } from './dto/find-regions.args';
+import { PaginatedRegions, FindRegionsArgs } from './dto';
 
 @Resolver(() => PaginatedRegions)
 export class PaginatedRegionsResolver {
@@ -13,21 +17,31 @@ export class PaginatedRegionsResolver {
   /**
    * Retrieves all regions with pagination.
    *
-   * @param args - The pagination arguments (offset and limit).
+   * @param args - The pagination arguments.
    * @returns A promise that resolves to a `PaginatedRegions` object containing the paginated regions data.
    */
-  @FirebaseAuth(Role.Admin)
+  @FirebaseAuth(Role.Admin, Role.RegionManager)
   @Query(() => PaginatedRegions, { name: 'regions' })
-  async findAll(@Args() args: FindRegionsArgs): Promise<PaginatedRegions> {
-    return {
-      data: await this.regionsService.findAll(args.offset, args.limit),
-      offset: args.offset,
-      limit: args.limit,
-    };
-  }
+  async findAll(
+    @CurrentUser() currentUser: UserDetails,
+    @GqlFields(PaginatedRegions.name) gqlFields: GqlFieldsName,
+    @Args() args: FindRegionsArgs,
+  ): Promise<PaginatedRegions> {
+    if (!currentUser.checkRole(Role.Admin)) {
+      if (args.ids) {
+        if (!currentUser.checkRegionManager(args.ids)) {
+          throw new ForbiddenException(
+            'User does not have access to at least one of the regions.',
+          );
+        }
+      } else {
+        args.ids = currentUser.managerRegions;
+      }
+    }
 
-  @ResolveField('totalCount', () => Number)
-  async totalCount(): Promise<number> {
-    return await this.regionsService.count();
+    return await this.regionsService.findAllPaginated(
+      args,
+      gqlFields.totalCount ? true : false,
+    );
   }
 }

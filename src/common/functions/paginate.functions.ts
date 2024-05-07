@@ -30,9 +30,13 @@ export function Paginated<T>(classRef: Type<T>): Type<IPaginatedType<T>> {
 
 @ArgsType()
 export class PaginationArgs {
-  @Field(() => Int)
-  offset: number = 0;
+  @Field(() => Int, {
+    defaultValue: 0,
+  })
+  offset?: number;
 
-  @Field(() => Int)
-  limit: number = 10;
+  @Field(() => Int, {
+    defaultValue: 10,
+  })
+  limit?: number;
 }

@@ -1,20 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 
-import {
-  userAdmin,
-  userRegionManager,
-} from '../../tests/user-details.template';
-import {
-  AuthService,
-  FirebaseAuthGuard,
-  getCurrentUserPipe,
-} from '../../modules/auth/auth.module';
+import { userAdmin, userRegionManager } from '../../tests';
+import { FirebaseAuthGuard } from '../../modules/auth';
 
 import { RegionsResolver } from './regions.resolver';
 import { RegionsService } from './regions.service';
 
-import { Region } from './entities/region.entity';
+import { Region } from './entities';
 
 describe('RegionResolver', () => {
   let resolver: RegionsResolver;
@@ -26,7 +19,6 @@ describe('RegionResolver', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RegionsResolver,
-        AuthService,
         {
           provide: RegionsService,
           useFactory: () => ({
@@ -60,6 +52,10 @@ describe('RegionResolver', () => {
       await expect(
         resolver.createRegion({ name: regions[0].name }),
       ).resolves.toEqual(regions[0]);
+
+      expect(regionsService.create).toHaveBeenCalledWith({
+        name: regions[0].name,
+      });
     });
   });
 
@@ -71,14 +67,14 @@ describe('RegionResolver', () => {
     it('should throw not found error', async () => {
       jest.spyOn(regionsService, 'findOne').mockResolvedValue(null);
 
-      await expect(resolver.findOne(userAdmin, 1)).rejects.toThrow(
-        new NotFoundException(`Region with ID 1 not found`),
+      await expect(resolver.findOne(userAdmin, '1')).rejects.toThrow(
+        new NotFoundException(`Region not found`),
       );
     });
 
     it('should throw bad permissions error', async () => {
       await expect(
-        resolver.findOne(userRegionManager, regions[0].id),
+        resolver.findOne(userRegionManager, regions[0].id.toString()),
       ).rejects.toThrow(
         new ForbiddenException(
           'Region does not belong to the Region Manager permissions.',
@@ -87,9 +83,9 @@ describe('RegionResolver', () => {
     });
 
     it('should return a region', async () => {
-      await expect(resolver.findOne(userAdmin, regions[0].id)).resolves.toEqual(
-        regions[0],
-      );
+      await expect(
+        resolver.findOne(userAdmin, regions[0].id.toString()),
+      ).resolves.toEqual(regions[0]);
     });
   });
 
@@ -102,6 +98,11 @@ describe('RegionResolver', () => {
       await expect(
         resolver.updateRegion({ id: regions[0].id, name: regions[0].name }),
       ).resolves.toEqual(regions[0]);
+
+      expect(regionsService.update).toHaveBeenCalledWith(regions[0].id, {
+        id: regions[0].id,
+        name: regions[0].name,
+      });
     });
   });
 
@@ -111,9 +112,13 @@ describe('RegionResolver', () => {
     });
 
     it('should remove a region', async () => {
-      await expect(resolver.removeRegion(regions[0].id)).resolves.toEqual({
+      await expect(
+        resolver.removeRegion(regions[0].id.toString()),
+      ).resolves.toEqual({
         id: regions[0].id,
       });
+
+      expect(regionsService.remove).toHaveBeenCalledWith(regions[0].id);
     });
   });
 });

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { RegionsModule } from '../common/modules/regions/regions.module';
@@ -14,6 +14,7 @@ import { PaginatedTeamsResolver } from './teams/paginated-teams.resolver';
 import { PermissionsService } from './permissions/permissions.service';
 import { PermissionsResolver } from './permissions/permissions.resolver';
 
+@Global()
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, Team, RoleEntity, TeamHistory]),
@@ -29,6 +30,6 @@ import { PermissionsResolver } from './permissions/permissions.resolver';
     PermissionsService,
     PermissionsResolver,
   ],
-  exports: [UsersService, TeamsService],
+  exports: [UsersService, TeamsService, PermissionsService],
 })
 export class UsersModule {}
