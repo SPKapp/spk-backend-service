@@ -102,6 +102,16 @@ export class RegionsService {
   }
 
   /**
+   * Finds a region by its name.
+   *
+   * @param name - The name of the region to find.
+   * @returns A Promise that resolves to the found region, or null if not found.
+   */
+  async findOneByName(name: string): Promise<Region | null> {
+    return await this.regionRepository.findOneBy({ name });
+  }
+
+  /**
    * Updates a region with the specified ID.
    *
    * @param id - The ID of the region to update.

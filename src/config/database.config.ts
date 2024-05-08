@@ -2,8 +2,8 @@ import { registerAs } from '@nestjs/config';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { DataSource, DataSourceOptions } from 'typeorm';
 
-const connectionOptions: TypeOrmModuleOptions =
-  process.env.NODE_ENV === 'test'
+function connectionOptions(): TypeOrmModuleOptions {
+  return process.env.NODE_ENV === 'test'
     ? {
         type: 'sqlite',
         database: ':memory:',
@@ -31,13 +31,15 @@ const connectionOptions: TypeOrmModuleOptions =
           process.env.DATABASE_LOGGING === 'true'
             ? 'all'
             : false,
-
-        entities: ['dist/**/*.entity.js'],
       };
+}
 
 export const DatabaseConfig = registerAs(
   'database',
-  (): TypeOrmModuleOptions => connectionOptions,
+  (): TypeOrmModuleOptions => connectionOptions(),
 );
 
-export default new DataSource(connectionOptions as DataSourceOptions);
+export default new DataSource({
+  ...connectionOptions(),
+  entities: ['dist/**/*.entity.js'],
+} as DataSourceOptions);

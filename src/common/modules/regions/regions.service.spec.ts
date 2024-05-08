@@ -201,6 +201,21 @@ describe('regionsService', () => {
     });
   });
 
+  describe('findOneByName', () => {
+    it('should be defined', () => {
+      expect(service.findOneByName).toBeDefined();
+    });
+
+    it('should find a region by name', async () => {
+      await expect(service.findOneByName(regions[0].name)).resolves.toEqual(
+        regions[0],
+      );
+      expect(regionRepository.findOneBy).toHaveBeenCalledWith({
+        name: regions[0].name,
+      });
+    });
+  });
+
   describe('update', () => {
     it('should be defined', () => {
       expect(service.update).toBeDefined();
