@@ -21,6 +21,7 @@ Patrz [database.config.ts](src/config/database.config.ts)
 - `DATABASE_PORT` - Wymagane
 - `DATABASE_USERNAME` - Wymagane
 - `DATABASE_PASSWORD` - Wymagane
+- `DATABASE_NAME` - Wymagane
 - `DATABASE_SSL` - jeśli `true` połaczenie szyfrowane, wpp. brak ssl
 - `DATABASE_SSL_CA` - używane jeśli `DATABASE_SSL = true`, certyfikat CA bazy lub niezdefioniowane
 - `DATABASE_LOGGING` - używane gdy `NODE_ENV=development` - uruchamia logowanie zapytań

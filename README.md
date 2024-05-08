@@ -4,6 +4,8 @@ Oparty o NestJs, TypeOrm, GraphQL
 
 ## [Konfiguracja](docs/env.md)
 
+## [Staging](/docs/staging.md)
+
 ## Jak uruchomić wersję produkcyjną
 
 1. Uruchom migracje: `npm run typeorm:sync`
