@@ -18,7 +18,13 @@ export default registerAs(
           username: process.env.DATABASE_USERNAME,
           password: process.env.DATABASE_PASSWORD,
           database: process.env.DATABASE_NAME,
-          ssl: process.env.DATABASE_SSL === 'true',
+          ssl:
+            process.env.DATABASE_SSL === 'true'
+              ? {
+                  ca: process.env.DATABASE_SSL_CA,
+                }
+              : undefined,
+
           synchronize: process.env.NODE_ENV !== 'production',
           autoLoadEntities: true,
           logging:
