@@ -1,3 +1,14 @@
+# Backend HopManager
+
+Oparty o NestJs, TypeOrm, GraphQL
+
+## [Konfiguracja](docs/env.md)
+
+## Jak uruchomić wersję produkcyjną
+
+1. Uruchom migracje: `npm run typeorm:sync`
+2.
+
 <p align="center">
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
 </p>
