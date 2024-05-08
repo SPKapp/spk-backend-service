@@ -1,8 +1,10 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, IsNull, Repository } from 'typeorm';
@@ -29,6 +31,7 @@ export class PermissionsService {
 
     private readonly teamsSerivce: TeamsService,
     private readonly firebaseAuthService: FirebaseAuthService,
+    @Inject(forwardRef(() => RegionsService))
     private readonly regionsService: RegionsService,
   ) {}
 
