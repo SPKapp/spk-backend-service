@@ -10,6 +10,8 @@ pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
+firebase-debug.log*
+firebase-debug.*.log*
 
 # OS
 .DS_Store
@@ -34,9 +36,11 @@ lerna-debug.log*
 !.vscode/launch.json
 !.vscode/extensions.json
 
+# Firebase
+.firebase/
+firebase-emulators-data/
+firebaseSeviceAccountKey.json
+
 # Project Specific
 test.env
 local.*.env
-firebaseSeviceAccountKey.json
-
-documentation/

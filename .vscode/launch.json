@@ -1,5 +1,14 @@
 {
     "version": "0.2.0",
+    "compounds": [
+        {
+            "name": "Run & Start Emulators",
+            "configurations": [
+                "Run",
+                "Start Emulators"
+            ]
+        }
+    ],
     "configurations": [
         {
             "type": "node",
@@ -14,6 +23,23 @@
             "console": "integratedTerminal",
             "env": {
                 "NODE_ENV": "development"
+            }
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Start Emulators",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": [
+                "run",
+                "firebase:emulator"
+            ],
+            "restart": true,
+            "console": "integratedTerminal",
+            "serverReadyAction": {
+                "action": "openExternally",
+                "uriFormat": "http://localhost:%s",
+                "pattern": ".* View Emulator UI at http://127.0.0.1:([0-9]+)/"
             }
         }
     ]

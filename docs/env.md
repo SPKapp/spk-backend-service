@@ -39,5 +39,7 @@ Patrz [email.config.ts](src/config/email.config.ts)
 
 Patrz [firebase.config.ts](src/config/firebase.config.ts)
 
-- `FIREBASE_CONFIG_FILE` - plik konfiguracyjny firebase
-- `FIREBASE_CONFIG` - używane gdy brak `FIREBASE_CONFIG_FILE`, zmienna zawierająca konfigurację firebase
+- `GOOGLE_APPLICATION_CREDENTIALS` - plik konfiguracyjny firebase
+- `FIREBASE_SERVICE_ACCOUNT` - zmienna zawierająca zawatość pliku konfiguracyjnego firebase
+- `FIREBASE_EMULATORS_PROJECT_ID` - deweloperskie, nazwa projektID
+- `FIREBASE_AUTH_EMULATOR_HOST` -deweloperskie, host emulatora firebase auth
