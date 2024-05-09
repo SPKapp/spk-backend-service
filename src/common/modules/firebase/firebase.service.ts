@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
-import { applicationDefault, initializeApp } from 'firebase-admin/app';
+import { applicationDefault, initializeApp, cert } from 'firebase-admin/app';
 import { Auth, getAuth } from 'firebase-admin/auth';
 
 import { FirebaseConfig } from '../../../config';
@@ -14,7 +14,9 @@ export class FirebaseService {
     private readonly config: ConfigType<typeof FirebaseConfig>,
   ) {
     initializeApp({
-      credential: applicationDefault(),
+      credential: this.config.serviceAccount
+        ? cert(this.config.serviceAccount)
+        : applicationDefault(),
       projectId: this.config.emulatorsProjectId,
     });
 
