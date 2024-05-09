@@ -6,7 +6,7 @@
   "private": true,
   "license": "MIT license",
   "scripts": {
-    "build": "nest build",
+    "build": "npx @nestjs/cli build",
     "format": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
     "format:fix": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
