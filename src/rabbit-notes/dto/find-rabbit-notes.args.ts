@@ -30,7 +30,7 @@ export class FindRabbitNotesArgs extends PaginationArgs {
   @Field(() => ID, {
     description: 'ID of the rabbit to get notes for. Must be provided.',
   })
-  @Transform(({ value }) => parseInt(value, 10))
+  @Transform(({ value }) => Number(value))
   rabbitId: number;
 
   @Field({

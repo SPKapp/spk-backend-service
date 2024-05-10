@@ -1,4 +1,4 @@
-import { Resolver, Query, Mutation, Args, Int, ID } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, ID } from '@nestjs/graphql';
 import { ForbiddenException, Logger, NotFoundException } from '@nestjs/common';
 
 import {
@@ -101,11 +101,13 @@ export class RabbitNotesResolver {
   @Query(() => RabbitNote, { name: 'rabbitNote' })
   async findOne(
     @CurrentUser() currentUser: UserDetails,
-    @Args('id', { type: () => Int }) id: number,
+    @Args('id', { type: () => ID }) idArg: string,
   ) {
     const error = new ForbiddenException(
       'User is not allowed to view the note',
     );
+
+    const id = Number(idArg);
 
     if (currentUser.checkRole(Role.Admin)) {
       const rabbitNote = await this.rabbitNotesService.findOne(id);
@@ -180,14 +182,14 @@ export class RabbitNotesResolver {
   @Mutation(() => EntityWithId)
   async removeRabbitNote(
     @CurrentUser() currentUser: UserDetails,
-    @Args('id', { type: () => ID }) id: string,
+    @Args('id', { type: () => ID }) idArg: string,
   ): Promise<EntityWithId> {
-    const rabbitNoteId = parseInt(id, 10);
+    const id = Number(idArg);
 
-    await this.validateEditAccess(currentUser, rabbitNoteId);
+    await this.validateEditAccess(currentUser, id);
 
-    await this.rabbitNotesService.remove(rabbitNoteId);
-    return { id: rabbitNoteId };
+    await this.rabbitNotesService.remove(id);
+    return { id };
   }
 
   /**

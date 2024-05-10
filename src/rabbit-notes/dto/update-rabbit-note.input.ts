@@ -1,11 +1,12 @@
 import {
   InputType,
   Field,
-  Int,
   PartialType,
   OmitType,
   Float,
+  ID,
 } from '@nestjs/graphql';
+import { Transform } from 'class-transformer';
 
 import {
   CreateRabbitNoteInput,
@@ -33,7 +34,8 @@ class UpdateVetVisitInput {
 export class UpdateRabbitNoteInput extends PartialType(
   OmitType(CreateRabbitNoteInput, ['rabbitId', 'vetVisit']),
 ) {
-  @Field(() => Int)
+  @Field(() => ID)
+  @Transform(({ value }) => Number(value))
   id: number;
 
   @Field(() => Float, {

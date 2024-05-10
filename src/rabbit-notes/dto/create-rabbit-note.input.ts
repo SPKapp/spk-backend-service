@@ -29,7 +29,7 @@ class CreateVetVisitInput {
 @InputType()
 export class CreateRabbitNoteInput {
   @Field(() => ID)
-  @Transform(({ value }) => parseInt(value, 10))
+  @Transform(({ value }) => Number(value))
   rabbitId: number;
 
   @Field({
