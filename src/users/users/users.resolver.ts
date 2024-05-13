@@ -3,9 +3,9 @@ import {
   Query,
   Mutation,
   Args,
-  Int,
   ResolveField,
   Parent,
+  ID,
 } from '@nestjs/graphql';
 import {
   BadRequestException,
@@ -87,8 +87,9 @@ export class UsersResolver {
   @Query(() => User, { name: 'user' })
   async findOne(
     @CurrentUser() currentUser: UserDetails,
-    @Args('id', { type: () => Int }) id: number,
+    @Args('id', { type: () => ID }) idArg: string,
   ) {
+    const id = Number(idArg);
     let regionsIds: number[];
 
     if (!currentUser.checkRole(Role.Admin)) {
@@ -139,8 +140,10 @@ export class UsersResolver {
   @Mutation(() => EntityWithId)
   async removeUser(
     @CurrentUser() currentUser: UserDetails,
-    @Args('id', { type: () => Int }) id: number,
+    @Args('id', { type: () => ID }) idArg: string,
   ) {
+    const id = Number(idArg);
+
     await this.checkRegionManagerPermissions(currentUser, id);
 
     return { id: await this.usersService.remove(id) };

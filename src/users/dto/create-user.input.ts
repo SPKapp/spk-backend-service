@@ -25,5 +25,6 @@ export class CreateUserInput {
     nullable: true,
     description: 'Required when run as Admin.',
   })
+  @Transform(({ value }) => Number(value))
   regionId?: number;
 }

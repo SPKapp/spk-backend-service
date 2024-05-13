@@ -1,6 +1,5 @@
 export { PaginatedTeams } from './paginated-teams.output';
 export { FindAllTeamsArgs } from './find-all-teams.args';
-export { TeamsFilters } from './teams.filters';
 export { CreateUserInput } from './create-user.input';
 export { UpdateUserInput } from './update-user.input';
 export { UpdateProfileInput } from './update-profile.input';

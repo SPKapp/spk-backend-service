@@ -30,8 +30,9 @@ export class TeamsResolver {
   @Query(() => Team, { name: 'team' })
   async findOne(
     @CurrentUser() currentUser: UserDetails,
-    @Args('id', { type: () => ID }) id: number,
+    @Args('id', { type: () => ID }) idArg: string,
   ): Promise<Team> {
+    const id = Number(idArg);
     const team = await this.teamsService.findOne(
       id,
       currentUser.checkRole(Role.Admin)

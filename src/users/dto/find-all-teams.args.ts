@@ -5,13 +5,17 @@ import { PaginationArgs } from '../../common/functions/paginate.functions';
 
 @ArgsType()
 export class FindAllTeamsArgs extends PaginationArgs {
-  @Field(() => [ID], { nullable: true })
-  @Transform(({ value }) => value.map((v: string) => parseInt(v, 10)))
+  @Field(() => [ID], {
+    nullable: true,
+    description: 'Specifies the IDs of the regions to filter teams.',
+  })
+  @Transform(({ value }) => value.map(Number))
   regionsIds?: number[];
 
-  @Field({ nullable: true, defaultValue: true })
+  @Field({
+    nullable: true,
+    defaultValue: true,
+    description: 'Specifies whether to filter active teams.',
+  })
   isActive?: boolean;
-
-  @Field({ nullable: true })
-  name?: string;
 }

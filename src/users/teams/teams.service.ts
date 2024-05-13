@@ -7,18 +7,11 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import {
-  DataSource,
-  FindManyOptions,
-  ILike,
-  In,
-  Not,
-  Repository,
-} from 'typeorm';
+import { DataSource, FindManyOptions, In, Not, Repository } from 'typeorm';
 
 import { RegionsService } from '../../common/modules/regions';
 import { Team, User } from '../entities';
-import { PaginatedTeams, TeamsFilters } from '../dto';
+import { PaginatedTeams, FindAllTeamsArgs } from '../dto';
 import { RabbitGroup, RabbitGroupStatus } from '../../rabbits/entities';
 
 @Injectable()
@@ -58,7 +51,7 @@ export class TeamsService {
    * @returns A Promise that resolves to a PaginatedTeams object containing the paginated teams.
    */
   async findAllPaginated(
-    filters: TeamsFilters = {},
+    filters: FindAllTeamsArgs = {},
     totalCount: boolean = false,
   ): Promise<PaginatedTeams> {
     filters.offset ??= 0;
@@ -82,12 +75,12 @@ export class TeamsService {
    * @param filters - The filters to apply to the teams.
    * @returns A Promise that resolves to an array of Team objects.
    */
-  async findAll(filters: TeamsFilters = {}): Promise<Team[]> {
+  async findAll(filters: FindAllTeamsArgs = {}): Promise<Team[]> {
     return await this.teamRepository.find(this.createFilterOptions(filters));
   }
 
   private createFilterOptions(
-    filters: TeamsFilters = {},
+    filters: FindAllTeamsArgs = {},
   ): FindManyOptions<Team> {
     return {
       skip: filters.offset,
@@ -100,10 +93,7 @@ export class TeamsService {
       },
       where: {
         region: { id: filters.regionsIds ? In(filters.regionsIds) : undefined },
-        users: {
-          active: filters.isActive,
-          fullName: filters.name ? ILike(`%${filters.name}%`) : undefined,
-        },
+        active: filters.isActive,
       },
     };
   }
