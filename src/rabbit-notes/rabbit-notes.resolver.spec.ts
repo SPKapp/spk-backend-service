@@ -151,14 +151,16 @@ describe('RabbitNotesResolver', () => {
     });
 
     it('should find a rabbit note - admin', async () => {
-      await expect(resolver.findOne(userAdmin, 1)).resolves.toEqual(rabbitNote);
+      await expect(resolver.findOne(userAdmin, '1')).resolves.toEqual(
+        rabbitNote,
+      );
 
       expect(rabbitNoteService.findOne).toHaveBeenCalledWith(1);
     });
 
     it('should find a rabbit note - region manager', async () => {
       await expect(
-        resolver.findOne(userRegionManager2Regions, 1),
+        resolver.findOne(userRegionManager2Regions, '1'),
       ).resolves.toEqual(rabbitNote);
 
       expect(rabbitNoteService.findOne).toHaveBeenCalledWith(1, {
@@ -169,7 +171,7 @@ describe('RabbitNotesResolver', () => {
 
     it('should find a rabbit note - region observer', async () => {
       await expect(
-        resolver.findOne(userRegionObserver2Regions, 1),
+        resolver.findOne(userRegionObserver2Regions, '1'),
       ).resolves.toEqual(rabbitNote);
 
       expect(rabbitNoteService.findOne).toHaveBeenCalledWith(1, {
@@ -179,7 +181,7 @@ describe('RabbitNotesResolver', () => {
     });
 
     it('should find a rabbit note - volunteer', async () => {
-      await expect(resolver.findOne(userVolunteer, 1)).resolves.toEqual(
+      await expect(resolver.findOne(userVolunteer, '1')).resolves.toEqual(
         rabbitNote,
       );
 
@@ -194,7 +196,7 @@ describe('RabbitNotesResolver', () => {
         .spyOn(rabbitNoteService, 'findOne')
         .mockResolvedValue(rabbitNoteWithDifferentUser);
 
-      await expect(resolver.findOne(userNoRoles, 1)).resolves.toEqual(
+      await expect(resolver.findOne(userNoRoles, '1')).resolves.toEqual(
         rabbitNoteWithDifferentUser,
       );
 
@@ -207,7 +209,7 @@ describe('RabbitNotesResolver', () => {
     it('should throw an error if the user is not allowed to view the note', async () => {
       jest.spyOn(rabbitNoteService, 'findOne').mockResolvedValue(null);
 
-      await expect(resolver.findOne(userRegionObserver, 1)).rejects.toThrow(
+      await expect(resolver.findOne(userRegionObserver, '1')).rejects.toThrow(
         new ForbiddenException('User is not allowed to view the note'),
       );
     });
@@ -215,7 +217,7 @@ describe('RabbitNotesResolver', () => {
     it('should throw an error if rabbit note is not found - admin', async () => {
       jest.spyOn(rabbitNoteService, 'findOne').mockResolvedValue(null);
 
-      await expect(resolver.findOne(userAdmin, 1)).rejects.toThrow(
+      await expect(resolver.findOne(userAdmin, '1')).rejects.toThrow(
         new NotFoundException('Rabbit note not found'),
       );
     });
@@ -223,7 +225,7 @@ describe('RabbitNotesResolver', () => {
     it('should throw an error if rabbit note is not found - other', async () => {
       jest.spyOn(rabbitNoteService, 'findOne').mockResolvedValue(null);
 
-      await expect(resolver.findOne(userNoRoles, 1)).rejects.toThrow(
+      await expect(resolver.findOne(userNoRoles, '1')).rejects.toThrow(
         new ForbiddenException('User is not allowed to view the note'),
       );
     });

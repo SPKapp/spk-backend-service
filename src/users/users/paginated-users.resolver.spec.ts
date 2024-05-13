@@ -2,23 +2,26 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException } from '@nestjs/common';
 
 import {
+  paginatedFields,
+  paginatedFieldsWithTotalCount,
   userAdmin,
   userRegionManager,
-} from '../../common/tests/user-details.template';
-import {
-  AuthService,
-  FirebaseAuthGuard,
-  getCurrentUserPipe,
-} from '../../common/modules/auth/auth.module';
+  userRegionManager2Regions,
+} from '../../common/tests';
+import { FirebaseAuthGuard } from '../../common/modules/auth';
 
 import { PaginatedUsersResolver } from './paginated-users.resolver';
 import { UsersService } from './users.service';
 
-import { User } from '../entities/user.entity';
-
 describe('PaginatedUsersResolver', () => {
   let resolver: PaginatedUsersResolver;
   let usersService: UsersService;
+
+  const paginatedUsers = {
+    data: [],
+    offset: 0,
+    limit: 10,
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -27,11 +30,9 @@ describe('PaginatedUsersResolver', () => {
         {
           provide: UsersService,
           useValue: {
-            findAll: jest.fn(),
-            count: jest.fn(),
+            findAllPaginated: jest.fn(() => paginatedUsers),
           },
         },
-        AuthService,
       ],
     })
 
@@ -52,72 +53,71 @@ describe('PaginatedUsersResolver', () => {
       expect(resolver.findAll).toBeDefined();
     });
 
-    it('should throw bad permissions error', async () => {
+    it('should return all users if the user is an Admin', async () => {
+      const args = { offset: 0, limit: 10 };
+
       await expect(
-        resolver.findAll(userRegionManager, {
-          offset: 0,
-          limit: 10,
-          regionId: 1,
-        }),
+        resolver.findAll(userAdmin, paginatedFields, args),
+      ).resolves.toEqual(paginatedUsers);
+
+      expect(usersService.findAllPaginated).toHaveBeenCalledWith(args, false);
+    });
+
+    it('should return all users if the user is an Admin and regionsIds are provided', async () => {
+      const args = { offset: 0, limit: 10, regionsIds: [1] };
+
+      await expect(
+        resolver.findAll(userAdmin, paginatedFields, args),
+      ).resolves.toEqual(paginatedUsers);
+
+      expect(usersService.findAllPaginated).toHaveBeenCalledWith(args, false);
+    });
+
+    it('should return all users if the user is a Region Manager', async () => {
+      const args = { offset: 0, limit: 10 };
+
+      await expect(
+        resolver.findAll(userRegionManager2Regions, paginatedFields, args),
+      ).resolves.toEqual(paginatedUsers);
+
+      expect(usersService.findAllPaginated).toHaveBeenCalledWith(
+        { ...args, regionsIds: userRegionManager2Regions.managerRegions },
+        false,
+      );
+    });
+
+    it('should return all users if the user is a Region Manager and regionsIds are provided', async () => {
+      const args = { offset: 0, limit: 10, regionsIds: [1] };
+
+      await expect(
+        resolver.findAll(userRegionManager2Regions, paginatedFields, args),
+      ).resolves.toEqual(paginatedUsers);
+
+      expect(usersService.findAllPaginated).toHaveBeenCalledWith(args, false);
+    });
+
+    it('should throw a ForbiddenException if the user does not have access to at least one of the regions', async () => {
+      const args = { offset: 0, limit: 10, regionsIds: [1] };
+
+      await expect(
+        resolver.findAll(userRegionManager, paginatedFields, args),
       ).rejects.toThrow(
         new ForbiddenException(
-          'Region ID does not match the Region Manager permissions.',
+          'User does not have access to at least one of the regions.',
         ),
       );
+
+      expect(usersService.findAllPaginated).not.toHaveBeenCalled();
     });
 
-    it('should find all users from Region', async () => {
-      const users = [new User({ id: 1 })];
-      jest.spyOn(usersService, 'findAll').mockResolvedValue(users);
+    it('should return data with totalCount if totalCount is requested', async () => {
+      const args = { offset: 0, limit: 10 };
 
       await expect(
-        resolver.findAll(userAdmin, { offset: 0, limit: 10, regionId: 1 }),
-      ).resolves.toEqual({
-        data: users,
-        offset: 0,
-        limit: 10,
-        transferToFieds: { regionsIds: [1] },
-      });
-      expect(usersService.findAll).toHaveBeenCalledWith([1], 0, 10);
-    });
+        resolver.findAll(userAdmin, paginatedFieldsWithTotalCount, args),
+      ).resolves.toEqual(paginatedUsers);
 
-    it('should find all users', async () => {
-      const users = [new User({ id: 1 })];
-      jest.spyOn(usersService, 'findAll').mockResolvedValue(users);
-
-      await expect(
-        resolver.findAll(userAdmin, { offset: 0, limit: 10 }),
-      ).resolves.toEqual({
-        data: users,
-        offset: 0,
-        limit: 10,
-        transferToFieds: { regionsIds: undefined },
-      });
-      expect(usersService.findAll).toHaveBeenCalledWith(undefined, 0, 10);
-    });
-  });
-
-  describe('totalCount', () => {
-    it('should be defined', () => {
-      expect(resolver.totalCount).toBeDefined();
-    });
-
-    it('should return total count', async () => {
-      const paginatedUsers = {
-        data: [new User({ id: 1 })],
-        offset: 0,
-        limit: 10,
-        transferToFieds: { regionsIds: [1] },
-      };
-
-      jest
-        .spyOn(usersService, 'count')
-        .mockResolvedValue(paginatedUsers.data.length);
-
-      await expect(resolver.totalCount(paginatedUsers)).resolves.toEqual(1);
-      expect(usersService.count).toHaveBeenCalledWith(
-        paginatedUsers.transferToFieds.regionsIds,
-      );
+      expect(usersService.findAllPaginated).toHaveBeenCalledWith(args, true);
     });
   });
 });

@@ -5,13 +5,18 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { FindManyOptions, ILike, In, Repository } from 'typeorm';
 
 import { FirebaseAuthService } from '../../common/modules/auth';
 import { TeamsService } from '../teams/teams.service';
 
 import { User } from '../entities';
-import { CreateUserInput, UpdateUserInput } from '../dto';
+import {
+  CreateUserInput,
+  UpdateUserInput,
+  FindAllUsersArgs,
+  PaginatedUsers,
+} from '../dto';
 
 @Injectable()
 export class UsersService {
@@ -61,51 +66,65 @@ export class UsersService {
   }
 
   /**
-   * Finds all users.
-   * @param regionsIds - (optional) The IDs of the regions to filter by.
-   * @param teamsIds - (optional) The IDs of the teams to filter by.
-   * @param offset - (optional) The number of users to skip.
-   * @param limit - (optional) The maximum number of users to return.
-   * @returns A promise that resolves to the found users.
+   * Retrieves a paginated list of users.
+   *
+   * @param args - The arguments for filtering and pagination.
+   * @returns A promise that resolves to a `PaginatedUser` object containing the paginated user data.
    */
-  async findAll(
-    regionsIds?: number[],
-    offset?: number,
-    limit?: number,
-  ): Promise<User[]> {
-    return await this.userRepository.find({
-      skip: offset,
-      take: limit,
-      where: {
-        team: {
-          region: { id: regionsIds ? In(regionsIds) : undefined },
-        },
-      },
-    });
+  async findAllPaginated(
+    args: FindAllUsersArgs = {},
+    totalCount: boolean,
+  ): Promise<PaginatedUsers> {
+    args.offset ??= 0;
+    args.limit ??= 10;
+
+    const options = this.createFilterOptions(args);
+
+    return {
+      data: await this.userRepository.find(options),
+      offset: args.offset,
+      limit: args.limit,
+      totalCount: totalCount
+        ? await this.userRepository.countBy(options.where)
+        : undefined,
+    };
   }
 
   /**
-   * Counts the number of users based on the provided region IDs.
-   * If no region IDs are provided, it counts all users.
+   * Retrieves all users based on the provided filters.
    *
-   * @param regionsIds - An optional array of region IDs.
-   * @returns A promise that resolves to the number of users.
+   * @param args - The arguments for filtering and pagination.
+   * @returns A promise that resolves to an array of User objects.
    */
-  async count(regionsIds?: number[]): Promise<number> {
-    return await this.userRepository.countBy({
-      team: {
-        region: { id: regionsIds ? In(regionsIds) : undefined },
+  async findAll(args: FindAllUsersArgs = {}): Promise<User[]> {
+    return await this.userRepository.find(this.createFilterOptions(args));
+  }
+
+  private createFilterOptions(
+    args: FindAllUsersArgs = {},
+  ): FindManyOptions<User> {
+    return {
+      skip: args.offset,
+      take: args.limit,
+      where: {
+        region: { id: args.regionsIds ? In(args.regionsIds) : undefined },
+        active: args.isActive,
+        fullName: args.name ? ILike(`%${args.name}%`) : undefined,
       },
-    });
+    };
   }
 
   /**
    * Finds a user by their ID.
    * @param id - The ID of the user to find.
+   * @param regionsIds - The IDs of the regions to filter by.
    * @returns A promise that resolves to the found user, or null if no user is found.
    */
-  async findOne(id: number): Promise<User | null> {
-    return await this.userRepository.findOneBy({ id });
+  async findOne(id: number, regionsIds?: number[]): Promise<User | null> {
+    return await this.userRepository.findOneBy({
+      id,
+      region: { id: regionsIds ? In(regionsIds) : undefined },
+    });
   }
 
   /**
@@ -175,7 +194,7 @@ export class UsersService {
 
     if (updateUserInput.newTeam) {
       const regionId = user.team.region.id;
-      await this.leaveTeam(user);
+      // await this.leaveTeam(user);
 
       user.team = await this.teamsSerivce.create(regionId);
     }
@@ -206,7 +225,7 @@ export class UsersService {
       throw new NotFoundException('User with the provided id does not exist.');
     }
 
-    await this.leaveTeam(user);
+    // await this.leaveTeam(user);
 
     await this.firebaseAuthService.deleteUser(user.firebaseUid);
 
@@ -214,28 +233,6 @@ export class UsersService {
 
     this.logger.log(`Removed user ${user.email}`);
     return id;
-  }
-
-  /**
-   * Removes the user from their team.
-   * If the user is the last member of the team, the team is also removed.
-   *
-   * @param user - The user to remove from the team.
-   * @throws {BadRequestException} If the user cannot be removed because they are the last member of the team.
-   */
-  private async leaveTeam(user: User): Promise<void> {
-    const team = user.team;
-
-    if ((await team.users).length === 1) {
-      //   if (!(await this.teamsSerivce.canRemove(user.team.id, user.id))) {
-      //     throw new BadRequestException(
-      //       'User cannot be removed. Last member of the team.',
-      //     );
-      //   }
-      //   user.team = null;
-      //   await this.userRepository.save(user);
-      //   await this.teamsSerivce.remove(team.id);
-    }
   }
 
   /**

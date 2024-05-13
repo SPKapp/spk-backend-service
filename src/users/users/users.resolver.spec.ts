@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 
 import {
   userAdmin,
@@ -139,36 +143,30 @@ describe('UsersResolver', () => {
   });
 
   describe('findOne', () => {
+    const user = new User({ id: 1 });
+
     it('should be defined', () => {
       expect(resolver.findOne).toBeDefined();
     });
 
-    it('should throw bad permissions error', async () => {
-      jest.spyOn(usersService, 'findOne').mockResolvedValue(
-        new User({
-          id: 1,
-          team: new Team({
-            id: 1,
-            region: new Region({ id: 1 }),
-          }),
-        }),
-      );
+    it('should throw not found error', async () => {
+      jest.spyOn(usersService, 'findOne').mockResolvedValue(null);
 
       await expect(resolver.findOne(userRegionManager, 1)).rejects.toThrow(
-        new ForbiddenException(
-          'User does not belong to the Region Manager permissions.',
-        ),
+        new NotFoundException('User with the provided ID does not exist.'),
       );
+
+      expect(usersService.findOne).toHaveBeenCalledWith(1, [2]);
     });
 
     it('should find user', async () => {
-      jest
-        .spyOn(usersService, 'findOne')
-        .mockResolvedValue(new User({ id: 1 }));
+      jest.spyOn(usersService, 'findOne').mockResolvedValue(user);
 
       await expect(resolver.findOne(userAdmin, 1)).resolves.toEqual({
         id: 1,
       });
+
+      expect(usersService.findOne).toHaveBeenCalledWith(1, undefined);
     });
   });
 

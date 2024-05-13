@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConflictException, NotFoundException } from '@nestjs/common';
-import { In } from 'typeorm';
+import { ILike, In } from 'typeorm';
 
 import { FirebaseAuthService } from '../../common/modules/auth';
 import { UsersService } from './users.service';
@@ -8,7 +8,6 @@ import { TeamsService } from '../teams/teams.service';
 
 import { CreateUserInput } from '../dto';
 import { User, Team } from '../entities';
-import { Region } from '../../common/modules/regions/entities';
 
 jest.mock('typeorm-transactional', () => ({
   Transactional: () => jest.fn(),
@@ -26,6 +25,7 @@ describe('UsersService', () => {
     phone: '123456789',
     regionId: 1,
   };
+  const users = [new User({ id: 1 }), new User({ id: 2 })];
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -121,6 +121,65 @@ describe('UsersService', () => {
     });
   });
 
+  describe('findAllPaginated', () => {
+    beforeEach(() => {
+      jest.spyOn(userRepository, 'find').mockResolvedValue(users);
+      jest.spyOn(userRepository, 'countBy').mockResolvedValue(users.length);
+    });
+
+    it('should be defined', () => {
+      expect(service.findAllPaginated).toBeDefined();
+    });
+
+    it('should return all users paginated', async () => {
+      await expect(service.findAllPaginated({}, false)).resolves.toEqual({
+        data: users,
+        offset: 0,
+        limit: 10,
+      });
+
+      expect(userRepository.find).toHaveBeenCalledWith({
+        skip: 0,
+        take: 10,
+        where: {
+          region: { id: undefined },
+          active: undefined,
+          fullName: undefined,
+        },
+      });
+      expect(userRepository.countBy).not.toHaveBeenCalled();
+    });
+
+    it('should return users with totalCount', async () => {
+      await expect(
+        service.findAllPaginated(
+          {
+            regionsIds: [1],
+            offset: 10,
+            limit: 20,
+          },
+          true,
+        ),
+      ).resolves.toEqual({
+        data: users,
+        offset: 10,
+        limit: 20,
+        totalCount: 2,
+      });
+
+      expect(userRepository.find).toHaveBeenCalledWith({
+        skip: 10,
+        take: 20,
+        where: {
+          region: { id: In([1]) },
+        },
+      });
+      expect(userRepository.countBy).toHaveBeenCalledWith({
+        region: { id: In([1]) },
+      });
+    });
+  });
+
   describe('findAll', () => {
     it('should be defined', () => {
       expect(service.findAll).toBeDefined();
@@ -136,59 +195,66 @@ describe('UsersService', () => {
         skip: undefined,
         take: undefined,
         where: {
-          team: {
-            region: { id: undefined },
-          },
-        },
-      });
-    });
-
-    it('should return users by regionId', async () => {
-      const users = [
-        new User({
-          id: 1,
-          team: new Team({ id: 1, region: new Region({ id: 1 }) }),
-        }),
-        new User({
-          id: 2,
-          team: new Team({ id: 2, region: new Region({ id: 1 }) }),
-        }),
-      ];
-      jest.spyOn(userRepository, 'find').mockResolvedValue(users);
-
-      await expect(service.findAll([1])).resolves.toEqual(users);
-
-      expect(userRepository.find).toHaveBeenCalledWith({
-        skip: undefined,
-        take: undefined,
-        where: {
-          team: {
-            region: { id: In([1]) },
-          },
-        },
-      });
-    });
-  });
-
-  describe('count', () => {
-    it('should be defined', () => {
-      expect(service.count).toBeDefined();
-    });
-
-    it('should return all users count', async () => {
-      await expect(service.count()).resolves.toBe(2);
-      expect(userRepository.countBy).toHaveBeenCalledWith({
-        team: {
           region: { id: undefined },
         },
       });
     });
 
-    it('should return users count by regionId', async () => {
-      await expect(service.count([1])).resolves.toBe(2);
-      expect(userRepository.countBy).toHaveBeenCalledWith({
-        team: {
+    it('should return users by regionsIds', async () => {
+      jest.spyOn(userRepository, 'find').mockResolvedValue(users);
+
+      await expect(
+        service.findAll({
+          regionsIds: [1],
+          offset: 10,
+          limit: 20,
+        }),
+      ).resolves.toEqual(users);
+
+      expect(userRepository.find).toHaveBeenCalledWith({
+        skip: 10,
+        take: 20,
+        where: {
           region: { id: In([1]) },
+        },
+      });
+    });
+
+    it('should return users by isActive', async () => {
+      jest.spyOn(userRepository, 'find').mockResolvedValue(users);
+
+      await expect(
+        service.findAll({
+          isActive: true,
+        }),
+      ).resolves.toEqual(users);
+
+      expect(userRepository.find).toHaveBeenCalledWith({
+        skip: undefined,
+        take: undefined,
+        where: {
+          region: { id: undefined },
+          active: true,
+        },
+      });
+    });
+
+    it('should return users by name', async () => {
+      jest.spyOn(userRepository, 'find').mockResolvedValue(users);
+
+      await expect(
+        service.findAll({
+          name: 'John',
+        }),
+      ).resolves.toEqual(users);
+
+      expect(userRepository.find).toHaveBeenCalledWith({
+        skip: undefined,
+        take: undefined,
+        where: {
+          region: { id: undefined },
+          active: undefined,
+          fullName: ILike('%John%'),
         },
       });
     });
@@ -205,16 +271,36 @@ describe('UsersService', () => {
         ...user,
       });
 
-      const result = await service.findOne(1);
-      expect(result).toEqual({
+      await expect(service.findOne(1)).resolves.toEqual({
         id: 1,
         ...user,
+      });
+
+      expect(userRepository.findOneBy).toHaveBeenCalledWith({
+        id: 1,
+        region: { id: undefined },
       });
     });
 
     it('should return null', async () => {
-      const result = await service.findOne(1);
-      expect(result).toBeNull();
+      await expect(service.findOne(1)).resolves.toBeNull();
+    });
+
+    it('should return user by regionsIds', async () => {
+      jest.spyOn(userRepository, 'findOneBy').mockResolvedValue({
+        id: 1,
+        ...user,
+      });
+
+      await expect(service.findOne(1, [1])).resolves.toEqual({
+        id: 1,
+        ...user,
+      });
+
+      expect(userRepository.findOneBy).toHaveBeenCalledWith({
+        id: 1,
+        region: { id: In([1]) },
+      });
     });
   });
 

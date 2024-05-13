@@ -1,4 +1,5 @@
-import { Args, Parent, Query, ResolveField, Resolver } from '@nestjs/graphql';
+import { Args, Query, Resolver } from '@nestjs/graphql';
+import { ForbiddenException } from '@nestjs/common';
 
 import {
   FirebaseAuth,
@@ -6,11 +7,14 @@ import {
   CurrentUser,
   UserDetails,
 } from '../../common/modules/auth';
+import {
+  GqlFields,
+  GqlFieldsName,
+} from '../../common/decorators/gql-fields.decorator';
 
 import { UsersService } from './users.service';
 
-import { FindAllUsersArgs } from '../dto/find-all-users.args';
-import { PaginatedUsers } from '../dto/paginated-users.output';
+import { FindAllUsersArgs, PaginatedUsers } from '../dto';
 
 @Resolver(() => PaginatedUsers)
 export class PaginatedUsersResolver {
@@ -38,42 +42,24 @@ export class PaginatedUsersResolver {
    */
   async findAll(
     @CurrentUser() currentUser: UserDetails,
+    @GqlFields(PaginatedUsers.name) gqlFields: GqlFieldsName,
     @Args() args: FindAllUsersArgs,
   ): Promise<PaginatedUsers> {
-    let regionsIds = args.regionId ? [args.regionId] : undefined;
-
     if (!currentUser.checkRole(Role.Admin)) {
-      if (args.regionId) {
-        // TODO: Refactor this
-        // await this.authService.checkRegionManagerPermissions(
-        //   currentUser,
-        //   async () => args.regionId,
-        // );
+      if (args.regionsIds) {
+        if (!currentUser.checkRegionManager(args.regionsIds)) {
+          throw new ForbiddenException(
+            'User does not have access to at least one of the regions.',
+          );
+        }
       } else {
-        // TODO: Refactor this
-        // regionsIds = currentUser.regions;
+        args.regionsIds = currentUser.managerRegions;
       }
     }
 
-    return {
-      data: await this.usersService.findAll(
-        regionsIds,
-        args.offset,
-        args.limit,
-      ),
-      offset: args.offset,
-      limit: args.limit,
-
-      transferToFieds: {
-        regionsIds: regionsIds,
-      },
-    };
-  }
-
-  @ResolveField('totalCount', () => Number)
-  async totalCount(@Parent() paginatedUsers: PaginatedUsers): Promise<number> {
-    return await this.usersService.count(
-      paginatedUsers.transferToFieds.regionsIds,
+    return await this.usersService.findAllPaginated(
+      args,
+      gqlFields.totalCount ? true : false,
     );
   }
 }

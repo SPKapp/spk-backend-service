@@ -89,13 +89,17 @@ export class UsersResolver {
     @CurrentUser() currentUser: UserDetails,
     @Args('id', { type: () => Int }) id: number,
   ) {
-    await this.checkRegionManagerPermissions(currentUser, id);
+    let regionsIds: number[];
 
-    const foundUser = await this.usersService.findOne(id);
-    if (!foundUser) {
-      throw new NotFoundException('User with the provided id does not exist.');
+    if (!currentUser.checkRole(Role.Admin)) {
+      regionsIds = currentUser.managerRegions;
     }
-    return foundUser;
+
+    const result = await this.usersService.findOne(id, regionsIds);
+    if (!result) {
+      throw new NotFoundException('User with the provided ID does not exist.');
+    }
+    return result;
   }
 
   /**
