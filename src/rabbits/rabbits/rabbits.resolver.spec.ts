@@ -167,7 +167,7 @@ describe('RabbitsResolver', () => {
     });
 
     it('should call the service with the correct parameters - Admin', async () => {
-      await resolver.findOne(userAdmin, 1);
+      await resolver.findOne(userAdmin, '1');
 
       expect(rabbitsService.findOne).toHaveBeenCalledWith(
         1,
@@ -177,19 +177,19 @@ describe('RabbitsResolver', () => {
     });
 
     it('should call the service with the correct parameters - RegionManager', async () => {
-      await resolver.findOne(userRegionManager, 1);
+      await resolver.findOne(userRegionManager, '1');
 
       expect(rabbitsService.findOne).toHaveBeenCalledWith(1, [2], undefined);
     });
 
     it('should call the service with the correct parameters - RegionObsercer', async () => {
-      await resolver.findOne(userRegionObserver, 1);
+      await resolver.findOne(userRegionObserver, '1');
 
       expect(rabbitsService.findOne).toHaveBeenCalledWith(1, [2], undefined);
     });
 
     it('should call the service with the correct parameters - Volunteer', async () => {
-      await resolver.findOne(userVolunteer, 1);
+      await resolver.findOne(userVolunteer, '1');
 
       expect(rabbitsService.findOne).toHaveBeenCalledWith(1, undefined, [1]);
     });
@@ -258,13 +258,13 @@ describe('RabbitsResolver', () => {
     });
 
     it('should call the service with the correct parameters - Admin', async () => {
-      await resolver.removeRabbit(userAdmin, 1);
+      await resolver.removeRabbit(userAdmin, '1');
 
       expect(rabbitsService.remove).toHaveBeenCalledWith(1, undefined);
     });
 
     it('should call the service with the correct parameters - RegionManager', async () => {
-      await resolver.removeRabbit(userRegionManager, 1);
+      await resolver.removeRabbit(userRegionManager, '1');
 
       expect(rabbitsService.remove).toHaveBeenCalledWith(
         1,
@@ -279,7 +279,7 @@ describe('RabbitsResolver', () => {
     });
 
     it('should call the service with the correct parameters - Admin', async () => {
-      await resolver.updateRabbitGroup(userAdmin, 1, 2);
+      await resolver.updateRabbitGroup(userAdmin, '1', '2');
 
       expect(rabbitsService.updateRabbitGroup).toHaveBeenCalledWith(
         1,
@@ -289,7 +289,7 @@ describe('RabbitsResolver', () => {
     });
 
     it('should call the service with the correct parameters - RegionManager', async () => {
-      await resolver.updateRabbitGroup(userRegionManager, 1, 2);
+      await resolver.updateRabbitGroup(userRegionManager, '1', '2');
 
       expect(rabbitsService.updateRabbitGroup).toHaveBeenCalledWith(1, 2, [2]);
     });

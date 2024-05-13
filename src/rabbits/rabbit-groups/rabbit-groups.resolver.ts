@@ -1,4 +1,4 @@
-import { Resolver, Query, Args, Int, Mutation } from '@nestjs/graphql';
+import { Resolver, Query, Args, Mutation, ID } from '@nestjs/graphql';
 import { NotFoundException } from '@nestjs/common';
 
 import {
@@ -32,8 +32,10 @@ export class RabbitGroupsResolver {
   @Query(() => RabbitGroup, { name: 'rabbitGroup' })
   async findOne(
     @CurrentUser() currentUser: UserDetails,
-    @Args('id', { type: () => Int }) id: number,
+    @Args('id', { type: () => ID }) idArg: string,
   ): Promise<RabbitGroup> {
+    const id = Number(idArg);
+
     const isAdmin = currentUser.checkRole(Role.Admin);
     const regional =
       !isAdmin &&
@@ -69,9 +71,12 @@ export class RabbitGroupsResolver {
   })
   async updateTeam(
     @CurrentUser() currentUser: UserDetails,
-    @Args('rabbitGroupId', { type: () => Int }) rabbitGroupId: number,
-    @Args('teamId', { type: () => Int }) teamId: number,
+    @Args('rabbitGroupId', { type: () => ID }) rabbitGroupIdArg: string,
+    @Args('teamId', { type: () => ID }) teamIdArg: string,
   ) {
+    const rabbitGroupId = Number(rabbitGroupIdArg);
+    const teamId = Number(teamIdArg);
+
     return await this.rabbitGroupsService.updateTeam(
       rabbitGroupId,
       teamId,

@@ -61,7 +61,7 @@ describe('RabbitGroupsResolver', () => {
 
     it('should return a rabbit group', async () => {
       await expect(
-        resolver.findOne(userAdmin, rabbitGroup.id),
+        resolver.findOne(userAdmin, rabbitGroup.id.toString()),
       ).resolves.toEqual(rabbitGroup);
 
       expect(rabbitGroupsService.findOne).toHaveBeenCalledWith(
@@ -74,9 +74,9 @@ describe('RabbitGroupsResolver', () => {
     it('should throw a NotFoundException if the rabbit group does not exist', async () => {
       jest.spyOn(rabbitGroupsService, 'findOne').mockResolvedValue(null);
 
-      await expect(resolver.findOne(userAdmin, rabbitGroup.id)).rejects.toThrow(
-        new NotFoundException(`Rabbit Group not found.`),
-      );
+      await expect(
+        resolver.findOne(userAdmin, rabbitGroup.id.toString()),
+      ).rejects.toThrow(new NotFoundException(`Rabbit Group not found.`));
 
       expect(rabbitGroupsService.findOne).toHaveBeenCalledWith(
         rabbitGroup.id,
@@ -89,7 +89,7 @@ describe('RabbitGroupsResolver', () => {
       jest.spyOn(rabbitGroupsService, 'findOne').mockResolvedValue(null);
 
       await expect(
-        resolver.findOne(userRegionManager, rabbitGroup.id),
+        resolver.findOne(userRegionManager, rabbitGroup.id.toString()),
       ).rejects.toThrow(new NotFoundException('Rabbit Group not found.'));
 
       expect(rabbitGroupsService.findOne).toHaveBeenCalledWith(
@@ -102,7 +102,7 @@ describe('RabbitGroupsResolver', () => {
       jest.spyOn(rabbitGroupsService, 'findOne').mockResolvedValue(null);
 
       await expect(
-        resolver.findOne(userRegionObserver, rabbitGroup.id),
+        resolver.findOne(userRegionObserver, rabbitGroup.id.toString()),
       ).rejects.toThrow(new NotFoundException('Rabbit Group not found.'));
 
       expect(rabbitGroupsService.findOne).toHaveBeenCalledWith(
@@ -114,7 +114,7 @@ describe('RabbitGroupsResolver', () => {
 
     it('should return a rabbit group from the region manager', async () => {
       await expect(
-        resolver.findOne(userRegionManager2Regions, rabbitGroup.id),
+        resolver.findOne(userRegionManager2Regions, rabbitGroup.id.toString()),
       ).resolves.toEqual(rabbitGroup);
 
       expect(rabbitGroupsService.findOne).toHaveBeenCalledWith(
@@ -128,13 +128,13 @@ describe('RabbitGroupsResolver', () => {
       jest.spyOn(rabbitGroupsService, 'findOne').mockResolvedValue(null);
 
       await expect(
-        resolver.findOne(userVolunteer2, rabbitGroup.id),
+        resolver.findOne(userVolunteer2, rabbitGroup.id.toString()),
       ).rejects.toThrow(new NotFoundException('Rabbit Group not found.'));
     });
 
     it('should return a rabbit group from the volunteer', async () => {
       await expect(
-        resolver.findOne(userVolunteer, rabbitGroup.id),
+        resolver.findOne(userVolunteer, rabbitGroup.id.toString()),
       ).resolves.toEqual(rabbitGroup);
 
       expect(rabbitGroupsService.findOne).toHaveBeenCalledWith(
@@ -154,7 +154,11 @@ describe('RabbitGroupsResolver', () => {
       const team = new Team({ id: 1 });
 
       await expect(
-        resolver.updateTeam(userAdmin, rabbitGroup.id, team.id),
+        resolver.updateTeam(
+          userAdmin,
+          rabbitGroup.id.toString(),
+          team.id.toString(),
+        ),
       ).resolves.toEqual(rabbitGroup);
 
       expect(rabbitGroupsService.updateTeam).toHaveBeenCalledWith(
@@ -168,7 +172,11 @@ describe('RabbitGroupsResolver', () => {
       const team = new Team({ id: 1 });
 
       await expect(
-        resolver.updateTeam(userRegionManager2Regions, rabbitGroup.id, team.id),
+        resolver.updateTeam(
+          userRegionManager2Regions,
+          rabbitGroup.id.toString(),
+          team.id.toString(),
+        ),
       ).resolves.toEqual(rabbitGroup);
 
       expect(rabbitGroupsService.updateTeam).toHaveBeenCalledWith(

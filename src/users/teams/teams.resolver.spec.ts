@@ -52,7 +52,7 @@ describe('TeamsResolver', () => {
     it('should throw an error if team does not exist', async () => {
       jest.spyOn(teamsService, 'findOne').mockResolvedValue(null);
 
-      await expect(resolver.findOne(userAdmin, 1)).rejects.toThrow(
+      await expect(resolver.findOne(userAdmin, '1')).rejects.toThrow(
         new NotFoundException(`Team with the provided id not found.`),
       );
       expect(teamsService.findOne).toHaveBeenCalledWith(1, undefined);
@@ -61,7 +61,7 @@ describe('TeamsResolver', () => {
     it('should throw an permission error', async () => {
       jest.spyOn(teamsService, 'findOne').mockResolvedValue(null);
 
-      await expect(resolver.findOne(userRegionManager, 1)).rejects.toThrow(
+      await expect(resolver.findOne(userRegionManager, '1')).rejects.toThrow(
         new NotFoundException(`Team with the provided id not found.`),
       );
 
@@ -72,7 +72,7 @@ describe('TeamsResolver', () => {
     });
 
     it('should return a team', async () => {
-      await expect(resolver.findOne(userAdmin, 1)).resolves.toEqual(team);
+      await expect(resolver.findOne(userAdmin, '1')).resolves.toEqual(team);
       expect(teamsService.findOne).toHaveBeenCalledWith(1, undefined);
     });
   });

@@ -6,11 +6,11 @@ import { PaginationArgs } from '../../common/functions/paginate.functions';
 @ArgsType()
 export class FindRabbitGroupsArgs extends PaginationArgs {
   @Field(() => [ID], { nullable: true })
-  @Transform(({ value }) => value.map((v: string) => parseInt(v, 10)))
+  @Transform(({ value }) => value.map(Number))
   regionsIds?: number[];
 
   @Field(() => [ID], { nullable: true })
-  @Transform(({ value }) => value.map((v: string) => parseInt(v, 10)))
+  @Transform(({ value }) => value.map(Number))
   teamIds?: number[];
 
   @Field({ nullable: true })

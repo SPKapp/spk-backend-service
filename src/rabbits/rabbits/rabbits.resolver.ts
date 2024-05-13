@@ -1,4 +1,4 @@
-import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, ID } from '@nestjs/graphql';
 import {
   BadRequestException,
   ForbiddenException,
@@ -86,8 +86,10 @@ export class RabbitsResolver {
   @Query(() => Rabbit, { name: 'rabbit' })
   async findOne(
     @CurrentUser() currentUser: UserDetails,
-    @Args('id', { type: () => Int }) id: number,
+    @Args('id', { type: () => ID }) Arg: string,
   ): Promise<Rabbit> {
+    const id = Number(Arg);
+
     const isAdmin = currentUser.checkRole(Role.Admin);
     const regional =
       !isAdmin &&
@@ -146,8 +148,10 @@ export class RabbitsResolver {
   @Mutation(() => EntityWithId)
   removeRabbit(
     @CurrentUser() currentUser: UserDetails,
-    @Args('id', { type: () => Int }) id: number,
+    @Args('id', { type: () => ID }) idArg: string,
   ): Promise<EntityWithId> {
+    const id = Number(idArg);
+
     return this.rabbitsService.remove(
       id,
       currentUser.checkRole(Role.Admin)
@@ -172,10 +176,15 @@ export class RabbitsResolver {
   })
   async updateRabbitGroup(
     @CurrentUser() currentUser: UserDetails,
-    @Args('rabbitId', { type: () => Int }) rabbitId: number,
-    @Args('rabbitGroupId', { type: () => Int, nullable: true })
-    rabbitGroupId?: number,
+    @Args('rabbitId', { type: () => ID }) rabbitIdArg: string,
+    @Args('rabbitGroupId', { type: () => ID, nullable: true })
+    rabbitGroupIdArg?: string,
   ): Promise<Rabbit> {
+    const rabbitId = Number(rabbitIdArg);
+    const rabbitGroupId = rabbitGroupIdArg
+      ? Number(rabbitGroupIdArg)
+      : undefined;
+
     return await this.rabbitsService.updateRabbitGroup(
       rabbitId,
       rabbitGroupId,

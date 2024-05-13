@@ -193,6 +193,7 @@ export class UsersResolver {
     userId: number,
   ) {
     if (!user.checkRole(Role.Admin)) {
+      console.log(`TODO: Refactor this ${user} ${userId}`);
       // TODO: Refactor this
       // await this.authService.checkRegionManagerPermissions(
       //   user,

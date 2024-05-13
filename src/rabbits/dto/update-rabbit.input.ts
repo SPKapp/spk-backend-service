@@ -12,7 +12,7 @@ export class UpdateRabbitInput extends PartialType(
   OmitType(CreateRabbitInput, ['rabbitGroupId', 'regionId'] as const),
 ) {
   @Field(() => ID)
-  @Transform(({ value }) => parseInt(value, 10))
+  @Transform(({ value }) => Number(value))
   id: number;
 
   @Field(() => Gender, { nullable: true })

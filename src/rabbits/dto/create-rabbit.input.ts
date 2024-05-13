@@ -38,13 +38,13 @@ export class CreateRabbitInput {
     nullable: true,
     description: 'If not provided, a new RabbitGroup will be created.',
   })
-  @Transform(({ value }) => parseInt(value, 10))
+  @Transform(({ value }) => Number(value))
   rabbitGroupId?: number;
 
   @Field(() => ID, {
     nullable: true,
     description: 'Not required if rabbitGroupId is provided.',
   })
-  @Transform(({ value }) => parseInt(value, 10))
+  @Transform(({ value }) => Number(value))
   regionId?: number;
 }
