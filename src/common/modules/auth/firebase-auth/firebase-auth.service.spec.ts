@@ -25,6 +25,7 @@ describe('FirebaseAuthService', () => {
               getUser: jest.fn(),
               updateUser: jest.fn(),
               generatePasswordResetLink: jest.fn(() => 'http://link'),
+              generateVerifyAndChangeEmailLink: jest.fn(() => 'http://link'),
               setCustomUserClaims: jest.fn(),
               deleteUser: jest.fn(),
             },
@@ -112,7 +113,103 @@ describe('FirebaseAuthService', () => {
   });
 
   describe('updateUser', () => {
-    // TODO: Implement tests
+    it('should be defined', () => {
+      expect(service.updateUser).toBeDefined();
+    });
+
+    it('should update the user phone and DisplayName', async () => {
+      jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
+        uid: '123',
+        phoneNumber: '123456788',
+        displayName: 'John Smith',
+      } as any);
+
+      await service.updateUser('123', undefined, '123456789', 'John Doe');
+
+      expect(firebaseService.auth.updateUser).toHaveBeenCalledWith('123', {
+        phoneNumber: '123456789',
+        displayName: 'John Doe',
+      });
+      expect(mailService.sendMail).not.toHaveBeenCalled();
+      expect(
+        firebaseService.auth.generateVerifyAndChangeEmailLink,
+      ).not.toHaveBeenCalled();
+      expect(firebaseService.auth.updateUser).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not update the user phone and DisplayName if they are the same', async () => {
+      jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
+        uid: '123',
+        phoneNumber: '123456789',
+        displayName: 'John Doe',
+      } as any);
+
+      await service.updateUser('123', undefined, '123456789', 'John Doe');
+
+      expect(firebaseService.auth.updateUser).toHaveBeenCalledWith('123', {});
+      expect(mailService.sendMail).not.toHaveBeenCalled();
+      expect(
+        firebaseService.auth.generateVerifyAndChangeEmailLink,
+      ).not.toHaveBeenCalled();
+      expect(firebaseService.auth.updateUser).toHaveBeenCalledTimes(1);
+    });
+
+    it('should update the user email', async () => {
+      jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
+        uid: '123',
+        email: 'john@example.com',
+      } as any);
+
+      await service.updateUser('123', 'james@example.com');
+
+      expect(firebaseService.auth.updateUser).toHaveBeenCalledWith('123', {});
+      expect(mailService.sendMail).toHaveBeenCalled();
+      expect(
+        firebaseService.auth.generateVerifyAndChangeEmailLink,
+      ).toHaveBeenCalledWith(
+        'john@example.com',
+        'james@example.com',
+        expect.anything(),
+      );
+      expect(firebaseService.auth.updateUser).toHaveBeenCalledTimes(1);
+    });
+
+    it('should fail when sending email', async () => {
+      jest.spyOn(firebaseService.auth, 'getUser').mockResolvedValue({
+        uid: '123',
+        email: 'john@example.com',
+        displayName: 'John Doe',
+      } as any);
+      jest.spyOn(mailService, 'sendMail').mockRejectedValue(new Error('Test'));
+
+      await expect(
+        service.updateUser('123', 'james@example.com', undefined, 'James Doe'),
+      ).rejects.toThrow('Test');
+
+      expect(firebaseService.auth.updateUser).toHaveBeenNthCalledWith(
+        1,
+        '123',
+        {
+          displayName: 'James Doe',
+        },
+      );
+      expect(mailService.sendMail).toHaveBeenCalled();
+      expect(
+        firebaseService.auth.generateVerifyAndChangeEmailLink,
+      ).toHaveBeenCalledWith(
+        'john@example.com',
+        'james@example.com',
+        expect.anything(),
+      );
+      expect(firebaseService.auth.updateUser).toHaveBeenNthCalledWith(
+        2,
+        '123',
+        {
+          displayName: 'John Doe',
+        },
+      );
+      expect(firebaseService.auth.updateUser).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe('deleteUser', () => {

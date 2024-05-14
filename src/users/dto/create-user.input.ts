@@ -23,7 +23,8 @@ export class CreateUserInput {
 
   @Field(() => ID, {
     nullable: true,
-    description: 'Required when run as Admin.',
+    description:
+      'Required when run as Admin and Region Manager with more than 1 region.',
   })
   @Transform(({ value }) => Number(value))
   regionId?: number;

@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConflictException, NotFoundException } from '@nestjs/common';
-import { ILike, In } from 'typeorm';
+import { ILike, In, Repository } from 'typeorm';
 
 import { FirebaseAuthService } from '../../common/modules/auth';
 import { UsersService } from './users.service';
@@ -8,6 +8,7 @@ import { TeamsService } from '../teams/teams.service';
 
 import { CreateUserInput } from '../dto';
 import { User, Team } from '../entities';
+import { getRepositoryToken } from '@nestjs/typeorm';
 
 jest.mock('typeorm-transactional', () => ({
   Transactional: () => jest.fn(),
@@ -15,16 +16,21 @@ jest.mock('typeorm-transactional', () => ({
 
 describe('UsersService', () => {
   let service: UsersService;
-  // let teamsService: TeamsService;
-  let userRepository: any;
+  let firebaseAuthService: FirebaseAuthService;
+  let userRepository: Repository<User>;
 
-  const user: CreateUserInput = {
+  const userInput: CreateUserInput = {
     firstname: 'John',
     lastname: 'Doe',
     email: 'email1@example.com',
     phone: '123456789',
     regionId: 1,
   };
+  const user = new User({
+    id: 1,
+    firebaseUid: '123',
+    ...userInput,
+  });
   const users = [new User({ id: 1 }), new User({ id: 2 })];
 
   beforeEach(async () => {
@@ -56,7 +62,7 @@ describe('UsersService', () => {
           },
         },
         {
-          provide: 'UserRepository',
+          provide: getRepositoryToken(User),
           useValue: {
             find: jest.fn(async () => []),
             findBy: jest.fn(async () => []),
@@ -70,8 +76,8 @@ describe('UsersService', () => {
     }).compile();
 
     service = module.get<UsersService>(UsersService);
-    userRepository = module.get('UserRepository');
-    // teamsService = module.get<TeamsService>(TeamsService);
+    firebaseAuthService = module.get<FirebaseAuthService>(FirebaseAuthService);
+    userRepository = module.get<Repository<User>>(getRepositoryToken(User));
   });
 
   it('should be defined', () => {
@@ -87,10 +93,10 @@ describe('UsersService', () => {
       jest
         .spyOn(userRepository, 'find')
         .mockResolvedValue([
-          new User({ id: 1, email: user.email, phone: '000000000' }),
+          new User({ id: 1, email: userInput.email, phone: '000000000' }),
         ]);
 
-      await expect(service.create(user)).rejects.toThrow(
+      await expect(service.create(userInput)).rejects.toThrow(
         new ConflictException('User with the provided email already exists'),
       );
     });
@@ -100,24 +106,42 @@ describe('UsersService', () => {
         new User({
           id: 1,
           email: 'different@example.com',
-          phone: user.phone,
+          phone: userInput.phone,
         }),
       ]);
 
-      await expect(service.create(user)).rejects.toThrow(
+      await expect(service.create(userInput)).rejects.toThrow(
         new ConflictException('User with the provided phone already exists'),
       );
     });
 
     it('should create user', async () => {
-      const result = await service.create(user);
-      expect(result).toEqual({
-        ...user,
+      await expect(service.create(userInput)).resolves.toEqual({
+        ...userInput,
         id: 1,
         firebaseUid: '123',
         region: { id: 1 },
         active: true,
       });
+
+      expect(userRepository.save).toHaveBeenCalled();
+
+      expect(firebaseAuthService.createUser).toHaveBeenCalledWith(
+        userInput.email,
+        userInput.phone,
+        'John Doe',
+      );
+
+      expect(firebaseAuthService.setUserId).toHaveBeenCalledWith('123', 1);
+    });
+
+    it('should rollback firebase user creation', async () => {
+      jest.spyOn(userRepository, 'save').mockRejectedValue(new Error());
+      jest.spyOn(firebaseAuthService, 'deleteUser').mockResolvedValue();
+
+      await expect(service.create(userInput)).rejects.toThrow();
+
+      expect(firebaseAuthService.deleteUser).toHaveBeenCalledWith('123');
     });
   });
 
@@ -266,15 +290,9 @@ describe('UsersService', () => {
     });
 
     it('should return user', async () => {
-      jest.spyOn(userRepository, 'findOneBy').mockResolvedValue({
-        id: 1,
-        ...user,
-      });
+      jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(user);
 
-      await expect(service.findOne(1)).resolves.toEqual({
-        id: 1,
-        ...user,
-      });
+      await expect(service.findOne(1)).resolves.toEqual(user);
 
       expect(userRepository.findOneBy).toHaveBeenCalledWith({
         id: 1,
@@ -287,15 +305,9 @@ describe('UsersService', () => {
     });
 
     it('should return user by regionsIds', async () => {
-      jest.spyOn(userRepository, 'findOneBy').mockResolvedValue({
-        id: 1,
-        ...user,
-      });
+      jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(user);
 
-      await expect(service.findOne(1, [1])).resolves.toEqual({
-        id: 1,
-        ...user,
-      });
+      await expect(service.findOne(1, [1])).resolves.toEqual(user);
 
       expect(userRepository.findOneBy).toHaveBeenCalledWith({
         id: 1,
@@ -310,18 +322,10 @@ describe('UsersService', () => {
     });
 
     it('should return user', async () => {
-      jest.spyOn(userRepository, 'findOneBy').mockResolvedValue({
-        id: 1,
-        firebaseUid: '123',
-        ...user,
-      });
+      jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(user);
 
       const result = await service.findOneByUid('123');
-      expect(result).toEqual({
-        id: 1,
-        firebaseUid: '123',
-        ...user,
-      });
+      expect(result).toEqual(user);
     });
 
     it('should return null', async () => {
@@ -342,9 +346,7 @@ describe('UsersService', () => {
     });
 
     it('should throw an error when user with the provided email already exists', async () => {
-      jest
-        .spyOn(userRepository, 'findOneBy')
-        .mockResolvedValue(new User({ id: 1, ...user }));
+      jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(user);
       jest
         .spyOn(userRepository, 'find')
         .mockResolvedValue([
@@ -361,55 +363,54 @@ describe('UsersService', () => {
       );
     });
 
-    // it('should throw an error when team with the provided id does not exist', async () => {
-    //   jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(
-    //     new User({
-    //       id: 1,
-    //       ...user,
-    //       team: new Team({
-    //         id: 1,
-    //         region: new Region({ id: 1 }),
-    //         users: new Promise((res) => res([new User()])),
-    //       }),
-    //     }),
-    //   );
+    it('should throw an error when user with the provided phone already exists', async () => {
+      jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(user);
+      jest
+        .spyOn(userRepository, 'find')
+        .mockResolvedValue([
+          new User({ id: 2, email: 'new@example.com', phone: '+48000000000' }),
+        ]);
 
-    //   jest.spyOn(teamsService, 'findOne').mockResolvedValue(null);
-    //   await expect(service.update(1, { id: 1, teamId: 1 })).rejects.toThrow(
-    //     new BadRequestException('Team with the provided id does not exist.'),
-    //   );
-    // });
+      await expect(
+        service.update(1, {
+          id: 1,
+          phone: '+48000000000',
+        }),
+      ).rejects.toThrow(
+        new ConflictException('User with the provided phone already exists'),
+      );
+    });
 
-    // it('should update user', async () => {
-    //   jest.spyOn(userRepository, 'findOneBy').mockResolvedValue({
-    //     id: 1,
-    //     ...user,
-    //     team: new Team({
-    //       id: 1,
-    //       region: new Region({ id: 1 }),
-    //       users: new Promise((res) => res([new User()])),
-    //     }),
-    //   });
+    it('should update user', async () => {
+      jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(user);
 
-    //   jest
-    //     .spyOn(teamsService, 'findOne')
-    //     .mockResolvedValue(new Team({ id: 2 }));
+      await expect(
+        service.update(1, {
+          id: 1,
+          firstname: 'Jane',
+          lastname: 'Doe',
+          email: 'new@example.com',
+        }),
+      ).resolves.toEqual({
+        ...user,
+        firstname: 'Jane',
+        lastname: 'Doe',
+        email: 'new@example.com',
+      });
 
-    //   const newUserData = {
-    //     id: 1,
-    //     firstname: 'Ed',
-    //     lastname: 'Ward',
-    //     email: 'new@example.com',
-    //     phone: '+48000000000',
-    //   };
-    //   const result = await service.update(1, { ...newUserData, teamId: 2 });
-
-    //   expect(result).toEqual({
-    //     ...user,
-    //     ...newUserData,
-    //     team: new Team({ id: 2 }),
-    //   });
-    // });
+      expect(userRepository.save).toHaveBeenCalledWith({
+        ...user,
+        firstname: 'Jane',
+        lastname: 'Doe',
+        email: 'new@example.com',
+      });
+      expect(firebaseAuthService.updateUser).toHaveBeenCalledWith(
+        user.firebaseUid,
+        'new@example.com',
+        undefined,
+        'Jane Doe',
+      );
+    });
   });
 
   describe('remove', () => {
@@ -446,10 +447,10 @@ describe('UsersService', () => {
       // jest.spyOn(teamsService, 'canRemove').mockResolvedValue(true);
       jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(
         new User({
-          ...user,
+          ...userInput,
           team: new Team({
             id: 1,
-            users: new Promise((res) => res([new User(user)])),
+            users: new Promise((res) => res([new User(userInput)])),
           }),
         }),
       );
@@ -460,10 +461,12 @@ describe('UsersService', () => {
     it('should remove user', async () => {
       jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(
         new User({
-          ...user,
+          ...userInput,
           team: new Team({
             id: 1,
-            users: new Promise((res) => res([new User(user), new User(user)])),
+            users: new Promise((res) =>
+              res([new User(userInput), new User(userInput)]),
+            ),
           }),
         }),
       );

@@ -12,14 +12,12 @@ import {
 } from '../../common/tests/user-details.template';
 import { FirebaseAuthGuard } from '../../common/modules/auth';
 
-// import { Region } from '../../common/modules/regions/entities';
-
 import { UsersResolver } from './users.resolver';
 import { UsersService } from './users.service';
+import { PermissionsService } from '../permissions/permissions.service';
 
 import { CreateUserInput } from '../dto';
 import { User } from '../entities';
-import { PermissionsService } from '../permissions/permissions.service';
 
 describe('UsersResolver', () => {
   let resolver: UsersResolver;
@@ -39,7 +37,7 @@ describe('UsersResolver', () => {
             create: jest.fn(),
             findOne: jest.fn(),
             findOneByUid: jest.fn(),
-            update: jest.fn(() => ({ id: 1, firstname: 'John' })),
+            update: jest.fn(),
             remove: jest.fn(() => 1),
           },
         },
@@ -170,37 +168,30 @@ describe('UsersResolver', () => {
     });
   });
 
-  // describe('updateUser', () => {
-  //   it('should be defined', () => {
-  //     expect(resolver.updateUser).toBeDefined();
-  //   });
+  describe('updateUser', () => {
+    it('should be defined', () => {
+      expect(resolver.updateUser).toBeDefined();
+    });
 
-  //   it('should throw bad permissions error', async () => {
-  //     jest.spyOn(usersService, 'findOne').mockResolvedValue(
-  //       new User({
-  //         id: 1,
-  //         team: new Team({
-  //           id: 1,
-  //           region: new Region({ id: 1 }),
-  //         }),
-  //       }),
-  //     );
+    it('should update user', async () => {
+      jest
+        .spyOn(usersService, 'update')
+        .mockResolvedValue(new User({ id: 1, firstname: 'John' }));
 
-  //     await expect(
-  //       resolver.updateUser(userRegionManager, { id: 1 }),
-  //     ).rejects.toThrow(
-  //       new ForbiddenException(
-  //         'User does not belong to the Region Manager permissions.',
-  //       ),
-  //     );
-  //   });
+      await expect(
+        resolver.updateUser(userAdmin, { id: 1, firstname: 'John' }),
+      ).resolves.toEqual({ id: 1, firstname: 'John' });
 
-  //   it('should update user', async () => {
-  //     await expect(
-  //       resolver.updateUser(userAdmin, { id: 1, firstname: 'John' }),
-  //     ).resolves.toEqual({ id: 1, firstname: 'John' });
-  //   });
-  // });
+      expect(usersService.update).toHaveBeenCalledWith(
+        1,
+        {
+          id: 1,
+          firstname: 'John',
+        },
+        undefined,
+      );
+    });
+  });
 
   // describe('removeUser', () => {
   //   it('should be defined', () => {
@@ -255,25 +246,26 @@ describe('UsersResolver', () => {
     });
 
     it('should update my profile', async () => {
-      jest
-        .spyOn(usersService, 'findOneByUid')
-        .mockResolvedValue(
-          new User({ id: 1, firebaseUid: userAdmin.uid, lastname: 'Doe' }),
-        );
-      const templateUser = {
-        id: 1,
-        firebaseUid: userAdmin.uid,
+      const input = {
+        firstname: 'Jake',
         lastname: 'Doe',
       };
-      const user = {
-        ...templateUser,
+      const user = new User({
+        id: 1,
+        firebaseUid: userAdmin.uid,
         firstname: 'John',
-      };
-      jest.spyOn(usersService, 'update').mockResolvedValue(new User(user));
+        lastname: 'Doe',
+      });
+      jest.spyOn(usersService, 'update').mockResolvedValue(user);
 
-      await expect(
-        resolver.updateMyProfile(userAdmin, templateUser),
-      ).resolves.toEqual(user);
+      await expect(resolver.updateMyProfile(userAdmin, input)).resolves.toEqual(
+        user,
+      );
+
+      expect(usersService.update).toHaveBeenCalledWith(user.id, {
+        ...input,
+        id: 1,
+      });
     });
   });
 });

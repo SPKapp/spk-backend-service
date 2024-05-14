@@ -6,9 +6,9 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindManyOptions, ILike, In, Repository } from 'typeorm';
+import { Transactional } from 'typeorm-transactional';
 
 import { FirebaseAuthService } from '../../common/modules/auth';
-import { TeamsService } from '../teams/teams.service';
 
 import { User } from '../entities';
 import {
@@ -25,7 +25,6 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    private readonly teamsSerivce: TeamsService,
     private readonly firebaseAuthService: FirebaseAuthService,
   ) {}
 
@@ -36,6 +35,7 @@ export class UsersService {
    * @returns A promise that resolves to the created user.
    * @throws {ConflictException} If a user with the provided email or phone already exists.
    */
+  @Transactional()
   async create(createUserInput: CreateUserInput): Promise<User> {
     await this.checkAvailability(createUserInput.email, createUserInput.phone);
 
@@ -143,17 +143,20 @@ export class UsersService {
    * @returns The updated user.
    * @throws {NotFoundException} if the user with the provided id does not exist.
    * @throws {ConflictException} If a user with the provided email or phone already exists.
-   * @throws {BadRequestException} If the user cannot be removed because they are the last member of the team.
-   * @throws {BadRequestException} if the team with the provided id does not exist.
    */
-  async update(id: number, updateUserInput: UpdateUserInput): Promise<User> {
-    const user = await this.userRepository.findOneBy({ id });
+  @Transactional()
+  async update(
+    id: number,
+    updateUserInput: UpdateUserInput,
+    regionsIds?: number[],
+  ): Promise<User> {
+    const user = await this.userRepository.findOneBy({
+      id,
+      region: { id: regionsIds ? In(regionsIds) : undefined },
+    });
     if (!user) {
       throw new NotFoundException('User with the provided id does not exist.');
     }
-
-    // await this.firebaseAuthService.addRegionManagerRole(user.firebaseUid, 1);
-    // await this.firebaseAuthService.removeRegionManagerRole(user.firebaseUid);
 
     if (updateUserInput.email || updateUserInput.phone) {
       await this.checkAvailability(
@@ -163,48 +166,19 @@ export class UsersService {
       );
     }
 
-    if (updateUserInput.firstname) {
-      user.firstname = updateUserInput.firstname;
-    }
-    if (updateUserInput.lastname) {
-      user.lastname = updateUserInput.lastname;
-    }
-    if (updateUserInput.email) {
-      // TODO: Add email sending
-      user.email = updateUserInput.email;
-    }
-    if (updateUserInput.phone) {
-      user.phone = updateUserInput.phone;
-    }
-
-    // if (updateUserInput.teamId) {
-    //   const regionId = user.team.region.id;
-    //   await this.leaveTeam(user);
-
-    //   const team = await this.teamsSerivce.findOne(updateUserInput.teamId, [
-    //     regionId,
-    //   ]);
-    //   if (!team) {
-    //     throw new BadRequestException(
-    //       'Team with the provided id does not exist.',
-    //     );
-    //   }
-    //   user.team = team;
-    // }
-
-    if (updateUserInput.newTeam) {
-      const regionId = user.team.region.id;
-      // await this.leaveTeam(user);
-
-      user.team = await this.teamsSerivce.create(regionId);
-    }
+    user.firstname = updateUserInput.firstname ?? user.firstname;
+    user.lastname = updateUserInput.lastname ?? user.lastname;
+    user.email = updateUserInput.email ?? user.email;
+    user.phone = updateUserInput.phone ?? user.phone;
 
     await this.userRepository.save(user);
 
+    // We don't need to handle errors here
+    // @Transactional will rollback the transaction automagically
     await this.firebaseAuthService.updateUser(
       user.firebaseUid,
-      user.email,
-      user.phone,
+      updateUserInput.email,
+      updateUserInput.phone,
       `${user.firstname} ${user.lastname}`,
     );
 

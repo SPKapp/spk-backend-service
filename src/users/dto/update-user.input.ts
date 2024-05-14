@@ -9,7 +9,4 @@ export class UpdateUserInput extends PartialType(
   @Field(() => ID)
   @Transform(({ value }) => Number(value))
   id: number;
-
-  @Field({ nullable: true })
-  newTeam?: boolean;
 }

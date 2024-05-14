@@ -11,6 +11,7 @@ import {
   BadRequestException,
   ForbiddenException,
   NotFoundException,
+  NotImplementedException,
 } from '@nestjs/common';
 
 import {
@@ -109,11 +110,8 @@ export class UsersResolver {
    * @param currentUser - The current user details.
    * @param updateUserInput - The input data for updating the user.
    * @returns A Promise that resolves to the updated user.
-   * @throws {ForbiddenException} if the user region ID does not match the Region Manager permissions.
    * @throws {NotFoundException} if the user with the provided id does not exist.
    * @throws {ConflictException} If a user with the provided email or phone already exists.
-   * @throws {BadRequestException} If the user cannot be removed because they are the last member of the team.
-   * @throws {BadRequestException} if the team with the provided id does not exist.
    */
   @FirebaseAuth(Role.Admin, Role.RegionManager)
   @Mutation(() => User)
@@ -121,9 +119,13 @@ export class UsersResolver {
     @CurrentUser() currentUser: UserDetails,
     @Args('updateUserInput') updateUserInput: UpdateUserInput,
   ) {
-    await this.checkRegionManagerPermissions(currentUser, updateUserInput.id);
-
-    return await this.usersService.update(updateUserInput.id, updateUserInput);
+    return await this.usersService.update(
+      updateUserInput.id,
+      updateUserInput,
+      currentUser.checkRole(Role.Admin)
+        ? undefined
+        : currentUser.managerRegions,
+    );
   }
 
   /**
@@ -142,9 +144,8 @@ export class UsersResolver {
     @CurrentUser() currentUser: UserDetails,
     @Args('id', { type: () => ID }) idArg: string,
   ) {
+    throw new NotImplementedException('This method is not implemented yet.');
     const id = Number(idArg);
-
-    await this.checkRegionManagerPermissions(currentUser, id);
 
     return { id: await this.usersService.remove(id) };
   }
@@ -174,41 +175,10 @@ export class UsersResolver {
     @CurrentUser() currentUser: UserDetails,
     @Args('updateUserInput') updateProfileInput: UpdateProfileInput,
   ): Promise<User> {
-    const userToUpdate = await this.usersService.findOneByUid(currentUser.uid);
-
-    return await this.usersService.update(userToUpdate.id, {
+    return await this.usersService.update(currentUser.id, {
       ...updateProfileInput,
-      id: userToUpdate.id,
+      id: currentUser.id,
     });
-  }
-
-  /**
-   * Checks if the current user has permissions to manage user with specyfied ID.
-   * @param user - The Current user details.
-   * @param userId - The ID of the user for manage.
-   * @throws {ForbiddenException} if the user region ID does not match the Region Manager permissions.
-   */
-  private async checkRegionManagerPermissions(
-    user: UserDetails,
-    userId: number,
-  ) {
-    if (!user.checkRole(Role.Admin)) {
-      console.log(`TODO: Refactor this ${user} ${userId}`);
-      // TODO: Refactor this
-      // await this.authService.checkRegionManagerPermissions(
-      //   user,
-      //   async () => {
-      //     const userToCheck = await this.usersService.findOne(userId);
-      //     if (!user) {
-      //       throw new ForbiddenException(
-      //         'User does not belong to the Region Manager permissions.',
-      //       );
-      //     }
-      //     return userToCheck.team.region.id;
-      //   },
-      //   'User does not belong to the Region Manager permissions.',
-      // );
-    }
   }
 
   @ResolveField(() => [Role], {

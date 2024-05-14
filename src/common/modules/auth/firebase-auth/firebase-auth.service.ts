@@ -98,19 +98,49 @@ export class FirebaseAuthService {
    */
   async updateUser(
     uid: string,
-    email: string,
-    phoneNumber: string,
-    displayName: string,
+    email?: string,
+    phoneNumber?: string,
+    displayName?: string,
   ): Promise<void> {
-    try {
-      await this.firebaseService.auth.updateUser(uid, {
-        email,
-        phoneNumber,
-        displayName,
-      });
-    } catch (err) {
-      this.logger.error(err);
-      throw err;
+    const user = await this.firebaseService.auth.getUser(uid);
+
+    email = email != user.email ? email : undefined;
+    phoneNumber = phoneNumber != user.phoneNumber ? phoneNumber : undefined;
+    displayName = displayName != user.displayName ? displayName : undefined;
+
+    await this.firebaseService.auth.updateUser(uid, {
+      phoneNumber,
+      displayName,
+    });
+
+    if (email) {
+      try {
+        await this.mailerService.sendMail({
+          to: email,
+          subject: `Zmiana adresu email w aplikacji ${this.commonConfig.appName}`,
+          template: 'change-email',
+          context: {
+            name: displayName,
+            appName: this.commonConfig.appName,
+            link: await this.firebaseService.auth.generateVerifyAndChangeEmailLink(
+              user.email,
+              email,
+              {
+                // TODO: Implement Redirect
+                url: 'http://localhost:3000',
+              },
+            ),
+          },
+        });
+      } catch (err) {
+        // Rollback changes
+        console.log(user);
+        await this.firebaseService.auth.updateUser(uid, {
+          phoneNumber: user.phoneNumber,
+          displayName: user.displayName,
+        });
+        throw err;
+      }
     }
   }
 
