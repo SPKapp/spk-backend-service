@@ -10,6 +10,7 @@ import {
 
 import { RabbitGroupsService } from './rabbit-groups.service';
 import { RabbitGroup } from '../entities';
+import { UpdateRabbitGroupInput } from '../dto';
 
 @Resolver(() => RabbitGroup)
 export class RabbitGroupsResolver {
@@ -36,16 +37,12 @@ export class RabbitGroupsResolver {
   ): Promise<RabbitGroup> {
     const id = Number(idArg);
 
-    const isAdmin = currentUser.checkRole(Role.Admin);
-    const regional =
-      !isAdmin &&
-      currentUser.checkRole([Role.RegionManager, Role.RegionObserver]);
-    const volunteer = !isAdmin && !regional;
+    const filters = this.buildFilters(currentUser);
 
     const rabbitGroup = await this.rabbitGroupsService.findOne(
       id,
-      regional ? currentUser.regions : undefined,
-      volunteer ? [currentUser.teamId] : undefined,
+      filters.regionsIds,
+      filters.teamsIds,
     );
 
     if (!rabbitGroup) {
@@ -53,6 +50,40 @@ export class RabbitGroupsResolver {
     }
 
     return rabbitGroup;
+  }
+
+  @FirebaseAuth(
+    Role.Admin,
+    Role.RegionManager,
+    Role.RegionObserver,
+    Role.Volunteer,
+  )
+  @Mutation(() => RabbitGroup)
+  async updateRabbitGroup(
+    @CurrentUser() currentUser: UserDetails,
+    @Args('updateDto') updateDto: UpdateRabbitGroupInput,
+  ): Promise<RabbitGroup> {
+    return await this.rabbitGroupsService.update(
+      updateDto.id,
+      updateDto,
+      this.buildFilters(currentUser),
+    );
+  }
+
+  private buildFilters(currentUser: UserDetails): {
+    regionsIds?: number[];
+    teamsIds?: number[];
+  } {
+    const isAdmin = currentUser.checkRole(Role.Admin);
+    const regional =
+      !isAdmin &&
+      currentUser.checkRole([Role.RegionManager, Role.RegionObserver]);
+    const volunteer = !isAdmin && !regional;
+
+    return {
+      regionsIds: regional ? currentUser.regions : undefined,
+      teamsIds: volunteer ? [currentUser.teamId] : undefined,
+    };
   }
 
   /**

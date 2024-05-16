@@ -91,7 +91,6 @@ export class PermissionsResolver {
         }
 
         if (!currentUser.checkRegionManager(regionId)) {
-          console.log('currentUser.managerRegions', currentUser.managerRegions);
           throw new ForbiddenException(
             "User doesn't have permissions to add the role in this region.",
           );

@@ -1,9 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  BadRequestException,
-  NotFoundException,
-  NotImplementedException,
-} from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ILike, In } from 'typeorm';
 
 import { RabbitGroup } from '../entities';
@@ -351,15 +347,37 @@ describe('RabbitGroupsService', () => {
   });
 
   describe('update', () => {
+    const updateDto = { id: 1, adoptionDescription: 'description' };
+
     it('should be defined', () => {
       expect(service.update).toBeDefined();
     });
 
-    it('should throw a NotImplementedException', () => {
-      expect(() => service.update(1)).toThrow(
-        new NotImplementedException(
-          'For now, is nothing to update, in future fields will be added',
-        ),
+    it('should update a rabbit group', async () => {
+      jest
+        .spyOn(rabbitGroupRepository, 'findOneBy')
+        .mockResolvedValue(rabbitGroups[0]);
+
+      await expect(service.update(1, updateDto)).resolves.toEqual(
+        rabbitGroups[0],
+      );
+
+      expect(rabbitGroupRepository.findOneBy).toHaveBeenCalledWith({
+        id: 1,
+        region: { id: undefined },
+        team: { id: undefined },
+      });
+      expect(rabbitGroupRepository.save).toHaveBeenCalledWith({
+        ...rabbitGroups[0],
+        adoptionDescription: 'description',
+      });
+    });
+
+    it('should throw an error if the rabbit group is not found', async () => {
+      jest.spyOn(rabbitGroupRepository, 'findOneBy').mockResolvedValue(null);
+
+      await expect(service.update(1, updateDto)).rejects.toThrow(
+        new NotFoundException(`Rabbit Group not found`),
       );
     });
   });

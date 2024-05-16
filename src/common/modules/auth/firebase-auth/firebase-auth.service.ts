@@ -134,7 +134,6 @@ export class FirebaseAuthService {
         });
       } catch (err) {
         // Rollback changes
-        console.log(user);
         await this.firebaseService.auth.updateUser(uid, {
           phoneNumber: user.phoneNumber,
           displayName: user.displayName,

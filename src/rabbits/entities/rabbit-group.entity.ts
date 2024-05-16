@@ -30,6 +30,23 @@ export class RabbitGroup {
   id: number;
 
   @Column({
+    default: '',
+  })
+  @Field({
+    description: 'Description of the group for preparation for adoption',
+  })
+  adoptionDescription?: string;
+
+  @Column({
+    nullable: true,
+  })
+  @Field({
+    nullable: true,
+    description: 'The date the group was adopted',
+  })
+  adoptionDate?: Date;
+
+  @Column({
     type: 'enum',
     enum: RabbitGroupStatus,
     default: RabbitGroupStatus.Submitted,

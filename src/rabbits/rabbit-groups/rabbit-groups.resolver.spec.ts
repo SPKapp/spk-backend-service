@@ -36,6 +36,7 @@ describe('RabbitGroupsResolver', () => {
           provide: RabbitGroupsService,
           useValue: {
             findOne: jest.fn(() => rabbitGroup),
+            update: jest.fn(() => rabbitGroup),
             updateTeam: jest.fn(() => rabbitGroup),
           },
         },
@@ -141,6 +142,74 @@ describe('RabbitGroupsResolver', () => {
         rabbitGroup.id,
         undefined,
         [userVolunteer.teamId],
+      );
+    });
+  });
+
+  describe('updateRabbitGroup', () => {
+    it('should be defined', () => {
+      expect(resolver.updateRabbitGroup).toBeDefined();
+    });
+
+    it('should return a rabbit group as Admin', async () => {
+      const updateDto = { id: rabbitGroup.id };
+
+      await expect(
+        resolver.updateRabbitGroup(userAdmin, updateDto),
+      ).resolves.toEqual(rabbitGroup);
+
+      expect(rabbitGroupsService.update).toHaveBeenCalledWith(
+        updateDto.id,
+        updateDto,
+        { regionsIds: undefined, teamsIds: undefined },
+      );
+    });
+
+    it('should return a rabbit group as Region Manager', async () => {
+      const updateDto = { id: rabbitGroup.id };
+
+      await expect(
+        resolver.updateRabbitGroup(userRegionManager2Regions, updateDto),
+      ).resolves.toEqual(rabbitGroup);
+
+      expect(rabbitGroupsService.update).toHaveBeenCalledWith(
+        updateDto.id,
+        updateDto,
+        {
+          regionsIds: userRegionManager2Regions.managerRegions,
+          teamsIds: undefined,
+        },
+      );
+    });
+
+    it('should return a rabbit group as Region Observer', async () => {
+      const updateDto = { id: rabbitGroup.id };
+
+      await expect(
+        resolver.updateRabbitGroup(userRegionObserver, updateDto),
+      ).resolves.toEqual(rabbitGroup);
+
+      expect(rabbitGroupsService.update).toHaveBeenCalledWith(
+        updateDto.id,
+        updateDto,
+        {
+          regionsIds: userRegionObserver.observerRegions,
+          teamsIds: undefined,
+        },
+      );
+    });
+
+    it('should return a rabbit group as Volunteer', async () => {
+      const updateDto = { id: rabbitGroup.id };
+
+      await expect(
+        resolver.updateRabbitGroup(userVolunteer, updateDto),
+      ).resolves.toEqual(rabbitGroup);
+
+      expect(rabbitGroupsService.update).toHaveBeenCalledWith(
+        updateDto.id,
+        updateDto,
+        { regionsIds: undefined, teamsIds: [userVolunteer.teamId] },
       );
     });
   });

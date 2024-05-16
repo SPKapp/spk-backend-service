@@ -3,13 +3,16 @@ import {
   Injectable,
   Logger,
   NotFoundException,
-  NotImplementedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindManyOptions, ILike, In, Repository } from 'typeorm';
 
 import { RabbitGroup } from '../entities';
-import { RabbitGroupsFilters, PaginatedRabbitGroups } from '../dto';
+import {
+  RabbitGroupsFilters,
+  PaginatedRabbitGroups,
+  UpdateRabbitGroupInput,
+} from '../dto';
 
 import { TeamsService } from '../../users/teams/teams.service';
 
@@ -114,11 +117,30 @@ export class RabbitGroupsService {
     });
   }
 
-  update(id: number) {
-    throw new NotImplementedException(
-      'For now, is nothing to update, in future fields will be added',
-    );
-    return `This action updates a #${id} rabbitGroup`;
+  async update(
+    id: number,
+    updateDto: UpdateRabbitGroupInput,
+    filters: {
+      regionsIds?: number[];
+      teamsIds?: number[];
+    } = {},
+  ) {
+    const rabbitGroup = await this.rabbitGroupRespository.findOneBy({
+      id,
+      region: { id: filters.regionsIds ? In(filters.regionsIds) : undefined },
+      team: { id: filters.teamsIds ? In(filters.teamsIds) : undefined },
+    });
+    if (!rabbitGroup) {
+      throw new NotFoundException('Rabbit Group not found');
+    }
+
+    rabbitGroup.adoptionDescription =
+      updateDto.adoptionDescription ?? rabbitGroup.adoptionDescription;
+
+    rabbitGroup.adoptionDate =
+      updateDto.adoptionDate ?? rabbitGroup.adoptionDate;
+
+    return await this.rabbitGroupRespository.save(rabbitGroup);
   }
 
   /**
