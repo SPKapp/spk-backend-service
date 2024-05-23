@@ -16,7 +16,7 @@ Każdy **_królik_** jest przypisany do **_grupy królików_**.
 
 Wyróżniamy następujące **_statusy królika_**:
 
-- **_Deceased_** - królik nie żyje, status archiwalny
+- **_Deceased_** - królik nie żyje, status archiwalny,
 - **_Adopted_** - królik został adoptowany, status archiwalny
 - **_Adoptable_** - królik jest gotowy do adopcji
 - **_In Treatment_** - królik jest w trakcie leczenia, kastracji itp. (nie jest gotowy do adopcji)
@@ -31,11 +31,17 @@ Domyślnie **_grupa królików_** jest tworzona w momencie dodania nowego **_kr�
 **_Grupa królików_** ma swój **_status grupy_**, który jest ustawiany na podstawie statusów **_królików_** wchodzących w jej skład.\
 Wyszczególniamy **_statusy grupy_**:
 
-- **_Deceased_** - grupa królików została uśpiona - grupa staje się archiwalna, wszystkie króliki w grupie mają status **_Deceased_**, jeśli jeden z królików w grupie ma status **_Deceased_** to powinien on zostać przypisany do osobnej grupy, tak aby zachować spójność danych
-- **_Adopted_** - grupa królików została adoptowana - grupa staje się archiwalna, wszystkie króliki w grupie mają status **_Adopted_**
+- **_Deceased_** - grupa królików została uśpiona - grupa staje się archiwalna, wszystkie króliki w grupie mają status **_Deceased_**, Uwaga: jeśli jeden z królików w grupie ma status **_Deceased_** to wszystkie króliki w grupie powinny mieć status **_Deceased_**
+- **_Adopted_** - grupa królików została adoptowana - grupa staje się archiwalna, wszystkie króliki w grupie mają status **_Adopted_**, Uwaga: jeśli jeden z królików w grupie ma status **_Adopted_** to wszystkie króliki w grupie powinny mieć status **_Adopted_**
 - **_Adoptable_** - grupa królików jest gotowa do adopcji - wszystkie króliki w grupie mają status **_Adoptable_**
 - **_In Treatment_** - grupa królików jest w trakcie leczenia, kastracji itp. (nie jest gotowa do adopcji) - przynajmniej jeden królik w grupie ma status **_In Treatment_**
 - **_Incoming_** - grupa królików oczekuje na dostarczenie do stowarzyszenia - wszystkie króliki w grupie mają status **_Incoming_**, jest to status początkowy dla grupy królików, w tym statusie grupa nie musi mieć przypisanego **_Zespołu_**
+
+Dozwolone kombinacje różnych statusów królików wchodzących w skład **_grupy królików_**:
+
+- **_Adoptable_**, **_InTreatment_**
+- **_Adoptable_**, **_InTreatment_**, **_Incoming_**
+- **_InTreatment_**, **_Incoming_**
 
 Uwaga: każda zmiana **_statusu królika_** wchodzącego w skład **_grupy królików_** powinna przekalkulować **_status grupy_**.
 

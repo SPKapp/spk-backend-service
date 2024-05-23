@@ -42,3 +42,4 @@ Patrz [firebase.config.ts](src/config/firebase.config.ts)
 - `GOOGLE_APPLICATION_CREDENTIALS` - plik konfiguracyjny firebase
 - `FIREBASE_SERVICE_ACCOUNT` - zmienna zawierająca zawatość pliku konfiguracyjnego firebase
 - `FIREBASE_EMULATORS_PROJECT_ID` - deweloperskie, nazwa projektID
+- `FIREBASE_AUTH_EMULATOR_HOST` -deweloperskie, host emulatora firebase auth

@@ -12,7 +12,7 @@ import { DataSource, FindManyOptions, In, Not, Repository } from 'typeorm';
 import { RegionsService } from '../../common/modules/regions';
 import { Team, User } from '../entities';
 import { PaginatedTeams, FindAllTeamsArgs } from '../dto';
-import { RabbitGroup, RabbitGroupStatus } from '../../rabbits/entities';
+import { RabbitGroup, RabbitGroupStatusHelper } from '../../rabbits/entities';
 
 @Injectable()
 export class TeamsService {
@@ -147,19 +147,19 @@ export class TeamsService {
 
     const activeGroups = await this.dataSource.manager.countBy(RabbitGroup, {
       team: { id: team.id },
-      status: Not(RabbitGroupStatus.Inactive),
+      status: Not(In(RabbitGroupStatusHelper.Active)),
     });
 
     if (activeGroups !== 0) {
       throw new BadRequestException('Team cannot be deactivated');
     }
 
-    const inactiveGroups = await this.dataSource.manager.countBy(RabbitGroup, {
+    const archivalGroups = await this.dataSource.manager.countBy(RabbitGroup, {
       team: { id: team.id },
-      status: RabbitGroupStatus.Inactive,
+      status: Not(In(RabbitGroupStatusHelper.Archival)),
     });
 
-    if (inactiveGroups !== 0 || (await team.users).length !== 0) {
+    if (archivalGroups !== 0 || (await team.users).length !== 0) {
       team.active = false;
       await this.teamRepository.save(team);
 

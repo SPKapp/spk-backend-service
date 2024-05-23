@@ -49,7 +49,7 @@ export class RabbitGroup {
   @Column({
     type: 'enum',
     enum: RabbitGroupStatus,
-    default: RabbitGroupStatus.Submitted,
+    default: RabbitGroupStatus.Incoming,
   })
   @Field(() => RabbitGroupStatus)
   status: RabbitGroupStatus;

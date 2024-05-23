@@ -1,23 +1,20 @@
 import { registerEnumType } from '@nestjs/graphql';
 
-export enum RabbitGroupStatus {
-  Submitted = 'Submitted',
-  Active = 'Active',
-  Inactive = 'Inactive',
-}
+import {
+  RabbitStatus,
+  RabbitStatusHelper,
+  valuesMap,
+} from './rabbit-status.enum';
 
-registerEnumType(RabbitGroupStatus, {
+// We are re-exporting with a different name to make it more clear
+// and make it possible to add more statuses in the future
+export {
+  RabbitStatus as RabbitGroupStatus,
+  RabbitStatusHelper as RabbitGroupStatusHelper,
+};
+
+registerEnumType(RabbitStatus, {
   name: 'RabbitGroupStatus',
   description: 'Status of the rabbit group',
-  valuesMap: {
-    Submitted: {
-      description: 'The rabbit group has been submitted, but not yet received',
-    },
-    Active: {
-      description: 'The rabbit group is currently in the foundation',
-    },
-    Inactive: {
-      description: 'The rabbit group is no longer in the foundation',
-    },
-  },
+  valuesMap: valuesMap,
 });

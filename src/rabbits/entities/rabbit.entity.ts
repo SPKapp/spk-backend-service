@@ -152,7 +152,7 @@ export class Rabbit {
   @Column({
     type: 'enum',
     enum: RabbitStatus,
-    default: RabbitStatus.Submitted,
+    default: RabbitStatus.Incoming,
   })
   @Field(() => RabbitStatus)
   status?: RabbitStatus;
