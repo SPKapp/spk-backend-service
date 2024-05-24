@@ -107,13 +107,17 @@ export class RabbitsSubscriber implements EntitySubscriberInterface<Rabbit> {
       if (rabbits.every((rabbit) => rabbit.status === RabbitStatus.Deceased)) {
         return RabbitGroupStatus.Deceased;
       }
-      throw new ConflictException('All rabbits in the group must be deceased');
+      throw new ConflictException('All rabbits in the group must be deceased', {
+        description: 'not-all-deceased',
+      });
     }
     if (rabbits.some((rabbit) => rabbit.status === RabbitStatus.Adopted)) {
       if (rabbits.every((rabbit) => rabbit.status === RabbitStatus.Adopted)) {
         return RabbitGroupStatus.Adopted;
       }
-      throw new ConflictException('All rabbits in the group must be adopted');
+      throw new ConflictException('All rabbits in the group must be adopted', {
+        description: 'not-all-adopted',
+      });
     }
     if (rabbits.every((rabbit) => rabbit.status === RabbitStatus.Adoptable)) {
       return RabbitGroupStatus.Adoptable;
@@ -125,6 +129,8 @@ export class RabbitsSubscriber implements EntitySubscriberInterface<Rabbit> {
       return RabbitGroupStatus.Incoming;
     }
 
-    throw new ConflictException('Cannot determine the group status');
+    throw new ConflictException('Cannot determine the group status', {
+      description: 'unavailable-group-status',
+    });
   }
 }

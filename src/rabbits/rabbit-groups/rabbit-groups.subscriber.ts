@@ -1,7 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { DataSource, EventSubscriber, UpdateEvent } from 'typeorm';
 
-import { Rabbit, RabbitGroup } from '../entities';
+import { Rabbit, RabbitGroup, RabbitGroupStatus } from '../entities';
 
 @EventSubscriber()
 export class RabbitGroupsSubscriber {
@@ -13,6 +13,23 @@ export class RabbitGroupsSubscriber {
 
   listenTo() {
     return RabbitGroup;
+  }
+
+  /**
+   * Set the adoption date when the rabbit group is adopted and remove it when it is not
+   */
+  async beforeUpdate(event: UpdateEvent<RabbitGroup>): Promise<void> {
+    if (event.entity.status === RabbitGroupStatus.Adopted) {
+      if (event.entity.adoptionDate === null) {
+        this.logger.debug('Setting adoptedAt date');
+        event.entity.adoptionDate = new Date();
+      }
+    } else {
+      if (event.entity.adoptionDate !== null) {
+        this.logger.debug('Removing adoptedAt date');
+        event.entity.adoptionDate = null;
+      }
+    }
   }
 
   /**

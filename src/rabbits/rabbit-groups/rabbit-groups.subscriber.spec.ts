@@ -20,6 +20,63 @@ describe('RabbitGroupsSubscriber', () => {
     });
   });
 
+  describe('beforeUpdate', () => {
+    let event: Mock<UpdateEvent<RabbitGroup>>;
+    let entity: RabbitGroup;
+
+    beforeEach(() => {
+      event = mock<UpdateEvent<RabbitGroup>>();
+    });
+
+    it('should set adoption date when status is adopted', async () => {
+      event.entity = entity = new RabbitGroup({
+        id: 1,
+        status: RabbitGroupStatus.Adopted,
+        adoptionDate: null,
+      });
+
+      await subscriber.beforeUpdate(event);
+
+      expect(entity.adoptionDate).not.toBeNull();
+    });
+
+    it('should skip setting adoption date when status is adopted and date is set', async () => {
+      event.entity = entity = new RabbitGroup({
+        id: 1,
+        status: RabbitGroupStatus.Adopted,
+        adoptionDate: new Date(),
+      });
+
+      await subscriber.beforeUpdate(event);
+
+      expect(entity.adoptionDate).not.toBeNull();
+    });
+
+    it('should remove adoption date when status is not adopted', async () => {
+      event.entity = entity = new RabbitGroup({
+        id: 1,
+        status: RabbitGroupStatus.Adoptable,
+        adoptionDate: new Date(),
+      });
+
+      await subscriber.beforeUpdate(event);
+
+      expect(entity.adoptionDate).toBeNull();
+    });
+
+    it('should skip removing adoption date when status is not adopted and date is not set', async () => {
+      event.entity = entity = new RabbitGroup({
+        id: 1,
+        status: RabbitGroupStatus.Adoptable,
+        adoptionDate: null,
+      });
+
+      await subscriber.beforeUpdate(event);
+
+      expect(entity.adoptionDate).toBeNull();
+    });
+  });
+
   describe('afterUpdate', () => {
     let event: Mock<UpdateEvent<RabbitGroup>>;
     let manager: Mock<EntityManager>;

@@ -47,6 +47,8 @@ Uwaga: każda zmiana **_statusu królika_** wchodzącego w skład **_grupy król
 
 Każda **_grupa królików_** przez większość cyklu życia (oprócz początkowego **_status grupy_** -> **_Incoming_**) powinna mieć przypisany **_Zespół_**.
 
+Każda **_grupa królików_** powinna mieć ustawioną **_datę adopcji_** tylko wtedy, gdy **_status grupy_** jest **_Adopted_**, jeśli **_status grupy_** zostanie zmieniony na **_Adopted_** to jeśli **_data adopcji_** nie jest ustawiona to zostanie ustawiona na teraźniejszą datę, jeśli **_data adopcji_** jest ustawiona na przyszłą datę to **_status grupy_** zmieni się na **_Adoptable_**, a we wskazanym dniu zostanie wysłane powiadomienie z pytaniem czy grupa została adoptowana, w przypadku braku odpowiedzi **_status grupy_** zmieni się na **_Adopted_**, po 3 dniach od wysłania powiadomienia.
+
 Grupa zawiera także informacje wspólne dla wszystkich królików wchodzących w jej skład odnośnie adopcji.
 
 ### Zespół (Team)
