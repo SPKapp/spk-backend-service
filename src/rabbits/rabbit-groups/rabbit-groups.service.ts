@@ -140,6 +140,8 @@ export class RabbitGroupsService {
     rabbitGroup.adoptionDate =
       updateDto.adoptionDate ?? rabbitGroup.adoptionDate;
 
+    rabbitGroup.status = updateDto.status ?? rabbitGroup.status;
+
     return await this.rabbitGroupRespository.save(rabbitGroup);
   }
 

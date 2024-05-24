@@ -123,6 +123,7 @@ export class RabbitsService {
       updateRabbitInput.confirmedBirthDate ?? rabbit.confirmedBirthDate;
     rabbit.admissionDate =
       updateRabbitInput.admissionDate ?? rabbit.admissionDate;
+    rabbit.status = updateRabbitInput.status ?? rabbit.status;
 
     if (privileged) {
       rabbit.name = updateRabbitInput.name ?? rabbit.name;

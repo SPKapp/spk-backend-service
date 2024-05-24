@@ -8,7 +8,7 @@ import { TeamsService } from './teams.service';
 
 import { Region } from '../../common/modules/regions/entities';
 import { Team, User } from '../entities';
-import { RabbitGroup, RabbitGroupStatus } from '../../rabbits/entities';
+import { RabbitGroup, RabbitGroupStatusHelper } from '../../rabbits/entities';
 
 describe('TeamsService', () => {
   let service: TeamsService;
@@ -260,12 +260,18 @@ describe('TeamsService', () => {
       expect(dataSource.manager.countBy).toHaveBeenNthCalledWith(
         2,
         RabbitGroup,
-        { team: { id: team.id }, status: Not(RabbitGroupStatus.Inactive) },
+        {
+          team: { id: team.id },
+          status: Not(In(RabbitGroupStatusHelper.Active)),
+        },
       );
       expect(dataSource.manager.countBy).toHaveBeenNthCalledWith(
         3,
         RabbitGroup,
-        { team: { id: team.id }, status: RabbitGroupStatus.Inactive },
+        {
+          team: { id: team.id },
+          status: Not(In(RabbitGroupStatusHelper.Archival)),
+        },
       );
 
       expect(teamRepository.save).not.toHaveBeenCalled();
@@ -291,12 +297,18 @@ describe('TeamsService', () => {
       expect(dataSource.manager.countBy).toHaveBeenNthCalledWith(
         2,
         RabbitGroup,
-        { team: { id: team.id }, status: Not(RabbitGroupStatus.Inactive) },
+        {
+          team: { id: team.id },
+          status: Not(In(RabbitGroupStatusHelper.Active)),
+        },
       );
       expect(dataSource.manager.countBy).toHaveBeenNthCalledWith(
         3,
         RabbitGroup,
-        { team: { id: team.id }, status: RabbitGroupStatus.Inactive },
+        {
+          team: { id: team.id },
+          status: Not(In(RabbitGroupStatusHelper.Archival)),
+        },
       );
 
       expect(teamRepository.save).toHaveBeenCalledWith({
@@ -331,7 +343,10 @@ describe('TeamsService', () => {
       expect(dataSource.manager.countBy).toHaveBeenNthCalledWith(
         2,
         RabbitGroup,
-        { team: { id: team.id }, status: Not(RabbitGroupStatus.Inactive) },
+        {
+          team: { id: team.id },
+          status: Not(In(RabbitGroupStatusHelper.Active)),
+        },
       );
       expect(dataSource.manager.countBy).toHaveBeenCalledTimes(2);
 
@@ -353,12 +368,18 @@ describe('TeamsService', () => {
       expect(dataSource.manager.countBy).toHaveBeenNthCalledWith(
         2,
         RabbitGroup,
-        { team: { id: team.id }, status: Not(RabbitGroupStatus.Inactive) },
+        {
+          team: { id: team.id },
+          status: Not(In(RabbitGroupStatusHelper.Active)),
+        },
       );
       expect(dataSource.manager.countBy).toHaveBeenNthCalledWith(
         3,
         RabbitGroup,
-        { team: { id: team.id }, status: RabbitGroupStatus.Inactive },
+        {
+          team: { id: team.id },
+          status: Not(In(RabbitGroupStatusHelper.Archival)),
+        },
       );
 
       expect(teamRepository.save).toHaveBeenCalledWith({

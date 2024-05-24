@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ILike, In } from 'typeorm';
 
-import { RabbitGroup } from '../entities';
+import { RabbitGroup, RabbitGroupStatus } from '../entities';
 import { Team } from '../../users/entities';
 import { Region } from '../../common/modules/regions/entities';
 
@@ -347,7 +347,11 @@ describe('RabbitGroupsService', () => {
   });
 
   describe('update', () => {
-    const updateDto = { id: 1, adoptionDescription: 'description' };
+    const updateDto = {
+      id: 1,
+      adoptionDescription: 'description',
+      status: RabbitGroupStatus.InTreatment,
+    };
 
     it('should be defined', () => {
       expect(service.update).toBeDefined();
@@ -370,6 +374,7 @@ describe('RabbitGroupsService', () => {
       expect(rabbitGroupRepository.save).toHaveBeenCalledWith({
         ...rabbitGroups[0],
         adoptionDescription: 'description',
+        status: RabbitGroupStatus.InTreatment,
       });
     });
 

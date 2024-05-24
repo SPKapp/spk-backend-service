@@ -2,7 +2,7 @@ import { InputType, Field, PartialType, ID, OmitType } from '@nestjs/graphql';
 import { Transform } from 'class-transformer';
 
 import { CreateRabbitInput } from './create-rabbit.input';
-import { AdmissionType, Gender } from '../entities';
+import { AdmissionType, Gender, RabbitStatus } from '../entities';
 
 @InputType({
   description:
@@ -23,4 +23,7 @@ export class UpdateRabbitInput extends PartialType(
 
   @Field(() => AdmissionType, { nullable: true })
   admissionType?: AdmissionType;
+
+  @Field(() => RabbitStatus, { nullable: true })
+  status?: RabbitStatus;
 }
