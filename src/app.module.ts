@@ -3,6 +3,7 @@ import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { ConfigModule, ConfigType } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ScheduleModule } from '@nestjs/schedule';
 import { DataSource } from 'typeorm';
 import { addTransactionalDataSource } from 'typeorm-transactional';
 import { MailerModule } from '@nestjs-modules/mailer';
@@ -13,6 +14,7 @@ import { AuthModule } from './common/modules/auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { RabbitsModule } from './rabbits/rabbits.module';
 import { RabbitNotesModule } from './rabbit-notes/rabbit-notes.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 import { DatabaseConfig, EmailConfig, CommonConfig } from './config';
 
@@ -46,6 +48,7 @@ import { DatabaseConfig, EmailConfig, CommonConfig } from './config';
       inject: [EmailConfig.KEY],
       useFactory: (config: ConfigType<typeof EmailConfig>) => config,
     }),
+    ScheduleModule.forRoot(),
 
     RegionsModule,
     FirebaseModule,
@@ -53,6 +56,7 @@ import { DatabaseConfig, EmailConfig, CommonConfig } from './config';
     UsersModule,
     RabbitsModule,
     RabbitNotesModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}

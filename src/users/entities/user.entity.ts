@@ -13,6 +13,7 @@ import { RabbitNote } from '../../rabbit-notes/entities';
 import { Region } from '../../common/modules/regions/entities';
 import { RoleEntity } from './role.entity';
 import { TeamHistory } from './team-history.entity';
+import { FcmToken } from '../../notifications/entities';
 
 /** Represents a user in the system.
  *
@@ -78,4 +79,7 @@ export class User {
 
   @OneToMany(() => TeamHistory, (teamHistory) => teamHistory.user)
   teamsHistory: Promise<TeamHistory[]>;
+
+  @OneToMany(() => FcmToken, (fcmToken) => fcmToken.user)
+  fcmTokens: Promise<FcmToken[]>;
 }
