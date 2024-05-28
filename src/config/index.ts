@@ -1,7 +1,7 @@
 import emailConfig from './email.config';
 import commonConfig from './common.config';
 import firebaseConfig from './firebase.config';
-import notificationConfig from './notification.config';
+import notificationConfig from './notifications.config';
 
 export { emailConfig as EmailConfig };
 export { commonConfig as CommonConfig };

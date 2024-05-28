@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 
 import { FirebaseService, TokenMessage } from '../common/modules/firebase';
-import { CommonConfig } from '../config';
+import { NotificationConfig } from '../config';
 
 import {
   Notification,
@@ -23,8 +23,8 @@ export class NotificationsService {
   constructor(
     private readonly tokensService: TokensService,
     private readonly firebaseService: FirebaseService,
-    @Inject(CommonConfig.KEY)
-    private readonly config: ConfigType<typeof CommonConfig>,
+    @Inject(NotificationConfig.KEY)
+    private readonly config: ConfigType<typeof NotificationConfig>,
     private readonly usersService: UsersService,
   ) {}
 
@@ -148,10 +148,10 @@ export class NotificationsService {
       },
       webpush: {
         fcmOptions: {
-          link: 'https://spkdev.galaktyka.me',
+          link: this.config.webLink,
         },
         notification: {
-          // TODO: Add icon   icon: '',
+          icon: this.config.iconLink,
           requireInteraction: true,
         },
       },

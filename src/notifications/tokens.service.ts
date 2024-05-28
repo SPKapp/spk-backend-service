@@ -79,7 +79,7 @@ export class TokensService {
   @Cron(CronExpression.EVERY_DAY_AT_1AM)
   async removeOldTokens(): Promise<void> {
     const cutOffDate = new Date();
-    cutOffDate.setDate(cutOffDate.getDate() - this.config.cutOffDays);
+    cutOffDate.setDate(cutOffDate.getDate() - this.config.removeTokenDays);
 
     const deleted = await this.tokenRepository.delete({
       updatedAt: LessThan(cutOffDate),

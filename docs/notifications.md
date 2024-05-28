@@ -33,7 +33,7 @@ Wykorzystany do tego celu jest system [Firebase Cloud Messaging](https://firebas
 
 ### Powiadomienie niezdefiniowanego typu
 
-- Kategoria: undefined
+- Kategoria: `undefined`
 - Typ: push
 - Przypadek użycia: Wysyłka niestandardowego powiadomienia
 - UWAGA:
@@ -44,7 +44,7 @@ Wykorzystany do tego celu jest system [Firebase Cloud Messaging](https://firebas
 
 ### Powiadomienie o przypisaniu **_Grupy Królików_** do **_Wolontariusza_**
 
-- Kategoria: groupAssigned
+- Kategoria: `groupAssigned`
 - Typ: email, push
 - Przypadek użycia: Przypisanie grupy do wolontariusza
 - Do:
@@ -54,7 +54,7 @@ Wykorzystany do tego celu jest system [Firebase Cloud Messaging](https://firebas
 
 ### Powiadomienie o przypisaniu **_Królika_** do grupy przypisanej do **_Wolontariusza_**
 
-- Kategoria: rabbitAssigned
+- Kategoria: `rabbitAssigned`
 - Typ: email, push
 - Przypadek użycia: Przypisanie królika do grupy przypisanej do wolontariusza
 - Do:
@@ -64,7 +64,7 @@ Wykorzystany do tego celu jest system [Firebase Cloud Messaging](https://firebas
 
 ### Powiadomienie o przeniesieniu **_Królika_** do innej grupy tego samego **_Wolontariusza_**
 
-- Kategoria: rabbitMoved
+- Kategoria: `rabbitMoved`
 - Typ: push
 - Przypadek użycia: Przeniesienie królika do innej grupy tego samego wolontariusza
 - Do:
@@ -84,13 +84,15 @@ Wykorzystany do tego celu jest system [Firebase Cloud Messaging](https://firebas
 
 ### Powiadomienie o terminie adopcji **_Grupy Królików_**
 
-- Kategoria: adoptionToConfirm
+- Kategoria: `adoptionToConfirm`
 - Typ: push, (email)
 - Automatycznie usuwane po zakończeniu zdarzenia
 - Przypadek użycia: Gdy minął termin adopcji **_Grupy Królików_**, a status grupy jest inny niż **_Adopted_**
 - Do:
   - wolontariusza przypisanego do królika - codziennie do czasu poprawienia danych
   - manageraRegionu - codziennie, zaczynając od 4 dnia, do czasu poprawienia danych, po 14 dniach dodatkowo email
+- Data:
+  - groupId: id grupy
 
 ### Powiadomienie o wizycie weterynaryjnej
 
