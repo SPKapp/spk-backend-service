@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository, LessThan } from 'typeorm';
+import { Repository, LessThan, In } from 'typeorm';
 
 import { NotificationConfig } from '../config';
 import { TokensService } from './tokens.service';
@@ -32,6 +32,7 @@ describe(TokensService, () => {
         {
           provide: getRepositoryToken(FcmToken),
           useValue: {
+            find: jest.fn(),
             findOneBy: jest.fn(),
             save: jest.fn(),
             delete: jest.fn(),
@@ -55,6 +56,65 @@ describe(TokensService, () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  describe('getTokens', () => {
+    it('should get tokens for a user', async () => {
+      jest.spyOn(tokenRepository, 'find').mockResolvedValue([token, token]);
+
+      await expect(service.getTokens(token.user.id)).resolves.toEqual([
+        token.token,
+        token.token,
+      ]);
+
+      expect(tokenRepository.find).toHaveBeenCalledWith({
+        select: ['token'],
+        loadEagerRelations: false,
+        where: { user: { id: token.user.id } },
+      });
+    });
+
+    it('should return an empty array if no tokens are found', async () => {
+      jest.spyOn(tokenRepository, 'find').mockResolvedValue([]);
+
+      await expect(service.getTokens(token.user.id)).resolves.toEqual([]);
+
+      expect(tokenRepository.find).toHaveBeenCalledWith({
+        select: ['token'],
+        loadEagerRelations: false,
+        where: { user: { id: token.user.id } },
+      });
+    });
+  });
+
+  describe('getTokensForUsers', () => {
+    it('should get tokens for multiple users', async () => {
+      jest.spyOn(tokenRepository, 'find').mockResolvedValue([token, token]);
+
+      await expect(
+        service.getTokensForUsers([token.user.id, token.user.id]),
+      ).resolves.toEqual([token.token, token.token]);
+
+      expect(tokenRepository.find).toHaveBeenCalledWith({
+        select: ['token'],
+        loadEagerRelations: false,
+        where: { user: { id: In([token.user.id, token.user.id]) } },
+      });
+    });
+
+    it('should return an empty array if no tokens are found', async () => {
+      jest.spyOn(tokenRepository, 'find').mockResolvedValue([]);
+
+      await expect(
+        service.getTokensForUsers([token.user.id, token.user.id]),
+      ).resolves.toEqual([]);
+
+      expect(tokenRepository.find).toHaveBeenCalledWith({
+        select: ['token'],
+        loadEagerRelations: false,
+        where: { user: { id: In([token.user.id, token.user.id]) } },
+      });
+    });
   });
 
   describe('update', () => {

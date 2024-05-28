@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigType } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LessThan, Repository } from 'typeorm';
+import { In, LessThan, Repository } from 'typeorm';
 
 import { NotificationConfig } from '../config';
 
@@ -19,6 +19,36 @@ export class TokensService {
     @InjectRepository(FcmToken)
     private readonly tokenRepository: Repository<FcmToken>,
   ) {}
+
+  /**
+   * Get all tokens for a user
+   * @param userId The user ID
+   * @returns An array of tokens
+   */
+  async getTokens(userId: number): Promise<string[]> {
+    const tokens = await this.tokenRepository.find({
+      select: ['token'],
+      loadEagerRelations: false,
+      where: { user: { id: userId } },
+    });
+
+    return tokens.map((token) => token.token);
+  }
+
+  /**
+   * Get all tokens for multiple users
+   * @param userIds The user IDs
+   * @returns An array of tokens
+   */
+  async getTokensForUsers(userIds: number[]): Promise<string[]> {
+    const tokens = await this.tokenRepository.find({
+      select: ['token'],
+      loadEagerRelations: false,
+      where: { user: { id: In(userIds) } },
+    });
+
+    return tokens.map((token) => token.token);
+  }
 
   /**
    * Save a new token or update an existing one

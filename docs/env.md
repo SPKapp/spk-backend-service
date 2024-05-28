@@ -12,6 +12,7 @@ Reszta zmiennych może być w plikach:
 Patrz [common.config.ts](src/config/common.config.ts)
 
 - `APP_NAME` - nazwa aplikacji
+- `DISABLE_PUSH_NOTIFICATIONS` - deweloperskie, jeśli `true` to nie wysyła pushów
 
 ### Database:
 
