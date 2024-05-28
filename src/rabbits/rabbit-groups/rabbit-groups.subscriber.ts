@@ -29,7 +29,7 @@ export class RabbitGroupsSubscriber {
         );
         event.entity.status = RabbitGroupStatus.Adoptable;
       }
-    } else {
+    } else if (event.entity.status !== RabbitGroupStatus.Adoptable) {
       if (event.entity.adoptionDate !== null) {
         this.logger.debug('Removing adoptedAt date');
         event.entity.adoptionDate = null;

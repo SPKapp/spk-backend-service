@@ -82,12 +82,12 @@ Wykorzystany do tego celu jest system [Firebase Cloud Messaging](https://firebas
   - wolontariusza przypisanego do królika - codziennie do czasu poprawienia danych
   - manageraRegionu - codziennie, zaczynając od 4 dnia, do czasu poprawienia danych, po 14 dniach dodatkowo email
 
-### Powiadomienie o terminie adopcji **_Królika_**
+### Powiadomienie o terminie adopcji **_Grupy Królików_**
 
-- Kategoria: rabbitAdoption
+- Kategoria: adoptionToConfirm
 - Typ: push, (email)
 - Automatycznie usuwane po zakończeniu zdarzenia
-- Przypadek użycia: Gdy minął termin adopcji **_Królika_**, a status królika jest inny niż **_Adopted_**
+- Przypadek użycia: Gdy minął termin adopcji **_Grupy Królików_**, a status grupy jest inny niż **_Adopted_**
 - Do:
   - wolontariusza przypisanego do królika - codziennie do czasu poprawienia danych
   - manageraRegionu - codziennie, zaczynając od 4 dnia, do czasu poprawienia danych, po 14 dniach dodatkowo email

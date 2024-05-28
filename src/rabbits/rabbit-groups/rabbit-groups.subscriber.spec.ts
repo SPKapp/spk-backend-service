@@ -52,10 +52,22 @@ describe('RabbitGroupsSubscriber', () => {
       expect(entity.adoptionDate).not.toBeNull();
     });
 
-    it('should remove adoption date when status is not adopted', async () => {
+    it('should not remove adoption date when status is adoptable', async () => {
       event.entity = entity = new RabbitGroup({
         id: 1,
         status: RabbitGroupStatus.Adoptable,
+        adoptionDate: new Date(),
+      });
+
+      await subscriber.beforeUpdate(event);
+
+      expect(entity.adoptionDate).not.toBeNull();
+    });
+
+    it('should remove adoption date when status is not adopted', async () => {
+      event.entity = entity = new RabbitGroup({
+        id: 1,
+        status: RabbitGroupStatus.InTreatment,
         adoptionDate: new Date(),
       });
 

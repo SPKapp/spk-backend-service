@@ -146,11 +146,6 @@ export class NotificationsService {
         title: notification.notification.title,
         body: notification.notification.body,
       },
-      android: {
-        notification: {
-          clickAction: 'FLUTTER_NOTIFICATION_CLICK',
-        },
-      },
       webpush: {
         fcmOptions: {
           link: 'https://spkdev.galaktyka.me',

@@ -149,6 +149,14 @@ export class RabbitGroupsService {
       updateDto.adoptionDate ?? rabbitGroup.adoptionDate;
 
     rabbitGroup.status = updateDto.status ?? rabbitGroup.status;
+    if (
+      updateDto.status != null &&
+      updateDto.status !== RabbitGroupStatus.Adopted &&
+      !updateDto.adoptionDate
+    ) {
+      // adoptionDate should be null if status is not 'Adopted',
+      rabbitGroup.adoptionDate = null;
+    }
 
     return await this.rabbitGroupRespository.save(rabbitGroup);
   }
