@@ -254,5 +254,17 @@ describe('RabbitGroupsResolver', () => {
         [1, 3],
       );
     });
+
+    it('should remove the team from the rabbit group', async () => {
+      await expect(
+        resolver.updateTeam(userAdmin, rabbitGroup.id.toString()),
+      ).resolves.toEqual(rabbitGroup);
+
+      expect(rabbitGroupsService.updateTeam).toHaveBeenCalledWith(
+        rabbitGroup.id,
+        null,
+        undefined,
+      );
+    });
   });
 });

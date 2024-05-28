@@ -103,10 +103,10 @@ export class RabbitGroupsResolver {
   async updateTeam(
     @CurrentUser() currentUser: UserDetails,
     @Args('rabbitGroupId', { type: () => ID }) rabbitGroupIdArg: string,
-    @Args('teamId', { type: () => ID }) teamIdArg: string,
+    @Args('teamId', { type: () => ID, nullable: true }) teamIdArg?: string,
   ) {
     const rabbitGroupId = Number(rabbitGroupIdArg);
-    const teamId = Number(teamIdArg);
+    const teamId = teamIdArg ? Number(teamIdArg) : null;
 
     return await this.rabbitGroupsService.updateTeam(
       rabbitGroupId,

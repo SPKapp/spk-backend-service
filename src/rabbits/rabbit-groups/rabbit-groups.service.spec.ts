@@ -34,6 +34,7 @@ describe('RabbitGroupsService', () => {
     new RabbitGroup({
       id: 3,
       region: new Region({ id: 1 }),
+      team: new Team({ id: 1 }),
       rabbits: new Promise((resolve) =>
         resolve([new Rabbit({ name: 'rabbit' })]),
       ),
@@ -585,6 +586,22 @@ describe('RabbitGroupsService', () => {
       expect(notificationsService.sendNotification).toHaveBeenCalledWith(
         new NotificationGroupAssigned(team.id, group.id),
       );
+    });
+
+    it('should remove the team of a rabbit group', async () => {
+      jest
+        .spyOn(rabbitGroupRepository, 'findOneBy')
+        .mockResolvedValue(rabbitGroups[2]);
+
+      await expect(service.updateTeam(rabbitGroups[2].id)).resolves.toEqual({
+        ...rabbitGroups[2],
+        team: null,
+      });
+
+      expect(rabbitGroupRepository.findOneBy).toHaveBeenCalledWith({
+        id: rabbitGroups[2].id,
+        region: { id: undefined },
+      });
     });
   });
 

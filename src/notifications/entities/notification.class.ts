@@ -117,11 +117,12 @@ export abstract class TeamAndMaybeManagerNotification extends TeamNotification {
 }
 
 /**
- * Notification for a new rabbit group assigned to the user
+ * Notification for a new rabbit group assigned to the team
  */
-export class NotificationGroupAssigned extends UserNotification {
-  constructor(userId: number, groupId: number) {
+export class NotificationGroupAssigned extends TeamNotification {
+  constructor(teamId: number, groupId: number) {
     super(
+      teamId,
       'groupAssigned',
       new Set<NotificationType>([
         NotificationType.Email,
@@ -134,7 +135,6 @@ export class NotificationGroupAssigned extends UserNotification {
         title: 'Nowy królik',
         body: 'Przypisano do Ciebie nową grupę królików',
       },
-      userId,
     );
   }
 }

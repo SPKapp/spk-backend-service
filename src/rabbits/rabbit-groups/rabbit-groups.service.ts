@@ -195,14 +195,14 @@ export class RabbitGroupsService {
    * Updates the team of a rabbit group.
    *
    * @param id - The ID of the rabbit group.
-   * @param teamId - The ID of the team to assign to the rabbit group.
+   * @param teamId - The ID of the team to assign to the rabbit group, or null to remove the team.
    * @returns The updated rabbit group.
    * @throws {NotFoundException} if the rabbit group or team is not found.
    * @throws {BadRequestException} if the team is not active or the rabbit group has a different region than the team.
    */
   async updateTeam(
     id: number,
-    teamId: number,
+    teamId?: number,
     regionsIds?: number[],
   ): Promise<RabbitGroup> {
     const rabbitGroup = await this.rabbitGroupRespository.findOneBy({
@@ -213,26 +213,32 @@ export class RabbitGroupsService {
       throw new NotFoundException('Rabbit Group not found');
     }
 
-    const team = await this.teamsService.findOne(teamId, regionsIds);
-    if (!team) {
-      throw new NotFoundException('Team not found');
-    }
-    if (!team.active) {
-      throw new BadRequestException('Team is not active');
-    }
+    if (teamId) {
+      const team = await this.teamsService.findOne(teamId, regionsIds);
+      if (!team) {
+        throw new NotFoundException('Team not found');
+      }
+      if (!team.active) {
+        throw new BadRequestException('Team is not active');
+      }
 
-    if (rabbitGroup.region.id !== team.region.id) {
-      throw new BadRequestException(
-        'The rabbit group has different region than the team',
-      );
-    }
+      if (rabbitGroup.region.id !== team.region.id) {
+        throw new BadRequestException(
+          'The rabbit group has different region than the team',
+        );
+      }
 
-    rabbitGroup.team = team;
+      rabbitGroup.team = team;
+    } else {
+      rabbitGroup.team = null;
+    }
     const result = await this.rabbitGroupRespository.save(rabbitGroup);
 
-    this.notificationsService.sendNotification(
-      new NotificationGroupAssigned(team.id, id),
-    );
+    if (rabbitGroup.team) {
+      this.notificationsService.sendNotification(
+        new NotificationGroupAssigned(rabbitGroup.team.id, id),
+      );
+    }
 
     return result;
   }
