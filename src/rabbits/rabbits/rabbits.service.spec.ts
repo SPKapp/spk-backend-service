@@ -1,11 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
-import { In } from 'typeorm';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { In, Repository } from 'typeorm';
 
 import { RabbitsService } from './rabbits.service';
 import { RabbitGroupsService } from '../rabbit-groups/rabbit-groups.service';
+import {
+  NotificationRabbitAssigned,
+  NotificationRabitMoved,
+  NotificationsService,
+} from '../../notifications';
 import { Rabbit, RabbitGroup, AdmissionType } from '../entities';
 import { Region } from '../../common/modules/regions/entities';
+import { Team } from '../../users/entities/team.entity';
 
 jest.mock('typeorm-transactional', () => ({
   Transactional: () => jest.fn(),
@@ -14,7 +21,8 @@ jest.mock('typeorm-transactional', () => ({
 describe('RabbitsService', () => {
   let service: RabbitsService;
   let rabbitGroupsService: RabbitGroupsService;
-  let rabbitRepository: any;
+  let notificationsService: NotificationsService;
+  let rabbitRepository: Repository<Rabbit>;
   let queryBuilder: any;
 
   const rabbits = [
@@ -59,7 +67,7 @@ describe('RabbitsService', () => {
           },
         },
         {
-          provide: 'RabbitRepository',
+          provide: getRepositoryToken(Rabbit),
           useValue: {
             save: jest.fn(() => rabbits[0]),
             findOneBy: jest.fn(() => rabbits[0]),
@@ -69,12 +77,22 @@ describe('RabbitsService', () => {
             },
           },
         },
+        {
+          provide: NotificationsService,
+          useValue: {
+            sendNotification: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<RabbitsService>(RabbitsService);
     rabbitGroupsService = module.get<RabbitGroupsService>(RabbitGroupsService);
-    rabbitRepository = module.get('RabbitRepository');
+    rabbitRepository = module.get<Repository<Rabbit>>(
+      getRepositoryToken(Rabbit),
+    );
+    notificationsService =
+      module.get<NotificationsService>(NotificationsService);
   });
 
   it('should be defined', () => {
@@ -451,6 +469,69 @@ describe('RabbitsService', () => {
           'Cannot create a new rabbit group if the current rabbit group has only one rabbit',
         ),
       );
+    });
+
+    it('should send rabbit assigned notification', async () => {
+      jest.spyOn(rabbitRepository, 'findOneBy').mockResolvedValue({
+        ...rabbit,
+        rabbitGroup: {
+          ...rabbit.rabbitGroup,
+          rabbits: new Promise((resolve) => resolve([new Rabbit({ id: 2 })])),
+        },
+      });
+      jest
+        .spyOn(rabbitGroupsService, 'findOne')
+        .mockResolvedValue({ ...newRabbitGroup, team: new Team({ id: 1 }) });
+
+      await expect(
+        service.updateRabbitGroup(rabbit.id, newRabbitGroup.id),
+      ).resolves.not.toThrow();
+
+      expect(notificationsService.sendNotification).toHaveBeenCalledWith(
+        new NotificationRabbitAssigned(1, rabbit.id),
+      );
+    });
+
+    it('should send rabbit moved notification', async () => {
+      jest.spyOn(rabbitRepository, 'findOneBy').mockResolvedValue({
+        ...rabbit,
+        rabbitGroup: {
+          ...rabbit.rabbitGroup,
+          team: new Team({ id: 1 }),
+          rabbits: new Promise((resolve) => resolve([new Rabbit({ id: 2 })])),
+        },
+      });
+      jest
+        .spyOn(rabbitGroupsService, 'findOne')
+        .mockResolvedValue({ ...newRabbitGroup, team: new Team({ id: 1 }) });
+
+      await expect(
+        service.updateRabbitGroup(rabbit.id, newRabbitGroup.id),
+      ).resolves.not.toThrow();
+
+      expect(notificationsService.sendNotification).toHaveBeenCalledWith(
+        new NotificationRabitMoved(1, rabbit.id),
+      );
+    });
+
+    it('should not send notification if rabbit group has no team', async () => {
+      jest.spyOn(rabbitRepository, 'findOneBy').mockResolvedValue({
+        ...rabbit,
+        rabbitGroup: {
+          ...rabbit.rabbitGroup,
+          team: null,
+          rabbits: new Promise((resolve) => resolve([new Rabbit({ id: 2 })])),
+        },
+      });
+      jest
+        .spyOn(rabbitGroupsService, 'findOne')
+        .mockResolvedValue(newRabbitGroup);
+
+      await expect(
+        service.updateRabbitGroup(rabbit.id, newRabbitGroup.id),
+      ).resolves.not.toThrow();
+
+      expect(notificationsService.sendNotification).not.toHaveBeenCalled();
     });
   });
 

@@ -1,18 +1,25 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { ILike, In } from 'typeorm';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { ILike, In, Repository } from 'typeorm';
 
-import { RabbitGroup, RabbitGroupStatus } from '../entities';
+import { Rabbit, RabbitGroup, RabbitGroupStatus } from '../entities';
 import { Team } from '../../users/entities';
 import { Region } from '../../common/modules/regions/entities';
 
 import { TeamsService } from '../../users/teams/teams.service';
 import { RabbitGroupsService } from './rabbit-groups.service';
+import {
+  NotificationsService,
+  NotificationGroupAssigned,
+  NotificationAdoptionToConfirm,
+} from '../../notifications';
 
 describe('RabbitGroupsService', () => {
   let service: RabbitGroupsService;
-  let rabbitGroupRepository: any;
+  let rabbitGroupRepository: Repository<RabbitGroup>;
   let teamsService: TeamsService;
+  let notificationsService: NotificationsService;
 
   const rabbitGroups = [
     new RabbitGroup({
@@ -20,7 +27,24 @@ describe('RabbitGroupsService', () => {
       region: new Region({ id: 1 }),
       rabbits: new Promise((resolve) => resolve([])),
     }),
-    new RabbitGroup({ id: 2, region: new Region({ id: 2 }) }),
+    new RabbitGroup({
+      id: 2,
+      region: new Region({ id: 2 }),
+    }),
+    new RabbitGroup({
+      id: 3,
+      region: new Region({ id: 1 }),
+      rabbits: new Promise((resolve) =>
+        resolve([new Rabbit({ name: 'rabbit' })]),
+      ),
+    }),
+    new RabbitGroup({
+      id: 4,
+      region: new Region({ id: 2 }),
+      rabbits: new Promise((resolve) =>
+        resolve([new Rabbit({ name: 'rabbit' })]),
+      ),
+    }),
   ];
 
   beforeEach(async () => {
@@ -28,7 +52,7 @@ describe('RabbitGroupsService', () => {
       providers: [
         RabbitGroupsService,
         {
-          provide: 'RabbitGroupRepository',
+          provide: getRepositoryToken(RabbitGroup),
           useValue: {
             save: jest.fn((val) => val),
             find: jest.fn(() => rabbitGroups),
@@ -43,12 +67,22 @@ describe('RabbitGroupsService', () => {
             findOne: jest.fn(),
           },
         },
+        {
+          provide: NotificationsService,
+          useValue: {
+            sendNotification: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<RabbitGroupsService>(RabbitGroupsService);
-    rabbitGroupRepository = module.get('RabbitGroupRepository');
+    rabbitGroupRepository = module.get<Repository<RabbitGroup>>(
+      getRepositoryToken(RabbitGroup),
+    );
     teamsService = module.get<TeamsService>(TeamsService);
+    notificationsService =
+      module.get<NotificationsService>(NotificationsService);
   });
 
   it('should be defined', () => {
@@ -421,7 +455,7 @@ describe('RabbitGroupsService', () => {
     it('should throw an error if the rabbit group has rabbits assigned to it', async () => {
       jest.spyOn(rabbitGroupRepository, 'findOneBy').mockResolvedValue({
         ...rabbitGroups[0],
-        rabbits: [{}],
+        rabbits: new Promise((resolve) => resolve([new Rabbit({})])),
       });
 
       await expect(service.remove(rabbitGroups[0].id)).rejects.toThrow(
@@ -525,6 +559,77 @@ describe('RabbitGroupsService', () => {
       await expect(service.updateTeam(1, 1)).rejects.toThrow(
         new BadRequestException(
           `The rabbit group has different region than the team`,
+        ),
+      );
+    });
+
+    it('should send a notification when the team is updated', async () => {
+      const team = new Team({
+        id: 1,
+        active: true,
+        region: rabbitGroups[0].region,
+      });
+      const group = { ...rabbitGroups[0] };
+
+      jest.spyOn(teamsService, 'findOne').mockResolvedValue(team);
+      jest
+        .spyOn(rabbitGroupRepository, 'findOneBy')
+        .mockResolvedValue(rabbitGroups[0]);
+
+      group.team = team;
+
+      await expect(service.updateTeam(group.id, team.id)).resolves.toEqual(
+        group,
+      );
+
+      expect(notificationsService.sendNotification).toHaveBeenCalledWith(
+        new NotificationGroupAssigned(team.id, group.id),
+      );
+    });
+  });
+
+  describe('checkAdoptionState', () => {
+    it('should be defined', () => {
+      expect(service.checkAdoptionState).toBeDefined();
+    });
+
+    it('should send a notification', async () => {
+      const groups = [
+        {
+          ...rabbitGroups[2],
+          status: RabbitGroupStatus.Adoptable,
+          adoptionDate: new Date(2024, 4, 1),
+          team: new Team({ id: 1 }),
+        },
+        {
+          ...rabbitGroups[3],
+          status: RabbitGroupStatus.InTreatment,
+          adoptionDate: new Date(2024, 4, 1),
+        },
+      ];
+      jest.spyOn(rabbitGroupRepository, 'find').mockResolvedValue(groups);
+
+      await expect(service.checkAdoptionState()).resolves.not.toThrow();
+
+      expect(notificationsService.sendNotification).toHaveBeenNthCalledWith(
+        1,
+        new NotificationAdoptionToConfirm(
+          groups[0].adoptionDate,
+          groups[0].region.id,
+          groups[0].id,
+          'rabbit',
+          groups[0].team.id,
+        ),
+      );
+
+      expect(notificationsService.sendNotification).toHaveBeenNthCalledWith(
+        2,
+        new NotificationAdoptionToConfirm(
+          groups[1].adoptionDate,
+          groups[1].region.id,
+          groups[1].id,
+          'rabbit',
+          null,
         ),
       );
     });

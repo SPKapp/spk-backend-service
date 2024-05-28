@@ -4,10 +4,11 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindManyOptions, ILike, In, Repository } from 'typeorm';
+import { FindManyOptions, ILike, In, LessThan, Not, Repository } from 'typeorm';
 
-import { RabbitGroup } from '../entities';
+import { RabbitGroup, RabbitGroupStatus } from '../entities';
 import {
   RabbitGroupsFilters,
   PaginatedRabbitGroups,
@@ -15,6 +16,12 @@ import {
 } from '../dto';
 
 import { TeamsService } from '../../users/teams/teams.service';
+
+import {
+  NotificationAdoptionToConfirm,
+  NotificationGroupAssigned,
+  NotificationsService,
+} from '../../notifications';
 
 @Injectable()
 export class RabbitGroupsService {
@@ -24,6 +31,7 @@ export class RabbitGroupsService {
     @InjectRepository(RabbitGroup)
     private readonly rabbitGroupRespository: Repository<RabbitGroup>,
     private readonly teamsService: TeamsService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   /**
@@ -212,6 +220,54 @@ export class RabbitGroupsService {
     }
 
     rabbitGroup.team = team;
-    return await this.rabbitGroupRespository.save(rabbitGroup);
+    const result = await this.rabbitGroupRespository.save(rabbitGroup);
+
+    this.notificationsService.sendNotification(
+      new NotificationGroupAssigned(team.id, id),
+    );
+
+    return result;
+  }
+
+  @Cron(CronExpression.EVERY_10_SECONDS)
+  async checkAdoptionState(): Promise<void> {
+    this.logger.log('Starting adoption check cron job - sending notifications');
+
+    const rabbitGroups = await this.rabbitGroupRespository.find({
+      relations: {
+        rabbits: true,
+        team: true,
+        region: true,
+      },
+      where: {
+        status: Not(RabbitGroupStatus.Adopted),
+        adoptionDate: LessThan(new Date()),
+      },
+    });
+
+    for (const rabbitGroup of rabbitGroups) {
+      if (rabbitGroup.status !== RabbitGroupStatus.Adoptable) {
+        this.logger.warn(
+          `AdoptedAt date is in the future, but status is not '${RabbitGroupStatus.Adoptable}' for rabbit group ${rabbitGroup.id}`,
+        );
+      }
+      this.logger.debug(
+        `AdoptedAt date is in the future, sending notification for rabbit group ${rabbitGroup.id}`,
+      );
+
+      const groupName = (await rabbitGroup.rabbits)
+        .map((rabbit) => rabbit.name)
+        .join(', ');
+
+      this.notificationsService.sendNotification(
+        new NotificationAdoptionToConfirm(
+          rabbitGroup.adoptionDate,
+          rabbitGroup.region.id,
+          rabbitGroup.id,
+          groupName,
+          rabbitGroup.team ? rabbitGroup.team.id : null,
+        ),
+      );
+    }
   }
 }

@@ -13,9 +13,14 @@ import { RabbitsAccessService } from './rabbits-access.service';
 
 import { Rabbit, RabbitGroup } from './entities';
 import { UsersModule } from '../users/users.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Rabbit, RabbitGroup]), UsersModule],
+  imports: [
+    TypeOrmModule.forFeature([Rabbit, RabbitGroup]),
+    UsersModule,
+    NotificationsModule,
+  ],
   providers: [
     RabbitsResolver,
     RabbitGroupsResolver,

@@ -9,6 +9,10 @@ import { In, Repository } from 'typeorm';
 import { Transactional } from 'typeorm-transactional';
 
 import { RabbitGroupsService } from '../rabbit-groups/rabbit-groups.service';
+import {
+  NotificationRabbitAssigned,
+  NotificationsService,
+} from '../../notifications';
 
 import {
   CreateRabbitInput,
@@ -17,6 +21,10 @@ import {
 } from '../dto';
 import { Rabbit, RabbitGroup } from '../entities';
 import { EntityWithId } from '../../common/types';
+import {
+  Notification,
+  NotificationRabitMoved,
+} from '../../notifications/entities/notification.class';
 
 @Injectable()
 export class RabbitsService {
@@ -26,6 +34,7 @@ export class RabbitsService {
     @InjectRepository(Rabbit)
     private readonly rabbitRespository: Repository<Rabbit>,
     private readonly rabbitGroupsService: RabbitGroupsService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   /**
@@ -218,6 +227,25 @@ export class RabbitsService {
 
     if ((await oldRabbitGroup.rabbits).length === 0) {
       await this.rabbitGroupsService.remove(oldRabbitGroup.id);
+    }
+
+    if (rabbitGroup.team) {
+      let notification: Notification;
+      if (
+        oldRabbitGroup.team &&
+        rabbitGroup.team.id === oldRabbitGroup.team.id
+      ) {
+        notification = new NotificationRabitMoved(
+          rabbitGroup.team.id,
+          rabbit.id,
+        );
+      } else {
+        notification = new NotificationRabbitAssigned(
+          rabbitGroup.team.id,
+          rabbit.id,
+        );
+      }
+      this.notificationsService.sendNotification(notification);
     }
 
     return rabbit;

@@ -49,6 +49,8 @@ Wykorzystany do tego celu jest system [Firebase Cloud Messaging](https://firebas
 - Przypadek użycia: Przypisanie grupy do wolontariusza
 - Do:
   - nowo przypisanego wolontariusza - jednorazowo
+- Data:
+  - groupId: id grupy
 
 ### Powiadomienie o przypisaniu **_Królika_** do grupy przypisanej do **_Wolontariusza_**
 
@@ -57,6 +59,18 @@ Wykorzystany do tego celu jest system [Firebase Cloud Messaging](https://firebas
 - Przypadek użycia: Przypisanie królika do grupy przypisanej do wolontariusza
 - Do:
   - wolontariusza przypisanego do królika - jednorazowo
+- Data:
+  - rabbitId: id królika
+
+### Powiadomienie o przeniesieniu **_Królika_** do innej grupy tego samego **_Wolontariusza_**
+
+- Kategoria: rabbitMoved
+- Typ: push
+- Przypadek użycia: Przeniesienie królika do innej grupy tego samego wolontariusza
+- Do:
+  - wolontariusza przypisanego do królika - jednorazowo
+- Data:
+  - rabbitId: id królika
 
 ### Powiadomienie o terminie odbioru **_Królika_**
 

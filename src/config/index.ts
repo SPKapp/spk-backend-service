@@ -8,3 +8,5 @@ export { commonConfig as CommonConfig };
 export { DatabaseConfig } from './database.config';
 export { firebaseConfig as FirebaseConfig };
 export { notificationConfig as NotificationConfig };
+
+export const millisecondsInDay: number = 1000 * 60 * 60 * 24;

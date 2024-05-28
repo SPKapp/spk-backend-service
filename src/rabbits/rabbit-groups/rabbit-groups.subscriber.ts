@@ -23,6 +23,11 @@ export class RabbitGroupsSubscriber {
       if (event.entity.adoptionDate === null) {
         this.logger.debug('Setting adoptedAt date');
         event.entity.adoptionDate = new Date();
+      } else if (event.entity.adoptionDate > new Date()) {
+        this.logger.debug(
+          'AdoptedAt date is in the future, scheduling adoption',
+        );
+        event.entity.status = RabbitGroupStatus.Adoptable;
       }
     } else {
       if (event.entity.adoptionDate !== null) {

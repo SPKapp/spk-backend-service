@@ -13,6 +13,8 @@ Patrz [common.config.ts](src/config/common.config.ts)
 
 - `APP_NAME` - nazwa aplikacji
 - `DISABLE_PUSH_NOTIFICATIONS` - deweloperskie, jeśli `true` to nie wysyła pushów
+- `ADD_MANAGER_TO_NOTIFICATION_DELAY` - czas w dniach po którym dodaje się managera do powiadomień, domyślnie 7 dni
+- `ADD_EMAIL_TO_NOTIFICATION_DELAY` - czas w dniach po którym dodaje się email do powiadomień, domyślnie 14 dni
 
 ### Database:
 
