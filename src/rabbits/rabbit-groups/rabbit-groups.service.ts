@@ -14,9 +14,9 @@ import { FindManyOptions, ILike, In, LessThan, Not, Repository } from 'typeorm';
 import { CronConfig } from '../../config';
 import { RabbitGroup, RabbitGroupStatus } from '../entities';
 import {
-  RabbitGroupsFilters,
   PaginatedRabbitGroups,
   UpdateRabbitGroupInput,
+  FindRabbitGroupsArgs,
 } from '../dto';
 
 import { TeamsService } from '../../users/teams/teams.service';
@@ -70,7 +70,7 @@ export class RabbitGroupsService {
    * @returns A Promise that resolves to a PaginatedRabbitGroups object containing the paginated rabbit groups.
    */
   async findAllPaginated(
-    filters: RabbitGroupsFilters = {},
+    filters: FindRabbitGroupsArgs = new FindRabbitGroupsArgs(),
     totalCount: boolean = false,
   ): Promise<PaginatedRabbitGroups> {
     filters.offset ??= 0;
@@ -94,14 +94,16 @@ export class RabbitGroupsService {
    * @param filters - The filters to apply to the rabbit groups.
    * @returns A promise that resolves to an array of RabbitGroup objects.
    */
-  async findAll(filters: RabbitGroupsFilters = {}): Promise<RabbitGroup[]> {
+  async findAll(
+    filters: FindRabbitGroupsArgs = new FindRabbitGroupsArgs(),
+  ): Promise<RabbitGroup[]> {
     return await this.rabbitGroupRespository.find(
       this.createFilterOptions(filters),
     );
   }
 
   private createFilterOptions(
-    filters: RabbitGroupsFilters = {},
+    filters: FindRabbitGroupsArgs = new FindRabbitGroupsArgs(),
   ): FindManyOptions<RabbitGroup> {
     return {
       skip: filters.offset,
@@ -114,8 +116,10 @@ export class RabbitGroupsService {
       where: {
         region: { id: filters.regionsIds ? In(filters.regionsIds) : undefined },
         team: { id: filters.teamIds ? In(filters.teamIds) : undefined },
+        status: filters.groupStatus ? In(filters.groupStatus) : undefined,
         rabbits: {
           name: filters.name ? ILike(`%${filters.name}%`) : undefined,
+          status: filters.rabbitStatus ? In(filters.rabbitStatus) : undefined,
         },
       },
     };

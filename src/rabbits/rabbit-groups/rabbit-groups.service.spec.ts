@@ -5,7 +5,12 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { ILike, In, Repository } from 'typeorm';
 
 import { CronConfig } from '../../config';
-import { Rabbit, RabbitGroup, RabbitGroupStatus } from '../entities';
+import {
+  Rabbit,
+  RabbitGroup,
+  RabbitGroupStatus,
+  RabbitStatusHelper,
+} from '../entities';
 import { Team } from '../../users/entities';
 import { Region } from '../../common/modules/regions/entities';
 
@@ -145,7 +150,7 @@ describe('RabbitGroupsService', () => {
         where: {
           region: { id: undefined },
           team: { id: undefined },
-          rabbits: { name: undefined },
+          rabbits: { name: undefined, status: In(RabbitStatusHelper.Active) },
         },
       });
     });
@@ -228,7 +233,7 @@ describe('RabbitGroupsService', () => {
         where: {
           region: { id: undefined },
           team: { id: undefined },
-          rabbits: { name: undefined },
+          rabbits: { name: undefined, status: In(RabbitStatusHelper.Active) },
         },
       });
     });
