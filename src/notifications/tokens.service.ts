@@ -1,10 +1,11 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { SchedulerRegistry } from '@nestjs/schedule';
+import { CronJob } from 'cron';
 import { ConfigType } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, LessThan, Repository } from 'typeorm';
 
-import { NotificationConfig } from '../config';
+import { CronConfig, NotificationConfig } from '../config';
 
 import { FcmToken } from './entities';
 import { User } from '../users/entities';
@@ -18,7 +19,19 @@ export class TokensService {
     private readonly config: ConfigType<typeof NotificationConfig>,
     @InjectRepository(FcmToken)
     private readonly tokenRepository: Repository<FcmToken>,
+    @Inject(CronConfig.KEY)
+    private readonly cronConfig: ConfigType<typeof CronConfig>,
+    private schedulerRegistry: SchedulerRegistry,
   ) {}
+
+  onModuleInit() {
+    const job = new CronJob(
+      this.cronConfig.removeOldFcmTokens,
+      this.removeOldTokens.bind(this),
+    );
+    this.schedulerRegistry.addCronJob('removeOldTokens', job);
+    job.start();
+  }
 
   /**
    * Get all tokens for a user
@@ -74,9 +87,8 @@ export class TokensService {
 
   /**
    * Remove tokens that haven't been updated in a while
-   * @cron Every day at 1am
+   * @cron initializes in the onModuleInit lifecycle hook
    */
-  @Cron(CronExpression.EVERY_DAY_AT_1AM)
   async removeOldTokens(): Promise<void> {
     const cutOffDate = new Date();
     cutOffDate.setDate(cutOffDate.getDate() - this.config.removeTokenDays);

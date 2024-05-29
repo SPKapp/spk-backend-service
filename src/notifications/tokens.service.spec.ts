@@ -1,8 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { SchedulerRegistry } from '@nestjs/schedule';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository, LessThan, In } from 'typeorm';
 
-import { NotificationConfig } from '../config';
+import { CronConfig, NotificationConfig } from '../config';
 import { TokensService } from './tokens.service';
 import { FcmToken } from './entities';
 import { User } from '../users/entities';
@@ -36,6 +37,18 @@ describe(TokensService, () => {
             findOneBy: jest.fn(),
             save: jest.fn(),
             delete: jest.fn(),
+          },
+        },
+        {
+          provide: CronConfig.KEY,
+          useValue: {
+            removeOldTokens: '0 0 0 * * *',
+          },
+        },
+        {
+          provide: SchedulerRegistry,
+          useValue: {
+            addCronJob: jest.fn(),
           },
         },
       ],

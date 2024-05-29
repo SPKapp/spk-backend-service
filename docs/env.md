@@ -54,3 +54,11 @@ Patrz [notifications.config.ts](src/config/notifications.config.ts)
 - `NOTIFICATION_ADD_EMAIL_DELAY` - czas w dniach po którym dodaje się email do powiadomień, domyślnie 14 dni
 - `NOTIFICATION_WEB_LINK` - link do aplikacji webowej
 - `NOTIFICATION_ICON_LINK` - link do ikony powiadomień
+
+### Cron
+
+Patrz [cron.config.ts](src/config/cron.config.ts)
+
+- `CRON_CHECK_ADMISSION_STATE` - wyrażenie cron dla sprawdzania stanu przyjęć (domyślnie `0 19 * * *`)
+- `CRON_CHECK_ADOPTION_STATE` - wyrażenie cron dla sprawdzania stanu adopcji (domyślnie `0 20 * * *`)
+- `CRON_REMOVE_OLD_FCM_TOKENS` - wyrażenie cron dla usuwania starych tokenów push (domyślnie `0 01 * * *`)

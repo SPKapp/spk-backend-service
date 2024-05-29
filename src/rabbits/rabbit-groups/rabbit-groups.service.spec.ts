@@ -1,8 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { SchedulerRegistry } from '@nestjs/schedule';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ILike, In, Repository } from 'typeorm';
 
+import { CronConfig } from '../../config';
 import { Rabbit, RabbitGroup, RabbitGroupStatus } from '../entities';
 import { Team } from '../../users/entities';
 import { Region } from '../../common/modules/regions/entities';
@@ -72,6 +74,18 @@ describe('RabbitGroupsService', () => {
           provide: NotificationsService,
           useValue: {
             sendNotification: jest.fn(),
+          },
+        },
+        {
+          provide: CronConfig.KEY,
+          useValue: {
+            checkAdoptionState: '0 0 0 * * *',
+          },
+        },
+        {
+          provide: SchedulerRegistry,
+          useValue: {
+            addCronJob: jest.fn(),
           },
         },
       ],

@@ -1,13 +1,17 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { ConfigType } from '@nestjs/config';
+import { SchedulerRegistry } from '@nestjs/schedule';
+import { CronJob } from 'cron';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindManyOptions, ILike, In, LessThan, Not, Repository } from 'typeorm';
 
+import { CronConfig } from '../../config';
 import { RabbitGroup, RabbitGroupStatus } from '../entities';
 import {
   RabbitGroupsFilters,
@@ -32,7 +36,19 @@ export class RabbitGroupsService {
     private readonly rabbitGroupRespository: Repository<RabbitGroup>,
     private readonly teamsService: TeamsService,
     private readonly notificationsService: NotificationsService,
+    @Inject(CronConfig.KEY)
+    private readonly cronConfig: ConfigType<typeof CronConfig>,
+    private schedulerRegistry: SchedulerRegistry,
   ) {}
+
+  onModuleInit() {
+    const job = new CronJob(
+      this.cronConfig.checkAdoptionState,
+      this.checkAdoptionState.bind(this),
+    );
+    this.schedulerRegistry.addCronJob('checkAdoptionState', job);
+    job.start();
+  }
 
   /**
    * Creates a new rabbit group.
@@ -245,8 +261,8 @@ export class RabbitGroupsService {
 
   /**
    * Checks the adoption state of rabbit groups, and sends notifications for those that need confirmation.
+   * @cron initializes in the onModuleInit lifecycle hook
    */
-  @Cron(CronExpression.EVERY_10_SECONDS)
   async checkAdoptionState(): Promise<void> {
     this.logger.log('Starting adoption check cron job - sending notifications');
 

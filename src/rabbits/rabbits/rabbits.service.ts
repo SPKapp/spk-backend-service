@@ -1,10 +1,13 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { ConfigType } from '@nestjs/config';
+import { SchedulerRegistry } from '@nestjs/schedule';
+import { CronJob } from 'cron';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, LessThan, MoreThan, Repository, Not } from 'typeorm';
 import { Transactional } from 'typeorm-transactional';
@@ -14,6 +17,7 @@ import {
   NotificationRabbitAssigned,
   NotificationsService,
 } from '../../notifications';
+import { CronConfig } from '../../config';
 
 import {
   CreateRabbitInput,
@@ -37,7 +41,22 @@ export class RabbitsService {
     private readonly rabbitRespository: Repository<Rabbit>,
     private readonly rabbitGroupsService: RabbitGroupsService,
     private readonly notificationsService: NotificationsService,
+    @Inject(CronConfig.KEY)
+    private readonly cronConfig: ConfigType<typeof CronConfig>,
+    private schedulerRegistry: SchedulerRegistry,
   ) {}
+
+  /**
+   * Registers the cron job for checking the admission state of rabbits.
+   */
+  onModuleInit() {
+    const job = new CronJob(
+      this.cronConfig.checkAdmissionState,
+      this.checkAdmissionState.bind(this),
+    );
+    this.schedulerRegistry.addCronJob('checkAdmissionState', job);
+    job.start();
+  }
 
   /**
    * Creates a new rabbit.
@@ -276,8 +295,8 @@ export class RabbitsService {
 
   /**
    * Checks the admission state of rabbits and sends notifications for those that need confirmation.
+   * @cron initializes in the onModuleInit lifecycle hook
    */
-  @Cron(CronExpression.EVERY_10_SECONDS)
   async checkAdmissionState(): Promise<void> {
     this.logger.log(
       'Starting admission state check cron job - sending notifications',

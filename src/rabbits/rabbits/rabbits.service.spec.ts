@@ -1,8 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { SchedulerRegistry } from '@nestjs/schedule';
 import { NotFoundException } from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 
+import { CronConfig } from '../../config';
 import { RabbitsService } from './rabbits.service';
 import { RabbitGroupsService } from '../rabbit-groups/rabbit-groups.service';
 import {
@@ -83,6 +85,18 @@ describe('RabbitsService', () => {
           provide: NotificationsService,
           useValue: {
             sendNotification: jest.fn(),
+          },
+        },
+        {
+          provide: CronConfig.KEY,
+          useValue: {
+            checkAdmissionState: '0 0 0 * * *',
+          },
+        },
+        {
+          provide: SchedulerRegistry,
+          useValue: {
+            addCronJob: jest.fn(),
           },
         },
       ],

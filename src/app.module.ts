@@ -16,7 +16,12 @@ import { RabbitsModule } from './rabbits/rabbits.module';
 import { RabbitNotesModule } from './rabbit-notes/rabbit-notes.module';
 import { NotificationsModule } from './notifications/notifications.module';
 
-import { DatabaseConfig, EmailConfig, CommonConfig } from './config';
+import {
+  DatabaseConfig,
+  EmailConfig,
+  CommonConfig,
+  CronConfig,
+} from './config';
 
 @Module({
   imports: [
@@ -31,7 +36,7 @@ import { DatabaseConfig, EmailConfig, CommonConfig } from './config';
         `.env/${process.env.NODE_ENV}.env`,
         `.env/local.${process.env.NODE_ENV}.env`,
       ],
-      load: [DatabaseConfig, EmailConfig, CommonConfig],
+      load: [DatabaseConfig, EmailConfig, CommonConfig, CronConfig],
     }),
     TypeOrmModule.forRootAsync({
       inject: [DatabaseConfig.KEY],
