@@ -183,6 +183,40 @@ export class NotificationRabitMoved extends TeamNotification {
 }
 
 /**
+ * Notification for a rabbit with not proper admission date or status
+ */
+export class NotificationAdmissionToConfirm extends TeamAndMaybeManagerNotification {
+  constructor(
+    statdDate: Date,
+    regionId: number,
+    rabbitId: number,
+    inFuture: boolean,
+    name?: string,
+    teamId?: number,
+  ) {
+    super(
+      statdDate,
+      regionId,
+      'admissionToConfirm',
+      new Set<NotificationType>([NotificationType.Push]),
+      {
+        rabbitId: rabbitId.toString(),
+      },
+      teamId,
+      inFuture
+        ? {
+            title: 'Problem z datą przyjęcia',
+            body: `Data przyjęcia ${name} jest w przyszłości, a status inny niż 'Nieodebrany', prosimy o poprawę danych`,
+          }
+        : {
+            title: 'Potwierdzenie przyjęcia',
+            body: `Upłynął termin przyjęcia ${name}, prosimy o jego potwierdzenie`,
+          },
+    );
+  }
+}
+
+/**
  * Notification for a rabbit group with not proper adoption date or status
  */
 export class NotificationAdoptionToConfirm extends TeamAndMaybeManagerNotification {

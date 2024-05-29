@@ -4,8 +4,9 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, LessThan, MoreThan, Repository, Not } from 'typeorm';
 import { Transactional } from 'typeorm-transactional';
 
 import { RabbitGroupsService } from '../rabbit-groups/rabbit-groups.service';
@@ -19,10 +20,11 @@ import {
   UpdateRabbitInput,
   UpdateRabbitNoteFieldsDto,
 } from '../dto';
-import { Rabbit, RabbitGroup } from '../entities';
+import { Rabbit, RabbitGroup, RabbitStatus } from '../entities';
 import { EntityWithId } from '../../common/types';
 import {
   Notification,
+  NotificationAdmissionToConfirm,
   NotificationRabitMoved,
 } from '../../notifications/entities/notification.class';
 
@@ -270,5 +272,83 @@ export class RabbitsService {
       updateDto.vaccinationDate ?? rabbit.vaccinationDate;
 
     await this.rabbitRespository.save(rabbit);
+  }
+
+  /**
+   * Checks the admission state of rabbits and sends notifications for those that need confirmation.
+   */
+  @Cron(CronExpression.EVERY_10_SECONDS)
+  async checkAdmissionState(): Promise<void> {
+    this.logger.log(
+      'Starting admission state check cron job - sending notifications',
+    );
+
+    /**
+     * Find all rabbits with admission date in the past and status Incoming
+     */
+
+    const rabbits = await this.rabbitRespository.find({
+      relations: {
+        rabbitGroup: {
+          team: true,
+          region: true,
+        },
+      },
+      where: {
+        status: RabbitStatus.Incoming,
+        admissionDate: LessThan(new Date()),
+      },
+    });
+
+    for (const rabbit of rabbits) {
+      this.logger.debug(
+        `admisionDate date for rabbit ${rabbit.id} has passed, sending notification`,
+      );
+
+      this.notificationsService.sendNotification(
+        new NotificationAdmissionToConfirm(
+          rabbit.admissionDate,
+          rabbit.rabbitGroup.region.id,
+          rabbit.id,
+          false,
+          rabbit.name,
+          rabbit.rabbitGroup.team ? rabbit.rabbitGroup.team.id : null,
+        ),
+      );
+    }
+
+    /**
+     * Find all rabbits with admission date in the future and status different than Incoming
+     */
+
+    const rabbitsFuture = await this.rabbitRespository.find({
+      relations: {
+        rabbitGroup: {
+          team: true,
+          region: true,
+        },
+      },
+      where: {
+        status: Not(RabbitStatus.Incoming),
+        admissionDate: MoreThan(new Date()),
+      },
+    });
+
+    for (const rabbit of rabbitsFuture) {
+      this.logger.debug(
+        `admisionDate date for rabbit ${rabbit.id} is in the future, but status is not Incoming, sending notification`,
+      );
+
+      this.notificationsService.sendNotification(
+        new NotificationAdmissionToConfirm(
+          rabbit.admissionDate,
+          rabbit.rabbitGroup.region.id,
+          rabbit.id,
+          true,
+          rabbit.name,
+          rabbit.rabbitGroup.team ? rabbit.rabbitGroup.team.id : null,
+        ),
+      );
+    }
   }
 }

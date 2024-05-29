@@ -26,6 +26,16 @@ export class RabbitsSubscriber implements EntitySubscriberInterface<Rabbit> {
     return Rabbit;
   }
 
+  async beforeUpdate(event: UpdateEvent<Rabbit>): Promise<any> {
+    if (
+      event.entity.status !== RabbitStatus.Incoming &&
+      !event.entity.admissionDate
+    ) {
+      this.logger.debug('Setting admission date');
+      event.entity.admissionDate = new Date();
+    }
+  }
+
   /**
    * Update the rabbit group status when the rabbit status or group is changed
    *

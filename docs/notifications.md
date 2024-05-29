@@ -74,13 +74,15 @@ Wykorzystany do tego celu jest system [Firebase Cloud Messaging](https://firebas
 
 ### Powiadomienie o terminie odbioru **_Królika_**
 
-- Kategoria: rabbitPickup
+- Kategoria: `admissionToConfirm`
 - Typ: push, (email)
 - Automatycznie usuwane po zakończeniu zdarzenia
 - Przypadek użycia: Gdy minął termin odbioru **_Królika_**, a status królika to **_Incoming_**
 - Do:
   - wolontariusza przypisanego do królika - codziennie do czasu poprawienia danych
   - manageraRegionu - codziennie, zaczynając od 4 dnia, do czasu poprawienia danych, po 14 dniach dodatkowo email
+- Data:
+  - rabbitId: id królika
 
 ### Powiadomienie o terminie adopcji **_Grupy Królików_**
 

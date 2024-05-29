@@ -26,6 +26,59 @@ describe('RabbitsSubscriber', () => {
     });
   });
 
+  describe('beforeUpdate', () => {
+    let event: Mock<UpdateEvent<Rabbit>>;
+    let entity: Rabbit;
+    let date: Date;
+
+    beforeEach(() => {
+      event = mock<UpdateEvent<Rabbit>>();
+      event.entity = entity = new Rabbit();
+      date = new Date(2024, 4, 1);
+
+      jest.useFakeTimers();
+      jest.setSystemTime(date);
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('should not set admissionDate', async () => {
+      entity.status = RabbitStatus.Incoming;
+
+      await subscriber.beforeUpdate(event);
+
+      expect(entity.admissionDate).toBeUndefined();
+    });
+
+    it('should not change admissionDate', async () => {
+      entity.status = RabbitStatus.Adoptable;
+      entity.admissionDate = new Date(2024, 1, 1);
+
+      await subscriber.beforeUpdate(event);
+
+      expect(entity.admissionDate).toEqual(new Date(2024, 1, 1));
+    });
+
+    it('should set admissionDate', async () => {
+      entity.status = RabbitStatus.Adoptable;
+
+      await subscriber.beforeUpdate(event);
+
+      expect(entity.admissionDate).toEqual(date);
+    });
+
+    it('should not change admissionDate if already set', async () => {
+      entity.status = RabbitStatus.Adoptable;
+      entity.admissionDate = new Date(2024, 1, 1);
+
+      await subscriber.beforeUpdate(event);
+
+      expect(entity.admissionDate).toEqual(new Date(2024, 1, 1));
+    });
+  });
+
   describe('afterUpdate', () => {
     let event: Mock<UpdateEvent<Rabbit>>;
     let manager: Mock<EntityManager>;

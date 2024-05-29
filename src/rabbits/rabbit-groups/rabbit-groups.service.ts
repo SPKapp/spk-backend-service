@@ -243,6 +243,9 @@ export class RabbitGroupsService {
     return result;
   }
 
+  /**
+   * Checks the adoption state of rabbit groups, and sends notifications for those that need confirmation.
+   */
   @Cron(CronExpression.EVERY_10_SECONDS)
   async checkAdoptionState(): Promise<void> {
     this.logger.log('Starting adoption check cron job - sending notifications');

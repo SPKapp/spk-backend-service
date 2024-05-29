@@ -6,11 +6,12 @@ import { In, Repository } from 'typeorm';
 import { RabbitsService } from './rabbits.service';
 import { RabbitGroupsService } from '../rabbit-groups/rabbit-groups.service';
 import {
+  NotificationAdmissionToConfirm,
   NotificationRabbitAssigned,
   NotificationRabitMoved,
   NotificationsService,
 } from '../../notifications';
-import { Rabbit, RabbitGroup, AdmissionType } from '../entities';
+import { Rabbit, RabbitGroup, AdmissionType, RabbitStatus } from '../entities';
 import { Region } from '../../common/modules/regions/entities';
 import { Team } from '../../users/entities/team.entity';
 
@@ -70,6 +71,7 @@ describe('RabbitsService', () => {
           provide: getRepositoryToken(Rabbit),
           useValue: {
             save: jest.fn(() => rabbits[0]),
+            find: jest.fn(),
             findOneBy: jest.fn(() => rabbits[0]),
             softRemove: jest.fn(() => ({ id: 1 })),
             manager: {
@@ -557,6 +559,65 @@ describe('RabbitsService', () => {
       await expect(
         service.updateRabbitNoteFields(rabbits[0].id, { weight: 1 }),
       ).rejects.toThrow(new NotFoundException('Rabbit not found'));
+    });
+  });
+
+  describe('checkAdmissionState', () => {
+    let date: Date;
+
+    beforeEach(() => {
+      date = new Date(2024, 4, 1);
+
+      jest.useFakeTimers();
+      jest.setSystemTime(date);
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('should be defined', () => {
+      expect(service.checkAdmissionState).toBeDefined();
+    });
+
+    it('should notifiy not changed status', async () => {
+      const rabbit = new Rabbit({
+        id: 1,
+        status: RabbitStatus.Incoming,
+        admissionDate: new Date(2024, 1, 1),
+        rabbitGroup: new RabbitGroup({
+          id: 1,
+          team: new Team({ id: 1 }),
+          region: new Region({ id: 1 }),
+        }),
+      });
+
+      jest.spyOn(rabbitRepository, 'find').mockResolvedValue([rabbit]);
+
+      await service.checkAdmissionState();
+
+      expect(notificationsService.sendNotification).toHaveBeenNthCalledWith(
+        1,
+        new NotificationAdmissionToConfirm(
+          rabbit.admissionDate,
+          rabbit.rabbitGroup.region.id,
+          rabbit.id,
+          false,
+          rabbit.name,
+          rabbit.rabbitGroup.team.id,
+        ),
+      );
+      expect(notificationsService.sendNotification).toHaveBeenNthCalledWith(
+        2,
+        new NotificationAdmissionToConfirm(
+          rabbit.admissionDate,
+          rabbit.rabbitGroup.region.id,
+          rabbit.id,
+          true,
+          rabbit.name,
+          rabbit.rabbitGroup.team.id,
+        ),
+      );
     });
   });
 });
