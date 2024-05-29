@@ -247,20 +247,49 @@ export class NotificationAdoptionToConfirm extends TeamAndMaybeManagerNotificati
 export class NotificationNearVetVisit extends TeamNotification {
   constructor(teamId: number, rabbitId: number, noteId: number, name?: string) {
     let body = 'Nadchodzi termin wizyty u weterynarza';
+    const data = {
+      rabbitId: rabbitId.toString(),
+      noteId: noteId.toString(),
+    };
+
     if (name) {
       body += ` z ${name}`;
+      data['rabbitName'] = name;
     }
 
     super(
       teamId,
       'nearVetVisit',
       new Set<NotificationType>([NotificationType.Push]),
-      {
-        rabbitId: rabbitId.toString(),
-        noteId: noteId.toString(),
-      },
+      data,
       {
         title: 'Wizyta u weterynarza',
+        body: body,
+      },
+    );
+  }
+}
+
+export class NotificationVetVisitEnded extends TeamNotification {
+  constructor(teamId: number, rabbitId: number, noteId: number, name?: string) {
+    let body = 'Uzupełnij informacje o wizycie u weterynarza';
+    const data = {
+      rabbitId: rabbitId.toString(),
+      noteId: noteId.toString(),
+    };
+
+    if (name) {
+      body += ` z ${name}`;
+      data['rabbitName'] = name;
+    }
+
+    super(
+      teamId,
+      'vetVisitEnd',
+      new Set<NotificationType>([NotificationType.Push]),
+      data,
+      {
+        title: 'Zakończono wizytę u weterynarza',
         body: body,
       },
     );

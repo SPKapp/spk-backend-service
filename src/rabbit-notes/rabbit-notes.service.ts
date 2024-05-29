@@ -28,6 +28,7 @@ import { RabbitsService } from '../rabbits';
 import { CronConfig } from '../config';
 import {
   NotificationNearVetVisit,
+  NotificationVetVisitEnded,
   NotificationsService,
 } from '../notifications';
 
@@ -48,12 +49,19 @@ export class RabbitNotesService {
   ) {}
 
   onModuleInit() {
-    const job = new CronJob(
+    const beforeJob = new CronJob(
       this.cronConfig.notifyAboutVetVisit,
       this.notifyAboutVetVisit.bind(this),
     );
-    this.schedulerRegistry.addCronJob('notifyAboutVetVisit', job);
-    job.start();
+    this.schedulerRegistry.addCronJob('notifyAboutVetVisit', beforeJob);
+    beforeJob.start();
+
+    const afterJob = new CronJob(
+      this.cronConfig.notifyAboutEndedVetVisit,
+      this.notifyAboutEndOfVetVisit.bind(this),
+    );
+    this.schedulerRegistry.addCronJob('notifyAboutEndOfVetVisit', beforeJob);
+    afterJob.start();
   }
 
   /**
@@ -385,18 +393,19 @@ export class RabbitNotesService {
 
   /**
    * Notifies the user about a vet visit.
+   * @cron  initializes in the onModuleInit lifecycle hook
    */
   async notifyAboutVetVisit(): Promise<void> {
     this.logger.log('Starting to notify users about vet visits - cron job');
 
     const visitDate = new Date();
-    visitDate.setDate(visitDate.getDate() + 1);
+    visitDate.setDate(
+      visitDate.getDate() + this.cronConfig.notifyAboutVetVisitDaysBefore,
+    );
     visitDate.setHours(0, 0, 0, 0);
 
     const endVisitDate = new Date(visitDate);
-    endVisitDate.setDate(
-      endVisitDate.getDate() + this.cronConfig.notifyAboutVetVisitDayBefore,
-    );
+    endVisitDate.setDate(endVisitDate.getDate() + 1);
 
     const vetVisits = await this.rabbitNoteRepository.find({
       relations: {
@@ -420,6 +429,48 @@ export class RabbitNotesService {
             vetVisit.rabbit.rabbitGroup.team.id,
             vetVisit.rabbit.id,
             vetVisit.id,
+            vetVisit.rabbit.name,
+          ),
+        );
+      }
+    }
+  }
+
+  async notifyAboutEndOfVetVisit(): Promise<void> {
+    this.logger.log(
+      'Starting to notify users about end of vet visits - cron job',
+    );
+
+    const visitDate = new Date();
+    visitDate.setDate(visitDate.getDate());
+    visitDate.setHours(0, 0, 0, 0);
+
+    const endVisitDate = new Date(visitDate);
+    endVisitDate.setDate(endVisitDate.getDate() + 1);
+
+    const vetVisits = await this.rabbitNoteRepository.find({
+      relations: {
+        rabbit: {
+          rabbitGroup: {
+            team: true,
+          },
+        },
+      },
+      where: {
+        vetVisit: {
+          date: buildDateFilter(visitDate, endVisitDate),
+        },
+      },
+    });
+
+    for (const vetVisit of vetVisits) {
+      if (vetVisit.rabbit.rabbitGroup.team) {
+        this.notificationsService.sendNotification(
+          new NotificationVetVisitEnded(
+            vetVisit.rabbit.rabbitGroup.team.id,
+            vetVisit.rabbit.id,
+            vetVisit.id,
+            vetVisit.rabbit.name,
           ),
         );
       }

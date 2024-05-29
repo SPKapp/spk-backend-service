@@ -107,11 +107,16 @@ Wykorzystany do tego celu jest system [Firebase Cloud Messaging](https://firebas
 - Data:
   - rabbitId: id królika
   - noteId: id notatki
+  - rabbitName: imię królika, opcjonalne
 
 ### Powiadomienie o zakończeniu wizyty weterynaryjnej
 
-- Kategoria: vetVisitEnd
+- Kategoria: `vetVisitEnd`
 - Typ: push
 - Przypadek użycia: Gdy minął termin wizyty weterynaryjnej, aby przypomnieć o wprowadzeniu danych
 - Do:
   - wolontariusza przypisanego do królika - jednorazowo
+- Data:
+  - rabbitId: id królika
+  - noteId: id notatki
+  - rabbitName: imię królika, opcjonalne
