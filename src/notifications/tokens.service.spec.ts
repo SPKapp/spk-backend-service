@@ -26,7 +26,7 @@ describe(TokensService, () => {
         {
           provide: NotificationConfig.KEY,
           useValue: {
-            cutOffDays: 30,
+            removeTokenDays: 30,
           },
         },
         {

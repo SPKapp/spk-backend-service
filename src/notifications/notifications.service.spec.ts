@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
 import { FirebaseService } from '../common/modules/firebase/firebase.service';
-import { CommonConfig } from '../config';
+import { NotificationConfig } from '../config';
 
 import { NotificationsService } from './notifications.service';
 import { TokensService } from './tokens.service';
@@ -54,7 +54,7 @@ describe(NotificationsService, () => {
           },
         },
         {
-          provide: CommonConfig.KEY,
+          provide: NotificationConfig.KEY,
           useValue: {
             disablePushNotifications: false,
             addManagerToNotificationDelay: 4,
