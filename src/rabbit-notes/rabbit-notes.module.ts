@@ -8,11 +8,13 @@ import { PaginatedRabbitNoteResolver } from './paginated-rabbit-note.resolver';
 import { RabbitNote, VetVisit, VisitInfo } from './entities';
 
 import { RabbitsModule } from '../rabbits/rabbits.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([RabbitNote, VetVisit, VisitInfo]),
     RabbitsModule,
+    NotificationsModule,
   ],
   providers: [
     RabbitNotesResolver,

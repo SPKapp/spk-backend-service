@@ -6,11 +6,17 @@ import { In, IsNull, Not, Repository } from 'typeorm';
 import { buildDateFilter } from '../common/functions/filter.functions';
 
 import { RabbitNote, VetVisit, VisitInfo, VisitType } from './entities';
-import { Rabbit } from '../rabbits/entities';
-import { User } from '../users/entities';
+import { Rabbit, RabbitGroup } from '../rabbits/entities';
+import { Team, User } from '../users/entities';
 
 import { RabbitNotesService } from './rabbit-notes.service';
 import { RabbitsService } from '../rabbits';
+import { SchedulerRegistry } from '@nestjs/schedule';
+import { CronConfig } from 'src/config';
+import {
+  NotificationNearVetVisit,
+  NotificationsService,
+} from 'src/notifications';
 
 jest.mock('typeorm-transactional', () => ({
   Transactional: () => jest.fn(),
@@ -20,6 +26,7 @@ describe('RabbitNotesService', () => {
   let service: RabbitNotesService;
   let rabbitsService: RabbitsService;
   let rabbitNoteRepository: Repository<RabbitNote>;
+  let notificationService: NotificationsService;
 
   const rabbitNote = new RabbitNote({
     rabbit: new Rabbit({ id: 1 }),
@@ -68,6 +75,25 @@ describe('RabbitNotesService', () => {
             findOne: jest.fn(),
           },
         },
+        {
+          provide: NotificationsService,
+          useValue: {
+            sendNotification: jest.fn(),
+          },
+        },
+        {
+          provide: CronConfig.KEY,
+          useValue: {
+            notifyAboutVetVisit: '0 0 12 * * *',
+            notifyAboutVetVisitDaysBefore: 3,
+          },
+        },
+        {
+          provide: SchedulerRegistry,
+          useValue: {
+            addCronJob: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -76,6 +102,8 @@ describe('RabbitNotesService', () => {
     rabbitNoteRepository = module.get<Repository<RabbitNote>>(
       getRepositoryToken(RabbitNote),
     );
+    notificationService =
+      module.get<NotificationsService>(NotificationsService);
   });
 
   it('should be defined', () => {
@@ -597,6 +625,62 @@ describe('RabbitNotesService', () => {
       await service.updateRabbit(rabbitNote.rabbit.id);
 
       expect(rabbitsService.updateRabbitNoteFields).toHaveBeenCalled();
+    });
+  });
+
+  describe('notifyAboutVetVisit', () => {
+    const note = {
+      ...rabbitNoteWithVetVisit,
+      rabbit: new Rabbit({
+        rabbitGroup: new RabbitGroup({
+          team: new Team({
+            id: 1,
+          }),
+        }),
+      }),
+    };
+
+    it('should be defined', () => {
+      expect(service.notifyAboutVetVisit).toBeDefined();
+    });
+
+    it('should notify about a vet visit', async () => {
+      jest.spyOn(rabbitNoteRepository, 'find').mockResolvedValue([note]);
+
+      await service.notifyAboutVetVisit();
+
+      expect(notificationService.sendNotification).toHaveBeenCalledWith(
+        new NotificationNearVetVisit(
+          rabbitNoteWithVetVisit.rabbit.rabbitGroup.team.id,
+          rabbitNoteWithVetVisit.rabbit.id,
+          rabbitNoteWithVetVisit.id,
+        ),
+      );
+    });
+
+    it('should not notify when there are no vet visits', async () => {
+      jest.spyOn(rabbitNoteRepository, 'find').mockResolvedValue([rabbitNote]);
+
+      await service.notifyAboutVetVisit();
+
+      expect(notificationService.sendNotification).not.toHaveBeenCalled();
+    });
+
+    it('should not notify when no connected team to rabbit', async () => {
+      jest.spyOn(rabbitNoteRepository, 'find').mockResolvedValue([
+        {
+          ...note,
+          rabbit: new Rabbit({
+            rabbitGroup: new RabbitGroup({
+              team: null,
+            }),
+          }),
+        },
+      ]);
+
+      await service.notifyAboutVetVisit();
+
+      expect(notificationService.sendNotification).not.toHaveBeenCalled();
     });
   });
 });

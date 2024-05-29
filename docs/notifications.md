@@ -98,12 +98,15 @@ Wykorzystany do tego celu jest system [Firebase Cloud Messaging](https://firebas
 
 ### Powiadomienie o wizycie weterynaryjnej
 
-- Kategoria: nearVetVisit
+- Kategoria: `nearVetVisit`
 - Typ: push
 - Automatycznie usuwane po pojawieniu się powiadomienia o zakończeniu wizyty
 - Przypadek użycia: Gdy zbliża się termin wizyty weterynaryjnej
 - Do:
   - wolontariusza przypisanego do królika - 3 dni przed wizytą
+- Data:
+  - rabbitId: id królika
+  - noteId: id notatki
 
 ### Powiadomienie o zakończeniu wizyty weterynaryjnej
 

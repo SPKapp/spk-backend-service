@@ -1,9 +1,13 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigType } from '@nestjs/config';
+import { SchedulerRegistry } from '@nestjs/schedule';
+import { CronJob } from 'cron';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindManyOptions, In, IsNull, Not, Repository } from 'typeorm';
 import { Transactional } from 'typeorm-transactional';
@@ -21,6 +25,12 @@ import { RabbitNote, VisitInfo, VisitType } from './entities';
 import { UpdateRabbitNoteFieldsDto } from '../rabbits/dto';
 import { RabbitsService } from '../rabbits';
 
+import { CronConfig } from '../config';
+import {
+  NotificationNearVetVisit,
+  NotificationsService,
+} from '../notifications';
+
 @Injectable()
 export class RabbitNotesService {
   private readonly logger = new Logger(RabbitNotesService.name);
@@ -31,7 +41,20 @@ export class RabbitNotesService {
     @InjectRepository(VisitInfo)
     private readonly visitInfoRepository: Repository<VisitInfo>,
     private readonly rabbitsService: RabbitsService,
+    private readonly notificationsService: NotificationsService,
+    @Inject(CronConfig.KEY)
+    private readonly cronConfig: ConfigType<typeof CronConfig>,
+    private schedulerRegistry: SchedulerRegistry,
   ) {}
+
+  onModuleInit() {
+    const job = new CronJob(
+      this.cronConfig.notifyAboutVetVisit,
+      this.notifyAboutVetVisit.bind(this),
+    );
+    this.schedulerRegistry.addCronJob('notifyAboutVetVisit', job);
+    job.start();
+  }
 
   /**
    * Creates a new rabbit note.
@@ -358,5 +381,48 @@ export class RabbitNotesService {
         vetVisit: { date: 'DESC' },
       },
     });
+  }
+
+  /**
+   * Notifies the user about a vet visit.
+   */
+  async notifyAboutVetVisit(): Promise<void> {
+    this.logger.log('Starting to notify users about vet visits - cron job');
+
+    const visitDate = new Date();
+    visitDate.setDate(visitDate.getDate() + 1);
+    visitDate.setHours(0, 0, 0, 0);
+
+    const endVisitDate = new Date(visitDate);
+    endVisitDate.setDate(
+      endVisitDate.getDate() + this.cronConfig.notifyAboutVetVisitDayBefore,
+    );
+
+    const vetVisits = await this.rabbitNoteRepository.find({
+      relations: {
+        rabbit: {
+          rabbitGroup: {
+            team: true,
+          },
+        },
+      },
+      where: {
+        vetVisit: {
+          date: buildDateFilter(visitDate, endVisitDate),
+        },
+      },
+    });
+
+    for (const vetVisit of vetVisits) {
+      if (vetVisit.rabbit.rabbitGroup.team) {
+        this.notificationsService.sendNotification(
+          new NotificationNearVetVisit(
+            vetVisit.rabbit.rabbitGroup.team.id,
+            vetVisit.rabbit.id,
+            vetVisit.id,
+          ),
+        );
+      }
+    }
   }
 }

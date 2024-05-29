@@ -243,3 +243,26 @@ export class NotificationAdoptionToConfirm extends TeamAndMaybeManagerNotificati
     );
   }
 }
+
+export class NotificationNearVetVisit extends TeamNotification {
+  constructor(teamId: number, rabbitId: number, noteId: number, name?: string) {
+    let body = 'Nadchodzi termin wizyty u weterynarza';
+    if (name) {
+      body += ` z ${name}`;
+    }
+
+    super(
+      teamId,
+      'nearVetVisit',
+      new Set<NotificationType>([NotificationType.Push]),
+      {
+        rabbitId: rabbitId.toString(),
+        noteId: noteId.toString(),
+      },
+      {
+        title: 'Wizyta u weterynarza',
+        body: body,
+      },
+    );
+  }
+}
