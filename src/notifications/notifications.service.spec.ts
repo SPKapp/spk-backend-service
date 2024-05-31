@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
 import { FirebaseService } from '../common/modules/firebase/firebase.service';
-import { NotificationConfig } from '../config';
+import { CommonConfig, NotificationConfig } from '../config';
 
 import { NotificationsService } from './notifications.service';
 import { TokensService } from './tokens.service';
@@ -14,6 +14,7 @@ import {
   UserNotification,
 } from './entities';
 import { User } from '../users/entities';
+import { MailerService } from '@nestjs-modules/mailer';
 
 class TestUserNotification extends UserNotification {}
 class TestTeamNotification extends TeamNotification {}
@@ -24,6 +25,7 @@ describe(NotificationsService, () => {
   let tokensService: TokensService;
   let firebaseService: FirebaseService;
   let usersService: UsersService;
+  let mailerService: MailerService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -54,11 +56,24 @@ describe(NotificationsService, () => {
           },
         },
         {
+          provide: MailerService,
+          useValue: {
+            sendMail: jest.fn(),
+          },
+        },
+        {
+          provide: CommonConfig.KEY,
+          useValue: {
+            appName: 'Test App',
+          },
+        },
+        {
           provide: NotificationConfig.KEY,
           useValue: {
             disablePushNotifications: false,
             addManagerToNotificationDelay: 4,
             addEmailToNotificationDelay: 14,
+            webLink: 'https://example.com',
           },
         },
       ],
@@ -68,6 +83,7 @@ describe(NotificationsService, () => {
     tokensService = module.get<TokensService>(TokensService);
     firebaseService = module.get<FirebaseService>(FirebaseService);
     usersService = module.get<UsersService>(UsersService);
+    mailerService = module.get<MailerService>(MailerService);
   });
 
   it('should be defined', () => {
@@ -75,18 +91,12 @@ describe(NotificationsService, () => {
   });
 
   describe('sendUserNotification - push', () => {
-    const notification = new TestUserNotification(
-      'category',
-      new Set<NotificationType>([NotificationType.Push]),
-      {
-        testData: 'testData',
-      },
-      {
-        title: 'title',
-        body: 'body',
-      },
-      1,
-    );
+    const notification = new TestUserNotification();
+    notification.category = 'category';
+    notification.types = new Set<NotificationType>([NotificationType.Push]);
+    notification.data = { testData: 'testData' };
+    notification.notification = { title: 'title', body: 'body' };
+    notification.userId = 1;
 
     it('should not send push notification if no tokens found', async () => {
       jest.spyOn(tokensService, 'getTokens').mockResolvedValue([]);
@@ -111,6 +121,24 @@ describe(NotificationsService, () => {
       expect(firebaseService.messaging.send).toHaveBeenCalled();
     });
 
+    it('should send push notification without title and body', async () => {
+      jest
+        .spyOn(tokensService, 'getTokens')
+        .mockResolvedValue(['token1', 'token2']);
+
+      const emptyNotification = Object.create(notification);
+      emptyNotification.notification = undefined;
+
+      await expect(
+        service.sendNotification(emptyNotification),
+      ).resolves.not.toThrow();
+
+      expect(tokensService.getTokens).toHaveBeenCalledWith(
+        emptyNotification.userId,
+      );
+      expect(firebaseService.messaging.send).toHaveBeenCalled();
+    });
+
     it('should remove tokens that are not valid', async () => {
       jest
         .spyOn(tokensService, 'getTokens')
@@ -130,20 +158,62 @@ describe(NotificationsService, () => {
     });
   });
 
-  describe('sendTeamNotification - push', () => {
+  describe('sendUserNotification - email', () => {
+    const notification = new TestUserNotification();
+    notification.category = 'category';
+    notification.types = new Set<NotificationType>([NotificationType.Email]);
+    notification.data = { testData: 'testData' };
+    notification.emailData = { subject: 'subject', template: 'template' };
+    notification.userId = 1;
+
+    it('should send email notification - no email found', async () => {
+      jest
+        .spyOn(usersService.userRepository, 'findOne')
+        .mockResolvedValue(null);
+
+      await expect(
+        service.sendNotification(notification),
+      ).resolves.not.toThrow();
+
+      expect(mailerService.sendMail).not.toHaveBeenCalled();
+    });
+
+    it('should send email notification - find email', async () => {
+      jest.spyOn(tokensService, 'getTokens').mockResolvedValue([]);
+
+      jest
+        .spyOn(usersService.userRepository, 'findOne')
+        .mockResolvedValue(new User({ id: 1, email: 'email@example.com' }));
+
+      await expect(
+        service.sendNotification(notification),
+      ).resolves.not.toThrow();
+
+      expect(mailerService.sendMail).toHaveBeenCalled();
+    });
+
+    it('should send email notification -  email provided', async () => {
+      jest.spyOn(tokensService, 'getTokens').mockResolvedValue([]);
+
+      const notificationWithEmail = Object.create(notification);
+      notificationWithEmail.email = 'email@example.com';
+
+      await expect(
+        service.sendNotification(notificationWithEmail),
+      ).resolves.not.toThrow();
+
+      expect(mailerService.sendMail).toHaveBeenCalled();
+    });
+  });
+
+  describe('sendTeamNotification', () => {
     const mockedDate = new Date(2024, 4, 1);
-    const notification = new TestTeamNotification(
-      1,
-      'category',
-      new Set<NotificationType>([NotificationType.Push]),
-      {
-        testData: 'testData',
-      },
-      {
-        title: 'title',
-        body: 'body',
-      },
-    );
+    const notification = new TestTeamNotification();
+    notification.teamId = 1;
+    notification.category = 'category';
+    notification.types = new Set<NotificationType>([NotificationType.Push]);
+    notification.data = { testData: 'testData' };
+    notification.notification = { title: 'title', body: 'body' };
 
     beforeEach(() => {
       jest.useFakeTimers();
@@ -179,6 +249,10 @@ describe(NotificationsService, () => {
         notification.category,
         notification.types,
         notification.data,
+        {
+          subject: 'subject',
+          template: 'template',
+        },
         1,
         notification.notification,
       );
@@ -215,6 +289,10 @@ describe(NotificationsService, () => {
         notification.category,
         notification.types,
         notification.data,
+        {
+          subject: 'subject',
+          template: 'template',
+        },
         1,
         notification.notification,
       );
@@ -242,7 +320,7 @@ describe(NotificationsService, () => {
       expect(tokensService.getTokens).toHaveBeenNthCalledWith(2, 2);
       expect(tokensService.getTokens).toHaveBeenCalledTimes(2);
       expect(firebaseService.messaging.send).toHaveBeenCalled();
-      // TODO: Check email sending
+      expect(mailerService.sendMail).toHaveBeenCalledTimes(2);
     });
 
     it('should send to managers only if teamId is not provided', async () => {
@@ -252,6 +330,10 @@ describe(NotificationsService, () => {
         notification.category,
         notification.types,
         notification.data,
+        {
+          subject: 'subject',
+          template: 'template',
+        },
         undefined,
         notification.notification,
       );

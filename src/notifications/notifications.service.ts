@@ -1,8 +1,9 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
+import { MailerService } from '@nestjs-modules/mailer';
 
 import { FirebaseService, TokenMessage } from '../common/modules/firebase';
-import { NotificationConfig } from '../config';
+import { CommonConfig, NotificationConfig } from '../config';
 
 import {
   Notification,
@@ -23,6 +24,9 @@ export class NotificationsService {
   constructor(
     private readonly tokensService: TokensService,
     private readonly firebaseService: FirebaseService,
+    private readonly mailerService: MailerService,
+    @Inject(CommonConfig.KEY)
+    private readonly commonConfig: ConfigType<typeof CommonConfig>,
     @Inject(NotificationConfig.KEY)
     private readonly config: ConfigType<typeof NotificationConfig>,
     private readonly usersService: UsersService,
@@ -122,12 +126,26 @@ export class NotificationsService {
   }
 
   private async sendEmailNotification(
-    notification: Notification,
+    notification: UserNotification,
   ): Promise<void> {
-    // TODO: Implement email sending
     this.logger.debug(
       `Sending email notification:  ${JSON.stringify(notification)}`,
     );
+
+    try {
+      await this.mailerService.sendMail({
+        to: notification.email,
+        subject: notification.emailData.subject,
+        template: notification.emailData.template,
+        context: {
+          ...notification.data,
+          appName: this.commonConfig.appName,
+          link: `${this.config.webLink}${notification.emailData.link ?? ''}`,
+        },
+      });
+    } catch (error) {
+      this.logger.error(`Error sending email notification: ${error}`);
+    }
   }
 
   private async sendPushNotification(
@@ -142,10 +160,12 @@ export class NotificationsService {
 
     const message: TokenMessage = {
       token: '',
-      notification: {
-        title: notification.notification.title,
-        body: notification.notification.body,
-      },
+      notification: notification.notification
+        ? {
+            title: notification.notification.title,
+            body: notification.notification.body,
+          }
+        : undefined,
       webpush: {
         fcmOptions: {
           link: this.config.webLink,

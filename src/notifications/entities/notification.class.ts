@@ -13,26 +13,10 @@ export enum NotificationType {
  * @param types - Types of the notification - should be defined by each final class, not all types may be supported for each category
  * @param data - Data to be sent with the notification - specific to each category
  * @param notification - Notification data - title, body, imageUrl, can be used for push notifications
+ * @param emailData - Data for email notifications - subject, template
  *
  */
 export abstract class Notification {
-  constructor(
-    category: string,
-    types: Set<NotificationType>,
-    data: {
-      [key: string]: string;
-    },
-    notification?: {
-      title: string;
-      body: string;
-    },
-  ) {
-    this.category = category;
-    this.types = types;
-    this.data = data;
-    this.notification = notification;
-  }
-
   category: string;
   types: Set<NotificationType>;
   data: {
@@ -42,25 +26,17 @@ export abstract class Notification {
     title: string;
     body: string;
   };
+  emailData?: {
+    subject: string;
+    template: string;
+    link?: string;
+  };
 }
 
 /**
  * Base class for notifications sent to a single user
  */
 export abstract class UserNotification extends Notification {
-  constructor(
-    category: string,
-    types: Set<NotificationType>,
-    data: { [key: string]: string },
-    notification?: { title: string; body: string },
-    userId?: number,
-    email?: string,
-  ) {
-    super(category, types, data, notification);
-    this.userId = userId;
-    this.email = email;
-  }
-
   userId?: number;
   email?: string;
 }
@@ -69,17 +45,6 @@ export abstract class UserNotification extends Notification {
  * Base class for notifications sent to a team
  */
 export abstract class TeamNotification extends Notification {
-  constructor(
-    teamId: number,
-    category: string,
-    types: Set<NotificationType>,
-    data: { [key: string]: string },
-    notification?: { title: string; body: string },
-  ) {
-    super(category, types, data, notification);
-    this.teamId = teamId;
-  }
-
   teamId: number;
 
   toUserNotification(userId?: number, email?: string): UserNotification {
@@ -101,10 +66,18 @@ export abstract class TeamAndMaybeManagerNotification extends TeamNotification {
     category: string,
     types: Set<NotificationType>,
     data: { [key: string]: string },
+    emailData: { subject: string; template: string; link?: string },
     teamId?: number,
     notification?: { title: string; body: string },
   ) {
-    super(teamId, category, types, data, notification);
+    super();
+
+    this.category = category;
+    this.types = types;
+    this.data = data;
+    this.notification = notification;
+    this.teamId = teamId;
+    this.emailData = emailData;
 
     this.daysAfterStartDate = Math.floor(
       Math.abs(new Date().getTime() - startDate.getTime()) / millisecondsInDay,
@@ -117,25 +90,37 @@ export abstract class TeamAndMaybeManagerNotification extends TeamNotification {
 }
 
 /**
+ * *****************************************
+ * ********** FINAL NOTIFICATIONS **********
+ * *****************************************
+ */
+
+/**
  * Notification for a new rabbit group assigned to the team
  */
 export class NotificationGroupAssigned extends TeamNotification {
   constructor(teamId: number, groupId: number) {
-    super(
-      teamId,
-      'groupAssigned',
-      new Set<NotificationType>([
-        NotificationType.Email,
-        NotificationType.Push,
-      ]),
-      {
-        groupId: groupId.toString(),
-      },
-      {
-        title: 'Nowy królik',
-        body: 'Przypisano do Ciebie nową grupę królików',
-      },
-    );
+    super();
+
+    this.category = 'groupAssigned';
+    this.types = new Set<NotificationType>([
+      NotificationType.Email,
+      NotificationType.Push,
+    ]);
+    this.data = {
+      groupId: groupId.toString(),
+    };
+    this.notification = {
+      title: 'Nowy królik',
+      body: 'Przypisano do Ciebie nową grupę królików',
+    };
+    this.teamId = teamId;
+
+    this.emailData = {
+      subject: 'Przypisano do Ciebie nową grupę królików',
+      template: 'notifications/group-assigned',
+      link: `/#/rabbitGroup/${groupId}`,
+    };
   }
 }
 
@@ -144,21 +129,27 @@ export class NotificationGroupAssigned extends TeamNotification {
  */
 export class NotificationRabbitAssigned extends TeamNotification {
   constructor(teamId: number, rabbitId: number) {
-    super(
-      teamId,
-      'rabbitAssigned',
-      new Set<NotificationType>([
-        NotificationType.Email,
-        NotificationType.Push,
-      ]),
-      {
-        rabbitId: rabbitId.toString(),
-      },
-      {
-        title: 'Nowy królik',
-        body: 'Przypisano do Ciebie nowego królika',
-      },
-    );
+    super();
+
+    this.category = 'rabbitAssigned';
+    this.types = new Set<NotificationType>([
+      NotificationType.Email,
+      NotificationType.Push,
+    ]);
+    this.data = {
+      rabbitId: rabbitId.toString(),
+    };
+    this.notification = {
+      title: 'Nowy królik',
+      body: 'Przypisano do Ciebie nowego królika',
+    };
+    this.teamId = teamId;
+
+    this.emailData = {
+      subject: 'Przypisano do Ciebie nowego królika',
+      template: 'notifications/rabbit-assigned',
+      link: `/#/rabbit/${rabbitId}`,
+    };
   }
 }
 
@@ -167,18 +158,18 @@ export class NotificationRabbitAssigned extends TeamNotification {
  */
 export class NotificationRabitMoved extends TeamNotification {
   constructor(teamId: number, rabbitId: number) {
-    super(
-      teamId,
-      'rabbitMoved',
-      new Set<NotificationType>([NotificationType.Push]),
-      {
-        rabbitId: rabbitId.toString(),
-      },
-      {
-        title: 'Przeniesienie królika',
-        body: 'Przeniesiono twojego królika do innej grupy',
-      },
-    );
+    super();
+
+    this.category = 'rabbitMoved';
+    this.types = new Set<NotificationType>([NotificationType.Push]);
+    this.data = {
+      rabbitId: rabbitId.toString(),
+    };
+    this.notification = {
+      title: 'Przeniesienie królika',
+      body: 'Przeniesiono twojego królika do innej grupy',
+    };
+    this.teamId = teamId;
   }
 }
 
@@ -201,6 +192,15 @@ export class NotificationAdmissionToConfirm extends TeamAndMaybeManagerNotificat
       new Set<NotificationType>([NotificationType.Push]),
       {
         rabbitId: rabbitId.toString(),
+        inFuture: inFuture.toString(),
+        name: name ?? '',
+      },
+      {
+        subject: inFuture
+          ? 'Problem z datą przyjęcia'
+          : 'Potwierdzenie przyjęcia królika',
+        template: 'notifications/admission-to-confirm',
+        link: `/#/rabbit/${rabbitId}`,
       },
       teamId,
       inFuture
@@ -234,6 +234,12 @@ export class NotificationAdoptionToConfirm extends TeamAndMaybeManagerNotificati
       new Set<NotificationType>([NotificationType.Push]),
       {
         groupId: groupId.toString(),
+        name: name ?? '',
+      },
+      {
+        subject: 'Potwierdzenie adopcji',
+        template: 'notifications/adoption-to-confirm',
+        link: `/#/rabbitGroup/${groupId}`,
       },
       teamId,
       {
@@ -246,52 +252,46 @@ export class NotificationAdoptionToConfirm extends TeamAndMaybeManagerNotificati
 
 export class NotificationNearVetVisit extends TeamNotification {
   constructor(teamId: number, rabbitId: number, noteId: number, name?: string) {
-    let body = 'Nadchodzi termin wizyty u weterynarza';
-    const data = {
+    super();
+
+    this.category = 'nearVetVisit';
+    this.types = new Set<NotificationType>([NotificationType.Push]);
+    this.data = {
       rabbitId: rabbitId.toString(),
       noteId: noteId.toString(),
     };
+    this.notification = {
+      title: 'Wizyta u weterynarza',
+      body: 'Nadchodzi termin wizyty u weterynarza',
+    };
+    this.teamId = teamId;
 
     if (name) {
-      body += ` z ${name}`;
-      data['rabbitName'] = name;
+      this.notification.body += ` z ${name}`;
+      this.data['rabbitName'] = name;
     }
-
-    super(
-      teamId,
-      'nearVetVisit',
-      new Set<NotificationType>([NotificationType.Push]),
-      data,
-      {
-        title: 'Wizyta u weterynarza',
-        body: body,
-      },
-    );
   }
 }
 
 export class NotificationVetVisitEnded extends TeamNotification {
   constructor(teamId: number, rabbitId: number, noteId: number, name?: string) {
-    let body = 'Uzupełnij informacje o wizycie u weterynarza';
-    const data = {
+    super();
+
+    this.category = 'vetVisitEnd';
+    this.types = new Set<NotificationType>([NotificationType.Push]);
+    this.data = {
       rabbitId: rabbitId.toString(),
       noteId: noteId.toString(),
     };
+    this.notification = {
+      title: 'Zakończono wizytę u weterynarza',
+      body: 'Uzupełnij informacje o wizycie u weterynarza',
+    };
+    this.teamId = teamId;
 
     if (name) {
-      body += ` z ${name}`;
-      data['rabbitName'] = name;
+      this.notification.body += ` z ${name}`;
+      this.data['rabbitName'] = name;
     }
-
-    super(
-      teamId,
-      'vetVisitEnd',
-      new Set<NotificationType>([NotificationType.Push]),
-      data,
-      {
-        title: 'Zakończono wizytę u weterynarza',
-        body: body,
-      },
-    );
   }
 }

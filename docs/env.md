@@ -49,7 +49,8 @@ Patrz [firebase.config.ts](src/config/firebase.config.ts)
 Patrz [notifications.config.ts](src/config/notifications.config.ts)
 
 - `NOTIFICATION_REMOVE_TOKEN_DAYS` - czas po którym usuwa tokeny push, domyślnie 40 dni
-- `NOTIFICATION_DISABLE_PUSH` - deweloperskie, jeśli `true` to nie wysyła pushów
+- `NOTIFICATION_DISABLE_PUSH` - deweloperskie, jeśli `true` to nie wysyła pushów gdy środowsiko firebase jest skonfigurowane,\
+  jeśli firebase jest emulowane to wysyłka zakończy się błędem - zostanie to odnotowane w logach
 - `NOTIFICATION_ADD_MANAGER_DELAY` - czas w dniach po którym dodaje się managera do powiadomień, domyślnie 7 dni
 - `NOTIFICATION_ADD_EMAIL_DELAY` - czas w dniach po którym dodaje się email do powiadomień, domyślnie 14 dni
 - `NOTIFICATION_WEB_LINK` - link do aplikacji webowej

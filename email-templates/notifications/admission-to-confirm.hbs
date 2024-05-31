@@ -1,0 +1,15 @@
+<p>Cześć,<br>
+{{#if inFuture}}
+Data przyjęcia {{name}} jest w przyszłości, a status inny niż 'Nieodebrany', prosimy o poprawę danych.
+{{else}}
+Upłynął termin przyjęcia {{name}}, prosimy o jego potwierdzenie.
+{{/if}}
+</p>
+
+Sprawdź szczegóły: <br>
+<p>
+    <a href="{{ link }}">Link</a>
+</p>
+
+Pozdrawiamy, <br>
+Zespół {{ appName }}
