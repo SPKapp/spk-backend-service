@@ -6,7 +6,7 @@ import { FirebaseService } from '../../firebase/firebase.service';
 import { Role } from '../roles.eum';
 import { UserRecord } from 'firebase-admin/lib/auth/user-record';
 import { ConfigType } from '@nestjs/config';
-import { CommonConfig } from '../../../../config/';
+import { AuthConfig, CommonConfig } from '../../../../config/';
 
 @Injectable()
 export class FirebaseAuthService {
@@ -17,6 +17,8 @@ export class FirebaseAuthService {
     private readonly mailerService: MailerService,
     @Inject(CommonConfig.KEY)
     private readonly commonConfig: ConfigType<typeof CommonConfig>,
+    @Inject(AuthConfig.KEY)
+    private readonly authConfig: ConfigType<typeof AuthConfig>,
   ) {}
 
   /**
@@ -49,10 +51,7 @@ export class FirebaseAuthService {
           appName: this.commonConfig.appName,
           link: await this.firebaseService.auth.generatePasswordResetLink(
             email,
-            {
-              // TODO: Implement Redirect
-              url: 'http://localhost:3000',
-            },
+            this.authConfig.actionCodeSettings,
           ),
         },
       });
@@ -125,10 +124,7 @@ export class FirebaseAuthService {
             link: await this.firebaseService.auth.generateVerifyAndChangeEmailLink(
               user.email,
               email,
-              {
-                // TODO: Implement Redirect
-                url: 'http://localhost:3000',
-              },
+              this.authConfig.actionCodeSettings,
             ),
           },
         });

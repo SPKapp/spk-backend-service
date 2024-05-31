@@ -4,7 +4,7 @@ import { MailerService } from '@nestjs-modules/mailer';
 import { FirebaseAuthService } from './firebase-auth.service';
 import { FirebaseService } from '../../firebase/firebase.service';
 import { Role } from '../roles.eum';
-import { CommonConfig } from '../../../../config';
+import { AuthConfig, CommonConfig } from '../../../../config';
 
 describe('FirebaseAuthService', () => {
   let service: FirebaseAuthService;
@@ -41,6 +41,14 @@ describe('FirebaseAuthService', () => {
           provide: CommonConfig.KEY,
           useValue: {
             appName: 'Test App',
+          },
+        },
+        {
+          provide: AuthConfig.KEY,
+          useValue: {
+            actionCodeSettings: {
+              url: 'http://link',
+            },
           },
         },
       ],

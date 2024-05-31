@@ -66,3 +66,9 @@ Patrz [cron.config.ts](src/config/cron.config.ts)
 - `CRON_NOTIFY_ABOUT_VET_VISIT` - wyrażenie cron dla powiadomień o wizycie u weterynarza (domyślnie `30 19 * * *`)
 - `CRON_NOTIFY_ABOUT_VET_VISIT_DAYS_BEFORE` - liczba dni przed wizytą u weterynarza, kiedy wysłać powiadomienie (domyślnie 3)
 - `CRON_NOTIFY_ABOUT_ENDED_VET_VISIT` - wyrażenie cron dla powiadomień o zakończonej wizycie u weterynarza (domyślnie `30 20 * * *`)
+
+### Auth
+
+Patrz [auth.config.ts](src/config/auth.config.ts)
+
+-`AUTH_REDIRECT_URL` - adres przekierowania wysyłany w mailach z linkiem
