@@ -1,10 +1,13 @@
 import { ObjectType, Field, ID } from '@nestjs/graphql';
 import {
   Column,
+  CreateDateColumn,
+  DeleteDateColumn,
   Entity,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
   VirtualColumn,
 } from 'typeorm';
 
@@ -61,8 +64,6 @@ export class User {
   @Field()
   active: boolean;
 
-  // TODO: Add Adress field
-
   @ManyToOne(() => Team, (team) => team.users, { eager: true })
   @Field(() => Team, { nullable: true })
   team: Team;
@@ -74,7 +75,10 @@ export class User {
   @OneToMany(() => RabbitNote, (rabbitNote) => rabbitNote.user)
   rabbitNotes: Promise<RabbitNote[]>;
 
-  @OneToMany(() => RoleEntity, (role) => role.user)
+  @OneToMany(() => RoleEntity, (role) => role.user, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   roles: Promise<RoleEntity[]>;
 
   @OneToMany(() => TeamHistory, (teamHistory) => teamHistory.user)
@@ -82,4 +86,13 @@ export class User {
 
   @OneToMany(() => FcmToken, (fcmToken) => fcmToken.user)
   fcmTokens: Promise<FcmToken[]>;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt: Date;
 }

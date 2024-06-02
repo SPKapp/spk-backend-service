@@ -11,7 +11,6 @@ import {
   BadRequestException,
   ForbiddenException,
   NotFoundException,
-  NotImplementedException,
 } from '@nestjs/common';
 
 import {
@@ -134,9 +133,9 @@ export class UsersResolver {
    * @param currentUser - The current user details.
    * @param id - The ID of the user to be removed.
    * @returns An object containing the ID of the removed user.
-   * @throws {ForbiddenException} if the user region ID does not match the Region Manager permissions.
-   * @throws {BadRequestException} if the user cannot be removed.
-   * @throws {NotFoundException} if the user with the provided ID does not exist.
+   * @throws {NotFoundException} - `user-not-found` if the user with the provided ID does not exist.
+   *  or currentUser not have permissions to remove the user.
+   * @throws  {ConflictException} `user-active` if the user is active.
    */
   @FirebaseAuth(Role.Admin, Role.RegionManager)
   @Mutation(() => EntityWithId)
@@ -144,10 +143,16 @@ export class UsersResolver {
     @CurrentUser() currentUser: UserDetails,
     @Args('id', { type: () => ID }) idArg: string,
   ) {
-    throw new NotImplementedException('This method is not implemented yet.');
     const id = Number(idArg);
 
-    return { id: await this.usersService.remove(id) };
+    return {
+      id: await this.usersService.remove(
+        id,
+        currentUser.checkRole(Role.Admin)
+          ? undefined
+          : currentUser.managerRegions,
+      ),
+    };
   }
 
   /**

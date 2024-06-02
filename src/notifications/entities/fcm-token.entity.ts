@@ -24,7 +24,6 @@ export class FcmToken {
   @ManyToOne(() => User, (user) => user.fcmTokens, {
     nullable: false,
     onDelete: 'CASCADE',
-    orphanedRowAction: 'delete',
   })
   user: User;
 

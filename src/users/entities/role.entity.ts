@@ -27,6 +27,7 @@ export class RoleEntity {
   @Column({
     type: 'enum',
     enum: Role,
+    nullable: false,
   })
   @Field(() => Role)
   role: Role;
@@ -42,7 +43,10 @@ export class RoleEntity {
   @Field(() => ID, { nullable: true })
   additionalInfo: number;
 
-  @ManyToOne(() => User, (user) => user.roles)
+  @ManyToOne(() => User, (user) => user.roles, {
+    nullable: false,
+    onDelete: 'CASCADE',
+  })
   user: User;
 
   @CreateDateColumn()

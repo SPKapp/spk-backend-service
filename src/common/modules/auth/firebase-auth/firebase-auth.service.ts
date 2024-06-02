@@ -148,8 +148,16 @@ export class FirebaseAuthService {
     try {
       await this.firebaseService.auth.deleteUser(uid);
     } catch (err) {
-      this.logger.error(err);
-      throw err;
+      if (err.code === 'auth/user-not-found') {
+        this.logger.warn(
+          `Uid ${uid} not found in Firebase, handling as success`,
+        );
+      } else {
+        this.logger.error(
+          `Failed to remove user ${uid} from Firebase ${JSON.stringify(err)}`,
+        );
+        throw err;
+      }
     }
   }
 

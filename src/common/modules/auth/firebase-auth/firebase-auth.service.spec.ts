@@ -221,7 +221,31 @@ describe('FirebaseAuthService', () => {
   });
 
   describe('deleteUser', () => {
-    // TODO: Implement tests
+    it('should be defined', () => {
+      expect(service.deleteUser).toBeDefined();
+    });
+
+    it('should delete the user', async () => {
+      await service.deleteUser('123');
+
+      expect(firebaseService.auth.deleteUser).toHaveBeenCalledWith('123');
+    });
+
+    it('should throw an error if the user cannot be deleted', async () => {
+      jest
+        .spyOn(firebaseService.auth, 'deleteUser')
+        .mockRejectedValue(new Error('Test'));
+
+      await expect(service.deleteUser('123')).rejects.toThrow('Test');
+    });
+
+    it('should not throw an error if the user does not exist', async () => {
+      jest
+        .spyOn(firebaseService.auth, 'deleteUser')
+        .mockRejectedValue({ code: 'auth/user-not-found' });
+
+      await expect(service.deleteUser('123')).resolves.toBeUndefined();
+    });
   });
 
   describe('deactivateUser', () => {

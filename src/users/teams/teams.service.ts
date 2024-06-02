@@ -7,7 +7,7 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, FindManyOptions, In, Not, Repository } from 'typeorm';
+import { DataSource, FindManyOptions, In, Repository } from 'typeorm';
 
 import { RegionsService } from '../../common/modules/regions';
 import { Team, User } from '../entities';
@@ -30,13 +30,14 @@ export class TeamsService {
    *
    * @param regionId - The ID of the region for the team.
    * @returns A Promise that resolves to the created team.
-   * @throws {BadRequestException} if the region with the provided ID does not exist.
+   * @throws {BadRequestException} - `region-not-found` If the region with the provided ID does not exist.
    */
   async create(regionId: number): Promise<Team> {
     const region = await this.regionsService.findOne(regionId);
     if (!region) {
       throw new BadRequestException(
         'Region with the provided id does not exist',
+        'region-not-found',
       );
     }
 
@@ -122,8 +123,8 @@ export class TeamsService {
    *
    * @param TeamOrId - The team or ID of the team to deactivate.
    * @returns A Promise that resolves to void.
-   * @throws {NotFoundException} if the team with the provided ID does not exist.
-   * @throws {BadRequestException} if the team with the provided ID cannot be deactivated.
+   * @throws {NotFoundException} - `team-not-found` If the team with the provided ID does not exist.
+   * @throws {BadRequestException} - `active-groups` If the team has active RabbitGroups.
    */
   async maybeDeactivate(TeamOrId: number | Team): Promise<void> {
     let team: Team;
@@ -132,7 +133,10 @@ export class TeamsService {
     } else {
       team = await this.teamRepository.findOneBy({ id: TeamOrId });
       if (!team) {
-        throw new NotFoundException(`Team with the provided id not found.`);
+        throw new NotFoundException(
+          `Team with the provided id not found.`,
+          'team-not-found',
+        );
       }
     }
 
@@ -147,16 +151,19 @@ export class TeamsService {
 
     const activeGroups = await this.dataSource.manager.countBy(RabbitGroup, {
       team: { id: team.id },
-      status: Not(In(RabbitGroupStatusHelper.Active)),
+      status: In(RabbitGroupStatusHelper.Active),
     });
 
     if (activeGroups !== 0) {
-      throw new BadRequestException('Team cannot be deactivated');
+      throw new BadRequestException(
+        'Team cannot be deactivated',
+        'active-groups',
+      );
     }
 
     const archivalGroups = await this.dataSource.manager.countBy(RabbitGroup, {
       team: { id: team.id },
-      status: Not(In(RabbitGroupStatusHelper.Archival)),
+      status: In(RabbitGroupStatusHelper.Archival),
     });
 
     if (archivalGroups !== 0 || (await team.users).length !== 0) {

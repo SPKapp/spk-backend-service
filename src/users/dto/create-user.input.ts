@@ -19,8 +19,6 @@ export class CreateUserInput {
   @Transform(({ value }) => (value.startsWith('+48') ? value : `+48${value}`))
   phone: string;
 
-  // TODO: Add Adress field
-
   @Field(() => ID, {
     nullable: true,
     description:

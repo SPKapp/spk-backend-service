@@ -1,10 +1,17 @@
 import { Logger } from '@nestjs/common';
-import { DataSource, EventSubscriber, UpdateEvent } from 'typeorm';
+import {
+  DataSource,
+  EntitySubscriberInterface,
+  EventSubscriber,
+  UpdateEvent,
+} from 'typeorm';
 
 import { Rabbit, RabbitGroup, RabbitGroupStatus } from '../entities';
 
 @EventSubscriber()
-export class RabbitGroupsSubscriber {
+export class RabbitGroupsSubscriber
+  implements EntitySubscriberInterface<RabbitGroup>
+{
   private readonly logger = new Logger(RabbitGroupsSubscriber.name);
 
   constructor(private readonly dataSource: DataSource) {

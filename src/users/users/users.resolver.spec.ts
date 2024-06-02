@@ -193,35 +193,36 @@ describe('UsersResolver', () => {
     });
   });
 
-  // describe('removeUser', () => {
-  //   it('should be defined', () => {
-  //     expect(resolver.removeUser).toBeDefined();
-  //   });
+  describe('removeUser', () => {
+    it('should be defined', () => {
+      expect(resolver.removeUser).toBeDefined();
+    });
 
-  //   it('should throw bad permissions error', async () => {
-  //     jest.spyOn(usersService, 'findOne').mockResolvedValue(
-  //       new User({
-  //         id: 1,
-  //         team: new Team({
-  //           id: 1,
-  //           region: new Region({ id: 1 }),
-  //         }),
-  //       }),
-  //     );
+    it('should remove user', async () => {
+      jest.spyOn(usersService, 'remove').mockResolvedValue(1);
 
-  //     await expect(resolver.removeUser(userRegionManager, '1')).rejects.toThrow(
-  //       new ForbiddenException(
-  //         'User does not belong to the Region Manager permissions.',
-  //       ),
-  //     );
-  //   });
+      await expect(resolver.removeUser(userAdmin, '1')).resolves.toEqual({
+        id: 1,
+      });
 
-  //   it('should remove user', async () => {
-  //     await expect(resolver.removeUser(userAdmin, '1')).resolves.toEqual({
-  //       id: 1,
-  //     });
-  //   });
-  // });
+      expect(usersService.remove).toHaveBeenCalledWith(1, undefined);
+    });
+
+    it('should remove user - region manager', async () => {
+      jest.spyOn(usersService, 'remove').mockResolvedValue(1);
+
+      await expect(
+        resolver.removeUser(userRegionManager, '1'),
+      ).resolves.toEqual({
+        id: 1,
+      });
+
+      expect(usersService.remove).toHaveBeenCalledWith(
+        1,
+        userRegionManager.managerRegions,
+      );
+    });
+  });
 
   describe('myProfile', () => {
     it('should be defined', () => {

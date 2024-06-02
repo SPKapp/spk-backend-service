@@ -1,6 +1,7 @@
 import {
   ConflictException,
   Injectable,
+  InternalServerErrorException,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
@@ -33,7 +34,8 @@ export class UsersService {
    *
    * @param createUserInput - The input data for creating a user.
    * @returns A promise that resolves to the created user.
-   * @throws {ConflictException} If a user with the provided email or phone already exists.
+   * @throws {ConflictException} - `email-exists` If a user with the provided email already exists.
+   * @throws {ConflictException} - `phone-exists` If a user with the provided phone already exists.
    */
   @Transactional()
   async create(createUserInput: CreateUserInput): Promise<User> {
@@ -141,8 +143,9 @@ export class UsersService {
    * @param id - The id of the user to update.
    * @param updateUserInput - The updated user data.
    * @returns The updated user.
-   * @throws {NotFoundException} if the user with the provided id does not exist.
-   * @throws {ConflictException} If a user with the provided email or phone already exists.
+   * @throws {NotFoundException} - `user-not-found` if the user with the provided id does not exist.
+   * @throws {ConflictException} - `email-exists` If a user with the provided email already exists.
+   * @throws {ConflictException} - `phone-exists` If a user with the provided phone already exists.
    */
   @Transactional()
   async update(
@@ -155,7 +158,10 @@ export class UsersService {
       region: { id: regionsIds ? In(regionsIds) : undefined },
     });
     if (!user) {
-      throw new NotFoundException('User with the provided id does not exist.');
+      throw new NotFoundException(
+        'User with the provided id does not exist.',
+        'user-not-found',
+      );
     }
 
     if (updateUserInput.email || updateUserInput.phone) {
@@ -189,23 +195,56 @@ export class UsersService {
    * Removes a user by their ID.
    * If the user is the last member of their team, the team will also be removed.
    * @param id - The ID of the user to be removed.
+   * @param regionsIds - The IDs of the regions to filter by.
    * @returns The ID of the removed user.
-   * @throws {BadRequestException} if the user cannot be removed.
-   * @throws {NotFoundException} if the user with the provided ID does not exist.
+   * @throws {NotFoundException} `user-not-found` if the user with the provided ID does not exist.
+   * @throws {ConflictException} `user-active` if the user is active.
+   *
    */
-  async remove(id: number): Promise<number> {
-    const user = await this.userRepository.findOneBy({ id });
+  @Transactional()
+  async remove(id: number, regionsIds?: number[]): Promise<number> {
+    const user = await this.userRepository.findOne({
+      relations: {
+        fcmTokens: true,
+        roles: true,
+      },
+      where: { id, region: { id: regionsIds ? In(regionsIds) : undefined } },
+    });
     if (!user) {
-      throw new NotFoundException('User with the provided id does not exist.');
+      throw new NotFoundException(
+        'User with the provided id does not exist.',
+        'user-not-found',
+      );
     }
 
-    // await this.leaveTeam(user);
+    // In this way we avoid removing users with any active relation (e.g. active RabbitGroups)
+    if (user.active) {
+      throw new ConflictException(
+        'Can remove only inactive users',
+        'user-active',
+      );
+    }
 
-    await this.firebaseAuthService.deleteUser(user.firebaseUid);
+    try {
+      await this.firebaseAuthService.deleteUser(user.firebaseUid);
+    } catch (e) {
+      this.logger.error(`Failed to remove user ${user.email} from Firebase.`);
+      throw new InternalServerErrorException(
+        'Failed to remove user from Firebase',
+      );
+    }
 
-    await this.userRepository.remove(user);
+    // remove sensitive data, but keep the record for history purposes
+    user.firstname = 'Deleted';
+    user.lastname = 'Deleted';
+    user.firebaseUid = `Deleted-${user.id}`;
+    user.email = `Deleted-${user.id}`;
+    user.phone = `Deleted-${user.id}`;
 
-    this.logger.log(`Removed user ${user.email}`);
+    await this.userRepository.save(user);
+    await this.userRepository.softRemove(user);
+
+    this.logger.log(`Removed user ${user.id}`);
     return id;
   }
 
@@ -215,7 +254,8 @@ export class UsersService {
    * @param email - The email to check availability for.
    * @param phone - The phone number to check availability for.
    * @param id - (optional) The ID of the user to exclude from the check.
-   * @throws {ConflictException} If a user with the provided email or phone already exists.
+   * @throws {ConflictException} - `email-exists` If a user with the provided email already exists.
+   * @throws {ConflictException} - `phone-exists` If a user with the provided phone already exists.
    */
   private async checkAvailability(
     email: string,
@@ -230,11 +270,13 @@ export class UsersService {
     if (existingUsers.some((user) => user.email === email && user.id !== id)) {
       throw new ConflictException(
         'User with the provided email already exists',
+        'email-exists',
       );
     }
     if (existingUsers.some((user) => user.phone === phone && user.id !== id)) {
       throw new ConflictException(
         'User with the provided phone already exists',
+        'phone-exists',
       );
     }
   }

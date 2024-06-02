@@ -26,7 +26,11 @@ export class RabbitsSubscriber implements EntitySubscriberInterface<Rabbit> {
     return Rabbit;
   }
 
-  async beforeUpdate(event: UpdateEvent<Rabbit>): Promise<any> {
+  /**
+   * Set the admission date when the rabbit status is changed to anything
+   * other than 'Incoming' and the admission date is not set
+   */
+  async beforeUpdate(event: UpdateEvent<Rabbit>): Promise<void> {
     if (
       event.entity.status !== RabbitStatus.Incoming &&
       !event.entity.admissionDate

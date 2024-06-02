@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { DataSource, In, Not, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 
 import { RegionsService } from '../../common/modules/regions/regions.service';
 import { TeamsService } from './teams.service';
@@ -262,7 +262,7 @@ describe('TeamsService', () => {
         RabbitGroup,
         {
           team: { id: team.id },
-          status: Not(In(RabbitGroupStatusHelper.Active)),
+          status: In(RabbitGroupStatusHelper.Active),
         },
       );
       expect(dataSource.manager.countBy).toHaveBeenNthCalledWith(
@@ -270,7 +270,7 @@ describe('TeamsService', () => {
         RabbitGroup,
         {
           team: { id: team.id },
-          status: Not(In(RabbitGroupStatusHelper.Archival)),
+          status: In(RabbitGroupStatusHelper.Archival),
         },
       );
 
@@ -299,7 +299,7 @@ describe('TeamsService', () => {
         RabbitGroup,
         {
           team: { id: team.id },
-          status: Not(In(RabbitGroupStatusHelper.Active)),
+          status: In(RabbitGroupStatusHelper.Active),
         },
       );
       expect(dataSource.manager.countBy).toHaveBeenNthCalledWith(
@@ -307,7 +307,7 @@ describe('TeamsService', () => {
         RabbitGroup,
         {
           team: { id: team.id },
-          status: Not(In(RabbitGroupStatusHelper.Archival)),
+          status: In(RabbitGroupStatusHelper.Archival),
         },
       );
 
@@ -345,7 +345,7 @@ describe('TeamsService', () => {
         RabbitGroup,
         {
           team: { id: team.id },
-          status: Not(In(RabbitGroupStatusHelper.Active)),
+          status: In(RabbitGroupStatusHelper.Active),
         },
       );
       expect(dataSource.manager.countBy).toHaveBeenCalledTimes(2);
@@ -370,7 +370,7 @@ describe('TeamsService', () => {
         RabbitGroup,
         {
           team: { id: team.id },
-          status: Not(In(RabbitGroupStatusHelper.Active)),
+          status: In(RabbitGroupStatusHelper.Active),
         },
       );
       expect(dataSource.manager.countBy).toHaveBeenNthCalledWith(
@@ -378,7 +378,7 @@ describe('TeamsService', () => {
         RabbitGroup,
         {
           team: { id: team.id },
-          status: Not(In(RabbitGroupStatusHelper.Archival)),
+          status: In(RabbitGroupStatusHelper.Archival),
         },
       );
 

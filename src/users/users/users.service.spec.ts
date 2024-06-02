@@ -4,10 +4,9 @@ import { ILike, In, Repository } from 'typeorm';
 
 import { FirebaseAuthService } from '../../common/modules/auth';
 import { UsersService } from './users.service';
-import { TeamsService } from '../teams/teams.service';
 
 import { CreateUserInput } from '../dto';
-import { User, Team } from '../entities';
+import { User } from '../entities';
 import { getRepositoryToken } from '@nestjs/typeorm';
 
 jest.mock('typeorm-transactional', () => ({
@@ -38,20 +37,6 @@ describe('UsersService', () => {
       providers: [
         UsersService,
         {
-          provide: TeamsService,
-          useValue: {
-            create: jest.fn(
-              async () =>
-                new Team({
-                  id: 1,
-                }),
-            ),
-            findOne: jest.fn(async () => []),
-            remove: jest.fn(),
-            canRemove: jest.fn(async () => true),
-          },
-        },
-        {
           provide: FirebaseAuthService,
           useValue: {
             createUser: jest.fn(async () => '123'),
@@ -66,10 +51,11 @@ describe('UsersService', () => {
           useValue: {
             find: jest.fn(async () => []),
             findBy: jest.fn(async () => []),
+            findOne: jest.fn(async () => null),
             findOneBy: jest.fn(async () => null),
             save: jest.fn(async (user) => ({ ...user, id: 1 })),
-            remove: jest.fn(),
-            countBy: jest.fn(async () => 2),
+            softRemove: jest.fn(),
+            countBy: jest.fn(async () => users.length),
           },
         },
       ],
@@ -420,58 +406,42 @@ describe('UsersService', () => {
 
     it('should throw user not found error', async () => {
       await expect(service.remove(1)).rejects.toThrow(
-        new NotFoundException('User with the provided id does not exist.'),
+        new NotFoundException(
+          'User with the provided id does not exist.',
+          'user-not-found',
+        ),
       );
-    });
-
-    // it('should throw last member of the team error', async () => {
-    //   // jest.spyOn(teamsService, 'canRemove').mockResolvedValue(false);
-    //   jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(
-    //     new User({
-    //       ...user,
-    //       team: new Team({
-    //         id: 1,
-    //         users: new Promise((res) => res([new User(user)])),
-    //       }),
-    //     }),
-    //   );
-
-    //   await expect(service.remove(1)).rejects.toThrow(
-    //     new BadRequestException(
-    //       'User cannot be removed. Last member of the team.',
-    //     ),
-    //   );
-    // });
-
-    it('should remove user, when is last in a team', async () => {
-      // jest.spyOn(teamsService, 'canRemove').mockResolvedValue(true);
-      jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(
-        new User({
-          ...userInput,
-          team: new Team({
-            id: 1,
-            users: new Promise((res) => res([new User(userInput)])),
-          }),
-        }),
-      );
-
-      await expect(service.remove(1)).resolves.toBe(1);
     });
 
     it('should remove user', async () => {
-      jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(
-        new User({
-          ...userInput,
-          team: new Team({
-            id: 1,
-            users: new Promise((res) =>
-              res([new User(userInput), new User(userInput)]),
-            ),
-          }),
-        }),
-      );
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue({ ...user });
 
       await expect(service.remove(1)).resolves.toBe(1);
+
+      const deletedUser = {
+        ...user,
+        firstname: 'Deleted',
+        lastname: 'Deleted',
+        email: `Deleted-${user.id}`,
+        phone: `Deleted-${user.id}`,
+        firebaseUid: `Deleted-${user.id}`,
+      };
+
+      expect(userRepository.save).toHaveBeenCalledWith(deletedUser);
+      expect(userRepository.softRemove).toHaveBeenCalledWith(deletedUser);
+      expect(firebaseAuthService.deleteUser).toHaveBeenCalledWith(
+        user.firebaseUid,
+      );
+    });
+
+    it('should not remove active user', async () => {
+      jest
+        .spyOn(userRepository, 'findOne')
+        .mockResolvedValue(new User({ id: 1, active: true }));
+
+      await expect(service.remove(1)).rejects.toThrow(
+        new ConflictException('Can remove only inactive users', 'user-active'),
+      );
     });
   });
 });
