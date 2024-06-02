@@ -116,7 +116,9 @@ describe('PermissionsResolver', () => {
 
       await expect(
         resolver.addRoleToUser(userRegionManager, userIdArg, role),
-      ).rejects.toThrow(new BadRequestException('User not found.'));
+      ).rejects.toThrow(
+        new BadRequestException('User not found.', 'user-not-found'),
+      );
     });
 
     it('should throw error if user does not have permissions', async () => {
@@ -145,6 +147,7 @@ describe('PermissionsResolver', () => {
       ).rejects.toThrow(
         new BadRequestException(
           'Region ID is required for RegionManager and RegionObserver roles.',
+          'region-id-required',
         ),
       );
     });
@@ -181,20 +184,6 @@ describe('PermissionsResolver', () => {
       ).rejects.toThrow(
         new ForbiddenException(
           "User doesn't have permissions to add the role in this team.",
-        ),
-      );
-    });
-
-    it('should throw error if user does not have permissions to add the role in this region', async () => {
-      const userIdArg = '1';
-      const role = Role.Volunteer;
-      const regionIdArg = '1';
-
-      await expect(
-        resolver.addRoleToUser(userRegionManager, userIdArg, role, regionIdArg),
-      ).rejects.toThrow(
-        new ForbiddenException(
-          "User doesn't have permissions to add the role in this region.",
         ),
       );
     });
@@ -239,7 +228,9 @@ describe('PermissionsResolver', () => {
 
       await expect(
         resolver.removeRoleFromUser(userRegionManager, userIdArg, role),
-      ).rejects.toThrow(new BadRequestException('User not found.'));
+      ).rejects.toThrow(
+        new BadRequestException('User not found.', 'user-not-found'),
+      );
     });
 
     it('should throw error if user does not have permissions', async () => {
@@ -270,6 +261,7 @@ describe('PermissionsResolver', () => {
       ).rejects.toThrow(
         new BadRequestException(
           'Region ID is required for RegionManager and RegionObserver roles.',
+          'region-id-required',
         ),
       );
     });
@@ -297,7 +289,9 @@ describe('PermissionsResolver', () => {
 
       await expect(
         resolver.deactivateUser(userRegionManager, userIdArg),
-      ).rejects.toThrow(new BadRequestException('User not found.'));
+      ).rejects.toThrow(
+        new BadRequestException('User not found.', 'user-not-found'),
+      );
     });
 
     it('should throw error if user tries to deactivate himself', async () => {
@@ -306,7 +300,10 @@ describe('PermissionsResolver', () => {
       await expect(
         resolver.deactivateUser(userAdmin, userIdArg),
       ).rejects.toThrow(
-        new ForbiddenException("User can't deactivate himself."),
+        new ForbiddenException(
+          "User can't deactivate himself.",
+          'user-can-not-deactivate-himself',
+        ),
       );
     });
 
@@ -363,7 +360,9 @@ describe('PermissionsResolver', () => {
 
       await expect(
         resolver.activateUser(userRegionManager, userIdArg),
-      ).rejects.toThrow(new BadRequestException('User not found.'));
+      ).rejects.toThrow(
+        new BadRequestException('User not found.', 'user-not-found'),
+      );
     });
 
     it('should throw error if user does not have permissions', async () => {

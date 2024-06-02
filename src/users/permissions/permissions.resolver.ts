@@ -3,6 +3,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
 
 import {
@@ -29,9 +30,16 @@ export class PermissionsResolver {
   @FirebaseAuth(Role.Admin, Role.RegionManager)
   @Mutation(() => Role, {
     description: `Adds a role to a user.
-    - 'Role.Admin': regionId and teamId are ignored.
-    - 'Role.RegionManager' and 'Role.RegionObserver': This method should be called separately for each region. regionId is required.
-    - 'Role.Volunteer': User can have only one volunteer role, so if the user already has a volunteer role, it will be replaced.`,
+  - 'Role.Admin': regionId and teamId are ignored.
+  - 'Role.RegionManager' and 'Role.RegionObserver': This method should be called separately for each region. regionId is required.
+  - 'Role.Volunteer': User can have only one volunteer role, so if the user already has a volunteer role, it will be replaced.
+Errors:
+  - 'region-id-required': Region ID is required for RegionManager and RegionObserver roles.
+  - 'user-not-found': User not found.
+  - 'region-not-found': Region not found.
+  - 'team-not-found': Team not found.
+  - 'active-groups': User has active RabbitGroups, can't remove old volunteer role.
+  - 'user-not-active': User is not active.`,
   })
   async addRoleToUser(
     @CurrentUser() currentUser: UserDetails,
@@ -55,10 +63,7 @@ export class PermissionsResolver {
       type: () => ID,
       nullable: true,
       description: `Used only with Volunteer role. 
-      - If provided, the user will be added to the team.
-      - If regionId is provided, the user will be added to new team in the region with regionId.
-      - If regionId is not provided, but the user is already in a team, the user will be added to new team in the same region.
-      - Otherwise, fails.`,
+If provided, the user will be added to the team, otherwise, the user will be added to his region.`,
     })
     teamIdArg?: string,
   ): Promise<Role> {
@@ -75,7 +80,7 @@ export class PermissionsResolver {
 
       const user = await this.usersService.findOne(userId);
       if (!user) {
-        throw new BadRequestException('User not found.');
+        throw new BadRequestException('User not found.', 'user-not-found');
       }
       if (!currentUser.checkRegionManager(user.region.id)) {
         throw new ForbiddenException(
@@ -87,6 +92,7 @@ export class PermissionsResolver {
         if (!regionId) {
           throw new BadRequestException(
             'Region ID is required for RegionManager and RegionObserver roles.',
+            'region-id-required',
           );
         }
 
@@ -108,12 +114,6 @@ export class PermissionsResolver {
               "User doesn't have permissions to add the role in this team.",
             );
           }
-        } else if (regionId) {
-          if (!currentUser.checkRegionManager(regionId)) {
-            throw new ForbiddenException(
-              "User doesn't have permissions to add the role in this region.",
-            );
-          }
         }
       }
     }
@@ -126,9 +126,13 @@ export class PermissionsResolver {
   @FirebaseAuth(Role.Admin, Role.RegionManager)
   @Mutation(() => Role, {
     description: `Removes a role from a user.
-      - 'Role.Admin': regionId and teamId are ignored.
-      - 'Role.RegionManager' and 'Role.RegionObserver': This method should be called separately for each region. regionId is required.
-      - 'Role.Volunteer': User can have only one volunteer role, so if the user already has a volunteer role, it will be replaced.`,
+  - 'Role.Admin': regionId and teamId are ignored.
+  - 'Role.RegionManager' and 'Role.RegionObserver': This method should be called separately for each region. regionId is required.
+  - 'Role.Volunteer': User can have only one volunteer role, so if the user already has a volunteer role, it will be replaced.
+Errors:
+  - 'region-id-required': Region ID is required for RegionManager and RegionObserver roles.
+  - 'user-not-found': User not found.
+  - 'active-groups': User has active RabbitGroups.`,
   })
   async removeRoleFromUser(
     @CurrentUser() currentUser: UserDetails,
@@ -163,6 +167,7 @@ export class PermissionsResolver {
         if (!regionId) {
           throw new BadRequestException(
             'Region ID is required for RegionManager and RegionObserver roles.',
+            'region-id-required',
           );
         }
 
@@ -176,7 +181,7 @@ export class PermissionsResolver {
       if (role === Role.Volunteer) {
         const user = await this.usersService.findOne(userId);
         if (!user) {
-          throw new BadRequestException('User not found.');
+          throw new BadRequestException('User not found.', 'user-not-found');
         }
         if (!currentUser.checkRegionManager(user.region.id)) {
           throw new ForbiddenException(
@@ -193,7 +198,12 @@ export class PermissionsResolver {
 
   @FirebaseAuth(Role.Admin, Role.RegionManager)
   @Mutation(() => Boolean, {
-    description: `Deactivates a user.`,
+    description: `Deactivates a user.
+Errors:
+  - 'user-can-not-deactivate-himself': User can't deactivate himself.
+  - 'user-not-found': User not found.
+  - 'active-groups': User has active RabbitGroups.
+  `,
   })
   async deactivateUser(
     @CurrentUser() currentUser: UserDetails,
@@ -205,13 +215,16 @@ export class PermissionsResolver {
     const userId = Number(userIdArg);
 
     if (currentUser.id === userId) {
-      throw new ForbiddenException("User can't deactivate himself.");
+      throw new ForbiddenException(
+        "User can't deactivate himself.",
+        'user-can-not-deactivate-himself',
+      );
     }
 
     if (!currentUser.checkRole(Role.Admin)) {
       const user = await this.usersService.findOne(userId);
       if (!user) {
-        throw new BadRequestException('User not found.');
+        throw new NotFoundException('User not found.', 'user-not-found');
       }
       if (!currentUser.checkRegionManager(user.region.id)) {
         throw new ForbiddenException(
@@ -227,7 +240,9 @@ export class PermissionsResolver {
 
   @FirebaseAuth(Role.Admin, Role.RegionManager)
   @Mutation(() => Boolean, {
-    description: `Activates a user.`,
+    description: `Activates a user.
+Errors:
+  - 'user-not-found': User not found.`,
   })
   async activateUser(
     @CurrentUser() currentUser: UserDetails,
@@ -241,7 +256,7 @@ export class PermissionsResolver {
     if (!currentUser.checkRole(Role.Admin)) {
       const user = await this.usersService.findOne(userId);
       if (!user) {
-        throw new BadRequestException('User not found.');
+        throw new BadRequestException('User not found.', 'user-not-found');
       }
       if (!currentUser.checkRegionManager(user.region.id)) {
         throw new ForbiddenException(

@@ -123,7 +123,10 @@ describe('PermissionsService', () => {
       jest.spyOn(userRepository, 'findOne').mockResolvedValue(undefined);
 
       await expect(service.addRoleToUser(1, Role.Admin)).rejects.toThrow(
-        new NotFoundException('User with the provided id does not exist.'),
+        new NotFoundException(
+          'User with the provided id does not exist.',
+          'user-not-found',
+        ),
       );
     });
 
@@ -133,7 +136,7 @@ describe('PermissionsService', () => {
         .mockResolvedValue(new User({ active: false }));
 
       await expect(service.addRoleToUser(1, Role.Admin)).rejects.toThrow(
-        new BadRequestException('User is not active.'),
+        new BadRequestException('User is not active.', 'user-not-active'),
       );
     });
 
@@ -173,6 +176,7 @@ describe('PermissionsService', () => {
       ).rejects.toThrow(
         new BadRequestException(
           'Additional information is required for this role.',
+          'region-id-required',
         ),
       );
     });
@@ -183,6 +187,7 @@ describe('PermissionsService', () => {
       ).rejects.toThrow(
         new BadRequestException(
           'Additional information is required for this role.',
+          'region-id-required',
         ),
       );
     });
@@ -193,7 +198,10 @@ describe('PermissionsService', () => {
       await expect(
         service.addRoleToUser(1, Role.RegionObserver, 1),
       ).rejects.toThrow(
-        new BadRequestException('Region with the provided id does not exist.'),
+        new NotFoundException(
+          'Region with the provided id does not exist.',
+          'region-not-found',
+        ),
       );
     });
 
@@ -255,14 +263,6 @@ describe('PermissionsService', () => {
 
     beforeEach(() => {
       jest.spyOn(userRepository, 'findOne').mockResolvedValue(activeUser);
-    });
-
-    it('should throw an error if additional information is required for the role - Volunteer', async () => {
-      await expect(service.addRoleToUser(1, Role.Volunteer)).rejects.toThrow(
-        new BadRequestException(
-          'Additional information is required for this role.',
-        ),
-      );
     });
 
     it('should add Volunteer role to user - same region', async () => {
@@ -447,7 +447,10 @@ describe('PermissionsService', () => {
       await expect(
         service.addRoleToUser(1, Role.Volunteer, null, 2),
       ).rejects.toThrow(
-        new BadRequestException('Team with the provided id does not exist.'),
+        new NotFoundException(
+          'Team with the provided id does not exist.',
+          'team-not-found',
+        ),
       );
     });
   });
@@ -472,7 +475,10 @@ describe('PermissionsService', () => {
       jest.spyOn(userRepository, 'findOne').mockResolvedValue(undefined);
 
       await expect(service.removeRoleFromUser(1, Role.Admin)).rejects.toThrow(
-        new NotFoundException('User with the provided id does not exist.'),
+        new NotFoundException(
+          'User with the provided id does not exist.',
+          'user-not-found',
+        ),
       );
     });
 
@@ -648,7 +654,10 @@ describe('PermissionsService', () => {
       jest.spyOn(userRepository, 'findOne').mockResolvedValue(undefined);
 
       await expect(service.deactivateUser(1)).rejects.toThrow(
-        new NotFoundException('User with the provided id does not exist.'),
+        new NotFoundException(
+          'User with the provided id does not exist.',
+          'user-not-found',
+        ),
       );
     });
 
@@ -698,7 +707,10 @@ describe('PermissionsService', () => {
       jest.spyOn(userRepository, 'findOne').mockResolvedValue(undefined);
 
       await expect(service.activateUser(1)).rejects.toThrow(
-        new NotFoundException('User with the provided id does not exist.'),
+        new NotFoundException(
+          'User with the provided id does not exist.',
+          'user-not-found',
+        ),
       );
     });
 

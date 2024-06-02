@@ -138,7 +138,12 @@ export class UsersResolver {
    * @throws  {ConflictException} `user-active` if the user is active.
    */
   @FirebaseAuth(Role.Admin, Role.RegionManager)
-  @Mutation(() => EntityWithId)
+  @Mutation(() => EntityWithId, {
+    description: `Removes a user with the specified ID.
+  Errors:
+    - user-not-found: The user with the provided ID does not exist.
+    - user-active: The user is active.`,
+  })
   async removeUser(
     @CurrentUser() currentUser: UserDetails,
     @Args('id', { type: () => ID }) idArg: string,

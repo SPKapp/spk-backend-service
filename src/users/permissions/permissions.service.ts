@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Inject,
   Injectable,
+  InternalServerErrorException,
   Logger,
   NotFoundException,
   forwardRef,
@@ -45,19 +46,18 @@ export class PermissionsService {
    *     regionId is required.
    * 'Role.Volunteer':
    *     User can have only one volunteer role, so if the user already has a volunteer role, it will be replaced.
-   *     If only teamId is specified, the user is added to the team.
-   *     If only regionId is specified, the user is added to a new team in the region.
-   *     If both regionId and teamId are not specified, the user is added to the team in the region that was in previous team or fail if the user has no previous team.
+   *     If teamId is specified, the user is added to this team, else the user is added to a new team in his region.
    *
    * @param userId - The ID of the user to add the role to.
    * @param role - The role to add.
    * @param regionId - The ID of the region to add the role to.
    * @param teamId - The ID of the team to add the role to.
-   * @throws {NotFoundException} If the user with the provided ID does not exist.
-   * @throws {BadRequestException} If the user is not active.
-   * @throws {BadRequestException} If additional information is required for the role.
-   * @throws {BadRequestException} If the region with the provided ID does not exist.
-   * @throws {BadRequestException} If the team with the provided ID does not exist.
+   * @throws {NotFoundException} - `user-not-found` If the user with the provided ID does not exist.
+   * @throws {BadRequestException} - `user-not-active` If the user is not active.
+   * @throws {BadRequestException} - `region-id-required` If additional information is required for this role.
+   * @throws {NotFoundException} - `region-not-found` If the region with the provided ID does not exist.
+   * @throws {NotFoundException} - `team-not-found` If the team with the provided ID does not exist.
+   * @throws {BadRequestException} - `active-groups` If the old team has active RabbitGroups.
    */
   @Transactional()
   async addRoleToUser(
@@ -73,10 +73,13 @@ export class PermissionsService {
       where: { id: userId },
     });
     if (!user) {
-      throw new NotFoundException('User with the provided id does not exist.');
+      throw new NotFoundException(
+        'User with the provided id does not exist.',
+        'user-not-found',
+      );
     }
     if (!user.active) {
-      throw new BadRequestException('User is not active.');
+      throw new BadRequestException('User is not active.', 'user-not-active');
     }
 
     let newRoleEntity: RoleEntity;
@@ -89,13 +92,15 @@ export class PermissionsService {
         if (!regionId) {
           throw new BadRequestException(
             'Additional information is required for this role.',
+            'region-id-required',
           );
         }
         // We need to check if the region exists
         const region = await this.regionsService.findOne(regionId);
         if (!region) {
-          throw new BadRequestException(
+          throw new NotFoundException(
             'Region with the provided id does not exist.',
+            'region-not-found',
           );
         }
         newRoleEntity = new RoleEntity({
@@ -105,7 +110,7 @@ export class PermissionsService {
         });
         break;
       case Role.Volunteer:
-        newRoleEntity = await this.addVolunteerRole(user, regionId, teamId);
+        newRoleEntity = await this.addVolunteerRole(user, teamId);
         break;
     }
 
@@ -129,10 +134,19 @@ export class PermissionsService {
     );
   }
 
+  /**
+   * Adds a volunteer role to a user.
+   * If the user already has a volunteer role, it will be replaced.
+   *
+   * If teamId is specified, the user is added to the team.
+   * Else the user is added to a new team in his region.
+   *
+   * @throws {NotFoundException} - `team-not-found` If the team with the provided ID does not exist.
+   * @throws {BadRequestException} - `active-groups` If the old team has active RabbitGroups.
+   */
   @Transactional()
   private async addVolunteerRole(
     user: User,
-    regionId: number,
     teamId: number,
   ): Promise<RoleEntity> {
     let team: Team;
@@ -141,19 +155,13 @@ export class PermissionsService {
     if (teamId) {
       team = await this.teamRepository.findOneBy({ id: teamId });
       if (!team) {
-        throw new BadRequestException(
+        throw new NotFoundException(
           'Team with the provided id does not exist.',
+          'team-not-found',
         );
       }
-    } else if (regionId) {
-      // This method checks if the region exists - no need to check again
-      team = await this.teamsSerivce.create(regionId);
-    } else if (user.team) {
-      team = await this.teamsSerivce.create(user.team.region.id);
     } else {
-      throw new BadRequestException(
-        'Additional information is required for this role.',
-      );
+      team = await this.teamsSerivce.create(user.region.id);
     }
 
     if (oldTeam && oldTeam.id !== team.id) {
@@ -189,7 +197,8 @@ export class PermissionsService {
    * @param userId - The ID of the user to remove the role from.
    * @param role - The role to remove.
    * @param regionId - The ID of the region to remove the role from.
-   * @throws {NotFoundException} If the user with the provided ID does not exist.
+   * @throws {NotFoundException} - `user-not-found` If the user with the provided ID does not exist.
+   * @throws {BadRequestException} - `active-groups` If the team has active RabbitGroups.
    */
   @Transactional()
   async removeRoleFromUser(
@@ -204,7 +213,10 @@ export class PermissionsService {
       where: { id: userId },
     });
     if (!user) {
-      throw new NotFoundException('User with the provided id does not exist.');
+      throw new NotFoundException(
+        'User with the provided id does not exist.',
+        'user-not-found',
+      );
     }
 
     let roleEntities: RoleEntity[];
@@ -307,6 +319,7 @@ export class PermissionsService {
    * the team is archived or removed(if it hasn't any rabbits).
    *
    * @param user - The user to remove from the team.
+   * @throws {BadRequestException} - `active-groups` If the team has active RabbitGroups.
    */
   @Transactional()
   private async removeUserFromTeam(user: User): Promise<void> {
@@ -316,7 +329,17 @@ export class PermissionsService {
     await this.userRepository.save(user);
 
     if (team) {
-      await this.teamsSerivce.maybeDeactivate(team);
+      try {
+        await this.teamsSerivce.maybeDeactivate(team);
+      } catch (e) {
+        if (e.response?.error === 'active-groups') {
+          throw e;
+        } else {
+          throw new InternalServerErrorException(
+            'An error occurred while deactivating the team.',
+          );
+        }
+      }
     }
 
     // We shoud update the end date for every team
@@ -343,6 +366,8 @@ export class PermissionsService {
    * If the user is a member of a team, maybe deactivate the team.
    *
    * @param userId - The ID of the user to deactivate.
+   * @throws {NotFoundException} - `user-not-found` If the user with the provided ID does not exist.
+   * @throws {BadRequestException} - `active-groups` If the team has active RabbitGroups.
    */
   @Transactional()
   async deactivateUser(userId: number): Promise<void> {
@@ -353,7 +378,10 @@ export class PermissionsService {
       where: { id: userId },
     });
     if (!user) {
-      throw new NotFoundException('User with the provided id does not exist.');
+      throw new NotFoundException(
+        'User with the provided id does not exist.',
+        'user-not-found',
+      );
     }
 
     user.active = false;
@@ -361,7 +389,17 @@ export class PermissionsService {
 
     // If the user is a member of a team, maybe deactivate the team
     if (user.team) {
-      await this.teamsSerivce.maybeDeactivate(user.team);
+      try {
+        await this.teamsSerivce.maybeDeactivate(user.team);
+      } catch (e) {
+        if (e.response?.error === 'active-groups') {
+          throw e;
+        } else {
+          throw new InternalServerErrorException(
+            'An error occurred while deactivating the team.',
+          );
+        }
+      }
     }
 
     await this.firebaseAuthService.deactivateUser(user.firebaseUid);
@@ -375,6 +413,7 @@ export class PermissionsService {
    * If the user is a member of a team, activate the team.
    *
    * @param userId - The ID of the user to activate.
+   * @throws {NotFoundException} - `user-not-found` If the user with the provided ID does not exist.
    */
   @Transactional()
   async activateUser(userId: number): Promise<void> {
@@ -385,7 +424,10 @@ export class PermissionsService {
       where: { id: userId },
     });
     if (!user) {
-      throw new NotFoundException('User with the provided id does not exist.');
+      throw new NotFoundException(
+        'User with the provided id does not exist.',
+        'user-not-found',
+      );
     }
 
     user.active = true;
