@@ -1,6 +1,8 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
+  InternalServerErrorException,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
@@ -32,14 +34,27 @@ export class RegionsService {
    * Creates a new region.
    * @param input - The input data for creating the region.
    * @returns A Promise that resolves to the created region.
+   * @throws {ConflictException} `region-already-exists`: Region with the same name already exists.
    */
   async create(input: CreateRegionInput): Promise<Region> {
-    const result = await this.regionRepository.save(new Region(input));
+    try {
+      const result = await this.regionRepository.save(new Region(input));
 
-    this.logger.log(
-      `Created region with ID: ${result.id} and name: ${result.name}`,
-    );
-    return result;
+      this.logger.log(
+        `Created region with ID: ${result.id} and name: ${result.name}`,
+      );
+      return result;
+    } catch (error) {
+      // Check for unique constraint violation
+      if (error.code === '23505') {
+        throw new ConflictException(
+          'Region with the same name already exists.',
+          'region-already-exists',
+        );
+      }
+
+      throw new InternalServerErrorException('Failed to create region.');
+    }
   }
 
   /**
@@ -117,24 +132,37 @@ export class RegionsService {
    * @param id - The ID of the region to update.
    * @param input - The updated region data.
    * @returns A Promise that resolves to the updated region.
-   * @throws {NotFoundException} if the region with the specified ID is not found.
+   * @throws {NotFoundException} `region-not-found`: Region with the specified ID is not found.
+   * @throws {ConflictException} `region-already-exists`: Region with the same name already exists.
    */
   async update(id: number, input: UpdateRegionInput): Promise<Region> {
     const region = await this.regionRepository.findOneBy({ id });
     if (!region) {
-      throw new NotFoundException(`Region not found`);
+      throw new NotFoundException(`Region not found`, 'region-not-found');
     }
     if (input.name) {
       region.name = input.name;
     }
 
-    const result = await this.regionRepository.save(region);
+    try {
+      const result = await this.regionRepository.save(region);
 
-    this.logger.log(
-      `Updated region with ID: ${result.id} and name: ${result.name}`,
-    );
+      this.logger.log(
+        `Updated region with ID: ${result.id} and name: ${result.name}`,
+      );
 
-    return result;
+      return result;
+    } catch (error) {
+      // Check for unique constraint violation
+      if (error.code === '23505') {
+        throw new ConflictException(
+          'Region with the same name already exists.',
+          'region-already-exists',
+        );
+      }
+
+      throw new InternalServerErrorException('Failed to update region.');
+    }
   }
 
   /**
@@ -142,30 +170,33 @@ export class RegionsService {
    *
    * @param id - The ID of the region to remove.
    * @returns The ID of the removed region.
-   * @throws {NotFoundException} If the region with the specified ID is not found.
-   * @throws {BadRequestException} If the region cannot be removed.
+   * @throws {NotFoundException} `region-not-found`: Region with the specified ID is not found.
+   * @throws {BadRequestException} `region-in-use`: Region is in use and cannot be removed.
    */
   @Transactional()
   async remove(id: number) {
     const region = await this.regionRepository.findOneBy({ id });
     if (!region) {
-      throw new NotFoundException(`Region not found`);
+      throw new NotFoundException(`Region not found`, 'region-not-found');
     }
 
+    // TODO: This should be done in a more efficient way
     const teams = await region.teams;
     const users = await region.users;
     const rabbitgroups = await region.rabbitGroups;
 
     if (teams.length > 0 || users.length > 0 || rabbitgroups.length > 0) {
-      throw new BadRequestException('Region cannot be removed. It is in use.');
+      throw new BadRequestException(
+        'Region cannot be removed. It is in use.',
+        'region-in-use',
+      );
     }
 
     // Remove permissions to the region
     await this.permissionsService.removePermissionsForRegion(id);
 
+    region.name = `deleted_${region.id}_${region.name}`;
     await this.regionRepository.softRemove(region);
-    // Due to a bug in TypeORM,
-    // https://github.com/typeorm/typeorm/issues/9155
     await this.regionRepository.save(region);
 
     this.logger.log(`Removed region with ID: ${id}`);

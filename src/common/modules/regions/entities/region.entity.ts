@@ -1,6 +1,5 @@
 import { ObjectType, Field, ID } from '@nestjs/graphql';
 import {
-  BeforeSoftRemove,
   Column,
   CreateDateColumn,
   DeleteDateColumn,
@@ -54,9 +53,4 @@ export class Region {
 
   @DeleteDateColumn()
   deletedAt?: Date;
-
-  @BeforeSoftRemove()
-  softRemove() {
-    this.name = `deleted_${this.name}`;
-  }
 }

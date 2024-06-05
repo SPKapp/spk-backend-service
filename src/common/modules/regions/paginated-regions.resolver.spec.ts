@@ -14,7 +14,7 @@ import { RegionsService } from './regions.service';
 
 import { Region } from './entities';
 
-describe('PaginatedRegionsResolver', () => {
+describe(PaginatedRegionsResolver, () => {
   let resolver: PaginatedRegionsResolver;
   let regionsService: RegionsService;
 
@@ -128,6 +128,7 @@ describe('PaginatedRegionsResolver', () => {
       ).rejects.toThrow(
         new ForbiddenException(
           'User does not have access to at least one of the regions.',
+          'wrong-arg-region',
         ),
       );
     });

@@ -19,9 +19,18 @@ export class PaginatedRegionsResolver {
    *
    * @param args - The pagination arguments.
    * @returns A promise that resolves to a `PaginatedRegions` object containing the paginated regions data.
+   * @throws {ForbiddenException} `wrong-arg-region`: User does not have access to at least one of the regions.
    */
   @FirebaseAuth(Role.Admin, Role.RegionManager)
-  @Query(() => PaginatedRegions, { name: 'regions' })
+  @Query(() => PaginatedRegions, {
+    name: 'regions',
+    description: `
+Retrieves all regions with pagination.
+
+### Error codes:
+- \`403\`, \`wrong-arg-region\`: User does not have access to at least one of the regions.
+`,
+  })
   async findAll(
     @CurrentUser() currentUser: UserDetails,
     @GqlFields(PaginatedRegions.name) gqlFields: GqlFieldsName,
@@ -32,6 +41,7 @@ export class PaginatedRegionsResolver {
         if (!currentUser.checkRegionManager(args.ids)) {
           throw new ForbiddenException(
             'User does not have access to at least one of the regions.',
+            'wrong-arg-region',
           );
         }
       } else {

@@ -13,9 +13,3 @@ import { Region } from './entities/region.entity';
   exports: [RegionsService],
 })
 export class RegionsModule {}
-
-/*
- * Region is an individual organizational unit,
- * we assume that each person, rabbit, and activity
- * takes place within a specific region.
- */

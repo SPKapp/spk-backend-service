@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ILike, In, Repository } from 'typeorm';
 
@@ -13,7 +17,7 @@ jest.mock('typeorm-transactional', () => ({
   Transactional: () => jest.fn(),
 }));
 
-describe('regionsService', () => {
+describe(RegionsService, () => {
   let service: RegionsService;
   let regionRepository: Repository<Region>;
 
@@ -77,6 +81,19 @@ describe('regionsService', () => {
       jest.spyOn(service, 'create').mockResolvedValue(expected);
 
       await expect(service.create(input)).resolves.toEqual(expected);
+    });
+
+    it('should throw an error if region already exists', async () => {
+      jest.spyOn(regionRepository, 'save').mockRejectedValue({
+        code: '23505',
+      });
+
+      await expect(service.create({ name: 'Region 1' })).rejects.toThrow(
+        new ConflictException(
+          'Region with the same name already exists.',
+          'region-already-exists',
+        ),
+      );
     });
   });
 
@@ -242,7 +259,20 @@ describe('regionsService', () => {
       jest.spyOn(regionRepository, 'findOneBy').mockResolvedValue(null);
 
       await expect(service.update(regions[0].id, regions[0])).rejects.toThrow(
-        `Region not found`,
+        new NotFoundException(`Region not found`, 'region-not-found'),
+      );
+    });
+
+    it('should throw an error if region already exists', async () => {
+      jest.spyOn(regionRepository, 'save').mockRejectedValue({
+        code: '23505',
+      });
+
+      await expect(service.update(regions[0].id, regions[0])).rejects.toThrow(
+        new ConflictException(
+          'Region with the same name already exists.',
+          'region-already-exists',
+        ),
       );
     });
   });
@@ -262,7 +292,7 @@ describe('regionsService', () => {
       jest.spyOn(regionRepository, 'findOneBy').mockResolvedValue(null);
 
       await expect(service.remove(regions[0].id)).rejects.toThrow(
-        new NotFoundException(`Region not found`),
+        new NotFoundException(`Region not found`, 'region-not-found'),
       );
     });
 
@@ -278,7 +308,10 @@ describe('regionsService', () => {
       );
 
       await expect(service.remove(regions[0].id)).rejects.toThrow(
-        new BadRequestException('Region cannot be removed. It is in use.'),
+        new BadRequestException(
+          'Region cannot be removed. It is in use.',
+          'region-in-use',
+        ),
       );
     });
   });

@@ -9,7 +9,7 @@ import { RegionsService } from './regions.service';
 
 import { Region } from './entities';
 
-describe('RegionResolver', () => {
+describe(RegionsResolver, () => {
   let resolver: RegionsResolver;
   let regionsService: RegionsService;
 
@@ -68,7 +68,7 @@ describe('RegionResolver', () => {
       jest.spyOn(regionsService, 'findOne').mockResolvedValue(null);
 
       await expect(resolver.findOne(userAdmin, '1')).rejects.toThrow(
-        new NotFoundException(`Region not found`),
+        new NotFoundException(`Region not found`, 'region-not-found'),
       );
     });
 
@@ -78,6 +78,7 @@ describe('RegionResolver', () => {
       ).rejects.toThrow(
         new ForbiddenException(
           'Region does not belong to the Region Manager permissions.',
+          'wrong-arg-region',
         ),
       );
     });
