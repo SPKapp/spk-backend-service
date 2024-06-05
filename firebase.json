@@ -7,6 +7,12 @@
     "auth": {
       "port": 3051
     },
+    "storage": {
+      "port": 3052
+    },
     "singleProjectMode": true
+  },
+  "storage": {
+    "rules": "firebase/storage.rules"
   }
 }

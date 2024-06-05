@@ -1,0 +1,36 @@
+rules_version = '2';
+service firebase.storage {
+    match /b/{bucket}/o {
+        match /rabbits/{rabbitId} {
+            function isAccessForRabbit() {
+                return request.auth != null 
+                    && request.auth.token.rabbit.id == rabbitId;
+            }
+            match /photos {
+                function fullEditAccess() {
+                    return isAccessForRabbit() 
+                        && request.auth.token.rabbit.photos == true;
+                }
+                function ownEditAccess() {
+                    return isAccessForRabbit() 
+                        && request.auth.token.rabbit.photos == 'own' 
+                        && resource.metadata.uploadedBy == request.auth.uid;
+                }
+                function photosAccess() {
+                    return isAccessForRabbit() 
+                        && (request.auth.token.rabbit.photos == true 
+                        || request.auth.token.rabbit.photos == 'own');
+                }
+
+
+                match /{fileName=**} {
+                    allow read: if photosAccess();
+                    allow create: if photosAccess() 
+                        && request.resource.metadata.uploadedBy == request.auth.uid;
+                    allow update: if fullEditAccess() || ownEditAccess();
+                    allow delete: if fullEditAccess() || ownEditAccess();
+                }
+            }
+        }
+    }
+}

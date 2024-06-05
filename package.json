@@ -20,6 +20,8 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:firebase": "jest --config ./test/firebase/jest.json",
+    "test:firebase-emulators": "firebase emulators:exec \"npm run test:firebase\"",
     "typeorm": "ts-node ./node_modules/typeorm/cli",
     "typeorm:sync": "ts-node ./node_modules/typeorm/cli -d ./src/config/database.config.ts schema:sync",
     "console": "ts-node ./scripts/console.ts",
@@ -52,6 +54,7 @@
     "typeorm-transactional": "^0.5.0"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^3.0.3",
     "@nestjs/cli": "^10.0.0",
     "@nestjs/schematics": "^10.0.0",
     "@nestjs/testing": "^10.0.0",
