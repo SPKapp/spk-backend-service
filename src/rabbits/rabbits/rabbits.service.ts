@@ -118,6 +118,31 @@ export class RabbitsService {
   }
 
   /**
+   * Checks if a rabbit with the provided ID exists.
+   *
+   * @param id - The ID of the rabbit to check.
+   * @param regionsIds - Optional array of region IDs to filter the region by.
+   * @param teamsIds - Optional array of team IDs to filter the team by.
+   * @returns A Promise that resolves to a boolean indicating if the rabbit exists.
+   */
+  async exists(
+    id: number,
+    regionsIds?: number[],
+    teamsIds?: number[],
+  ): Promise<boolean> {
+    return await this.rabbitRespository.exists({
+      loadEagerRelations: false,
+      where: {
+        id,
+        rabbitGroup: {
+          region: { id: regionsIds ? In(regionsIds) : undefined },
+          team: { id: teamsIds ? In(teamsIds) : undefined },
+        },
+      },
+    });
+  }
+
+  /**
    * Updates a rabbit with the provided data.
    * @param id - The ID of the rabbit to update.
    * @param updateRabbitInput - The data to update the rabbit with.

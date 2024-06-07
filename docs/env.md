@@ -40,7 +40,7 @@ Patrz [email.config.ts](src/config/email.config.ts)
 Patrz [firebase.config.ts](src/config/firebase.config.ts)
 
 - `GOOGLE_APPLICATION_CREDENTIALS` - plik konfiguracyjny firebase
-- `FIREBASE_SERVICE_ACCOUNT` - zmienna zawierająca zawatość pliku konfiguracyjnego firebase
+- `FIREBASE_SERVICE_ACCOUNT` - zmienna zawierająca zawatość pliku konfiguracyjnego firebase, jeśli nie zdefiniowano `GOOGLE_APPLICATION_CREDENTIALS`
 - `FIREBASE_EMULATORS_PROJECT_ID` - deweloperskie, nazwa projektID
 - `FIREBASE_AUTH_EMULATOR_HOST` -deweloperskie, host emulatora firebase auth
 
@@ -72,3 +72,9 @@ Patrz [cron.config.ts](src/config/cron.config.ts)
 Patrz [auth.config.ts](src/config/auth.config.ts)
 
 -`AUTH_REDIRECT_URL` - adres przekierowania wysyłany w mailach z linkiem
+
+### Storage
+
+Patrz [storage.config.ts](src/config/storage.config.ts)
+
+- `STORAGE_TOKEN_EXPIRATION` - czas ważności tokena w sekundach, domyślnie 15min

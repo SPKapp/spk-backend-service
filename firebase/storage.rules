@@ -1,10 +1,14 @@
 rules_version = '2';
 service firebase.storage {
     match /b/{bucket}/o {
+        function isAuth() {
+            return request.auth != null 
+                && request.time < timestamp.value(request.auth.token.expiresAt);
+        }
+
         match /rabbits/{rabbitId} {
             function isAccessForRabbit() {
-                return request.auth != null 
-                    && request.auth.token.rabbit.id == rabbitId;
+                return request.auth.token.rabbit.id == rabbitId;
             }
             match /photos {
                 function fullEditAccess() {
@@ -24,11 +28,11 @@ service firebase.storage {
 
 
                 match /{fileName=**} {
-                    allow read: if photosAccess();
-                    allow create: if photosAccess() 
+                    allow read: if isAuth() && photosAccess();
+                    allow create: if isAuth() && photosAccess() 
                         && request.resource.metadata.uploadedBy == request.auth.uid;
-                    allow update: if fullEditAccess() || ownEditAccess();
-                    allow delete: if fullEditAccess() || ownEditAccess();
+                    allow update: if isAuth() && fullEditAccess() || ownEditAccess();
+                    allow delete: if isAuth() && fullEditAccess() || ownEditAccess();
                 }
             }
         }

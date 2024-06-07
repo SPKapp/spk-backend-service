@@ -74,6 +74,8 @@ describe('Firebase Storage Security Rules', () => {
       beforeAll(async () => {
         authenticated = testEnv
           .authenticatedContext('user', {
+            // tokenValidTime: 15 minutes
+            expiresAt: Date.now() + 900 * 1000,
             rabbit: {
               id: '1',
               photos: true,
@@ -136,6 +138,8 @@ describe('Firebase Storage Security Rules', () => {
       beforeAll(async () => {
         authenticated = testEnv
           .authenticatedContext('user', {
+            // tokenValidTime: 15 minutes
+            expiresAt: Date.now() + 900 * 1000,
             rabbit: {
               id: '1',
               photos: 'own',
@@ -197,6 +201,8 @@ describe('Firebase Storage Security Rules', () => {
       beforeAll(async () => {
         authenticated = testEnv
           .authenticatedContext('user', {
+            // tokenValidTime: 15 minutes
+            expiresAt: Date.now() + 900 * 1000,
             rabbit: {
               id: '1',
             },
@@ -230,8 +236,46 @@ describe('Firebase Storage Security Rules', () => {
       beforeAll(async () => {
         authenticated = testEnv
           .authenticatedContext('user', {
+            // tokenValidTime: 15 minutes
+            expiresAt: Date.now() + 900 * 1000,
             rabbit: {
               id: '20',
+              photos: true,
+            },
+          })
+          .storage();
+      });
+
+      it('should deny read access', async () => {
+        const photo = ref(authenticated, 'rabbits/1/photos/1.jpg');
+        await assertFails(getDownloadURL(photo));
+      });
+
+      it('should deny write access', async () => {
+        const photo = ref(authenticated, 'rabbits/1/photos/2.jpg');
+        await assertFails(
+          uploadString(photo, 'data', undefined, {
+            customMetadata: { uploadedBy: 'user' },
+          }),
+        );
+      });
+
+      it('should deny list access - photos folder', async () => {
+        const rabbit = ref(authenticated, 'rabbits/1/photos/1');
+        await assertFails(list(rabbit));
+      });
+    });
+
+    describe('Incorrect Token - expired', () => {
+      let authenticated: FirebaseStorage;
+
+      beforeAll(async () => {
+        authenticated = testEnv
+          .authenticatedContext('user', {
+            // tokenValidTime: - 15 minutes
+            expiresAt: Date.now() - 900 * 1000,
+            rabbit: {
+              id: '1',
               photos: true,
             },
           })

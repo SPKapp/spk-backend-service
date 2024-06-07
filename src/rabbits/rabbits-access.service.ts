@@ -34,6 +34,7 @@ export class RabbitsAccessService {
   ): Promise<boolean> {
     let regionIds: number[] | undefined;
     let teamIds: number[] | undefined;
+    // TODO: Refactor this
 
     if (currentUser.checkRole(Role.Admin)) {
       return true;
@@ -67,6 +68,7 @@ export class RabbitsAccessService {
     currentUser: UserDetails,
   ): Promise<boolean> {
     let regionIds: number[] | undefined;
+    // TODO: Refactor this
 
     if (currentUser.checkRole(Role.Admin)) {
       return true;
@@ -83,4 +85,63 @@ export class RabbitsAccessService {
     );
     return rabbitGroup !== null;
   }
+
+  /**
+   * Grants access to the user to view photos of the rabbit.
+   *
+   * Access is granted if the user
+   * - is an Admin and the rabbit exists
+   * - is a Region Manager or Region Observer and the rabbit exists in their region
+   * - is a Volunteer and the rabbit exists in their team
+   *
+   * @param rabbitId - The ID of the rabbit to grant access to.
+   * @param currentUser - The details of the current user.
+   * @returns The type of access the user has to the rabbit's photos.
+   */
+  async grantPhotoAccess(
+    rabbitId: number,
+    currentUser: UserDetails,
+  ): Promise<RabbitPhotosAccessType> {
+    if (currentUser.checkRole(Role.Admin)) {
+      return (await this.rabbitsService.exists(rabbitId))
+        ? RabbitPhotosAccessType.Full
+        : RabbitPhotosAccessType.Deny;
+    }
+
+    if (
+      currentUser.checkRole([Role.RegionManager, Role.RegionObserver]) &&
+      (await this.rabbitsService.exists(rabbitId, currentUser.regions))
+    ) {
+      return RabbitPhotosAccessType.Full;
+    }
+
+    if (
+      currentUser.checkRole(Role.Volunteer) &&
+      (await this.rabbitsService.exists(rabbitId, undefined, [
+        currentUser.teamId,
+      ]))
+    ) {
+      return RabbitPhotosAccessType.Own;
+    }
+
+    return RabbitPhotosAccessType.Deny;
+  }
+}
+
+/**
+ * The type of access the user has to the rabbit's photos.
+ */
+export enum RabbitPhotosAccessType {
+  /**
+   * The user has access read all photos and edit only their own photos.
+   */
+  Own,
+  /**
+   * The user has full access to the rabbit's photos.
+   */
+  Full,
+  /**
+   * The user does not have access to the rabbit's photos.
+   */
+  Deny,
 }

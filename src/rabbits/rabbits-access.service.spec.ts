@@ -6,10 +6,14 @@ import {
   userRegionManager,
   userRegionManagerAndObserver,
   userRegionObserver,
+  userRegionObserverAndVolunteer,
   userVolunteer,
 } from '../common/tests/user-details.template';
 
-import { RabbitsAccessService } from './rabbits-access.service';
+import {
+  RabbitPhotosAccessType,
+  RabbitsAccessService,
+} from './rabbits-access.service';
 import { RabbitsService } from './rabbits/rabbits.service';
 import { RabbitGroupsService } from './rabbit-groups/rabbit-groups.service';
 import { Rabbit, RabbitGroup } from './entities';
@@ -27,6 +31,7 @@ describe('RabbitsAccessService', () => {
           provide: RabbitsService,
           useValue: {
             findOne: jest.fn(),
+            exists: jest.fn(),
           },
         },
         {
@@ -207,6 +212,115 @@ describe('RabbitsAccessService', () => {
           1,
           userRegionManager.managerRegions,
         );
+      });
+    });
+
+    describe('grantPhotoAccess', () => {
+      it('should be defined', () => {
+        expect(service.grantPhotoAccess).toBeDefined();
+      });
+
+      it('should allow access for admin', async () => {
+        jest.spyOn(rabbitsService, 'exists').mockResolvedValue(true);
+
+        await expect(service.grantPhotoAccess(1, userAdmin)).resolves.toEqual(
+          RabbitPhotosAccessType.Full,
+        );
+
+        expect(rabbitsService.exists).toHaveBeenCalledWith(1);
+      });
+
+      it('should deny access for admin if rabbit does not exist', async () => {
+        jest.spyOn(rabbitsService, 'exists').mockResolvedValue(false);
+
+        await expect(service.grantPhotoAccess(1, userAdmin)).resolves.toEqual(
+          RabbitPhotosAccessType.Deny,
+        );
+
+        expect(rabbitsService.exists).toHaveBeenCalledWith(1);
+      });
+
+      it('should allow access for region manager', async () => {
+        jest.spyOn(rabbitsService, 'exists').mockResolvedValue(true);
+
+        await expect(
+          service.grantPhotoAccess(1, userRegionManager),
+        ).resolves.toEqual(RabbitPhotosAccessType.Full);
+
+        expect(rabbitsService.exists).toHaveBeenCalledWith(
+          1,
+          userRegionManager.managerRegions,
+        );
+      });
+
+      it('should allow access for region observer', async () => {
+        jest.spyOn(rabbitsService, 'exists').mockResolvedValue(true);
+
+        await expect(
+          service.grantPhotoAccess(1, userRegionObserver),
+        ).resolves.toEqual(RabbitPhotosAccessType.Full);
+
+        expect(rabbitsService.exists).toHaveBeenCalledWith(
+          1,
+          userRegionObserver.observerRegions,
+        );
+      });
+
+      it('should allow access for region manager and observer', async () => {
+        jest.spyOn(rabbitsService, 'exists').mockResolvedValue(true);
+
+        await expect(
+          service.grantPhotoAccess(1, userRegionManagerAndObserver),
+        ).resolves.toEqual(RabbitPhotosAccessType.Full);
+
+        expect(rabbitsService.exists).toHaveBeenCalledWith(
+          1,
+          userRegionManagerAndObserver.regions,
+        );
+      });
+
+      it('should allow access for volunteer', async () => {
+        jest.spyOn(rabbitsService, 'exists').mockResolvedValue(true);
+
+        await expect(
+          service.grantPhotoAccess(1, userVolunteer),
+        ).resolves.toEqual(RabbitPhotosAccessType.Own);
+
+        expect(rabbitsService.exists).toHaveBeenCalledWith(1, undefined, [
+          userVolunteer.teamId,
+        ]);
+      });
+
+      it('should allow access for volunteer and region observer', async () => {
+        jest
+          .spyOn(rabbitsService, 'exists')
+          .mockResolvedValueOnce(false)
+          .mockResolvedValueOnce(true);
+
+        await expect(
+          service.grantPhotoAccess(1, userRegionObserverAndVolunteer),
+        ).resolves.toEqual(RabbitPhotosAccessType.Own);
+
+        expect(rabbitsService.exists).toHaveBeenNthCalledWith(
+          1,
+          1,
+          userRegionObserverAndVolunteer.observerRegions,
+        );
+        expect(rabbitsService.exists).toHaveBeenNthCalledWith(2, 1, undefined, [
+          userRegionObserverAndVolunteer.teamId,
+        ]);
+      });
+
+      it('should deny access for volunteer if rabbit does not exist', async () => {
+        jest.spyOn(rabbitsService, 'exists').mockResolvedValue(false);
+
+        await expect(
+          service.grantPhotoAccess(1, userVolunteer),
+        ).resolves.toEqual(RabbitPhotosAccessType.Deny);
+
+        expect(rabbitsService.exists).toHaveBeenCalledWith(1, undefined, [
+          userVolunteer.teamId,
+        ]);
       });
     });
   });

@@ -15,6 +15,7 @@ import { UsersModule } from './users/users.module';
 import { RabbitsModule } from './rabbits/rabbits.module';
 import { RabbitNotesModule } from './rabbit-notes/rabbit-notes.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { StorageAccessModule } from './storage-access/storage-access.module';
 
 import {
   DatabaseConfig,
@@ -62,6 +63,7 @@ import {
     RabbitsModule,
     RabbitNotesModule,
     NotificationsModule,
+    StorageAccessModule,
   ],
 })
 export class AppModule {}

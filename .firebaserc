@@ -1,5 +1,10 @@
 {
   "projects": {
-    "default": "demo-spkdev"
-  }
+    "default": "demo-spkdev",
+    "emulators": "demo-spkdev",
+    "staging": "spkdev-alfa"
+  },
+  "targets": {},
+  "etags": {},
+  "dataconnectEmulatorConfig": {}
 }

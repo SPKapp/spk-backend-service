@@ -1,6 +1,6 @@
 # Zdjęcia królików
 
-Każdy **_królik_** posiada folder z plikami zdjęć w [Firebase Storage](firebase.md#storage).
+Każdy **_królik_** posiada folder z plikami zdjęć w [Firebase Storage](../firebase.md#storage).
 
 ## Ścieżka
 
@@ -20,11 +20,13 @@ Każdy **_królik_** posiada folder z plikami zdjęć w [Firebase Storage](fireb
 ### Token
 
 - `uid` - ID użytkownika
-- `rabbit` - obiekt z polami:
-  - `id` - ID królika
-  - `photos` - jedno z: `true`, `'read'`
-    - `true` - pełna możliwość zarządzania zdjęciami (**_Admin_**, **_RegionManager_**, **_RegionOwner_**)
-    - `'own'` - możliwość zarządzania tylko swoimi zdjęciami (**_Volounteer_**)
+- `claims` - obiekt z polami:
+  - `expiresAt` - data ważności tokenu
+  - `rabbit` - obiekt z polami:
+    - `id` - ID królika - string
+    - `photos` - jedno z: `true`, `'read'`
+      - `true` - pełna możliwość zarządzania zdjęciami (**_Admin_**, **_RegionManager_**, **_RegionOwner_**)
+      - `'own'` - możliwość zarządzania tylko swoimi zdjęciami (**_Volounteer_**)
 
 Przykład:
 
@@ -45,3 +47,11 @@ Przykład:
 ## Zdjęcie główne
 
 TODO: jak oznaczyć zdjęcie jako główne
+
+## Implementacja
+
+- reguły dostępu: [storage.rules](/firebase/storage.rules)
+- moduł przydzielania tokenów: [StorageAccessModule](/src/storage-access/storage-access.module.ts)
+  - [RabbitPhotosService](/src/storage-access/rabbit/rabbit-photos.service.ts) - przydzielanie tokenów
+  - [RabbitPhotosResolver](/src/storage-access/rabbit/rabbit-photos.resolver.ts) - obsługa zapytań GraphQL
+- funkcja przyznająca dostęp: [grantPhotoAccess](/src/rabbits/rabbits-access.service.ts)

@@ -75,6 +75,7 @@ describe('RabbitsService', () => {
             save: jest.fn(() => rabbits[0]),
             find: jest.fn(),
             findOneBy: jest.fn(() => rabbits[0]),
+            exists: jest.fn(),
             softRemove: jest.fn(() => ({ id: 1 })),
             manager: {
               createQueryBuilder: jest.fn(() => queryBuilder),
@@ -179,6 +180,63 @@ describe('RabbitsService', () => {
           teamsIds: [1],
         },
       );
+    });
+  });
+
+  describe('exists', () => {
+    it('should be defined', () => {
+      expect(service.exists).toBeDefined();
+    });
+
+    it('should return true if rabbit exists', async () => {
+      jest.spyOn(rabbitRepository, 'exists').mockResolvedValue(true);
+
+      await expect(service.exists(1)).resolves.toBeTruthy();
+
+      expect(rabbitRepository.exists).toHaveBeenCalledWith({
+        loadEagerRelations: false,
+        where: {
+          id: 1,
+          rabbitGroup: {
+            region: { id: undefined },
+            team: { id: undefined },
+          },
+        },
+      });
+    });
+
+    it('should return false if rabbit does not exist', async () => {
+      jest.spyOn(rabbitRepository, 'exists').mockResolvedValue(false);
+
+      await expect(service.exists(1)).resolves.toBeFalsy();
+
+      expect(rabbitRepository.exists).toHaveBeenCalledWith({
+        loadEagerRelations: false,
+        where: {
+          id: 1,
+          rabbitGroup: {
+            region: { id: undefined },
+            team: { id: undefined },
+          },
+        },
+      });
+    });
+
+    it('should return true if rabbit exists with regionId and teamId filter', async () => {
+      jest.spyOn(rabbitRepository, 'exists').mockResolvedValue(true);
+
+      await expect(service.exists(1, [1], [2])).resolves.toBeTruthy();
+
+      expect(rabbitRepository.exists).toHaveBeenCalledWith({
+        loadEagerRelations: false,
+        where: {
+          id: 1,
+          rabbitGroup: {
+            region: { id: In([1]) },
+            team: { id: In([2]) },
+          },
+        },
+      });
     });
   });
 

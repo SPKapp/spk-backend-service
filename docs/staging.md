@@ -1,11 +1,6 @@
 # Jak utworzono środowisko testowe
 
-## Firebase
-
-1. Utworzenie projektu
-2. Aktywowanie modułu Autentykacji i aktywacja logowania hasłem
-3. Pobranie klucza serwisowego
-   `Project settings -> Service accounts -> Generate new private key`
+## [Firebase](firebase.md#tworzenie-środowiska)
 
 ## DigitalOcean
 

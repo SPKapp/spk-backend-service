@@ -15,3 +15,7 @@ Domyślnie tworzony jest jeden region o nazwie "Administrators", do którego prz
 ## Zarządzanie
 
 Uprawnienia do zarządzania regionami jedynie użytkownicy z rolą `Admin`.
+
+## Implementacja
+
+Moduł: [RegionsModule](/src/common/modules/regions/regions.module.ts)

@@ -94,3 +94,15 @@ export const userRegionManagerAndObserver = new UserDetails({
   managerRegions: [1],
   observerRegions: [2],
 });
+
+/**
+ * Represents a user with the roles of Region Observer and Volunteer.
+ * observerRegions is set to [2].
+ * teamId is set to 2.
+ */
+export const userRegionObserverAndVolunteer = new UserDetails({
+  ...userDetailsTeplate,
+  roles: [Role.RegionObserver, Role.Volunteer],
+  observerRegions: [2],
+  teamId: 2,
+});
