@@ -46,7 +46,7 @@ Przykład:
 
 ## Zdjęcie główne
 
-TODO: jak oznaczyć zdjęcie jako główne
+plik `/rabbits/{rabbitId}/photos/default` zawiera nazwę zdjęcia, które jest ustawione jako główne
 
 ## Implementacja
 

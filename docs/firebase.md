@@ -19,7 +19,7 @@ Każdy token powinien zawierać:
 
 - `uid` - ID użytkownika
 - `claims` - obiekt z polami:
-  - `expiresAt` - data ważności tokenu
+  - `expiresAt` - data ważności tokenu w formacie liczby milisekund od 1 stycznia 1970
 
 ### Dostęp
 
@@ -40,12 +40,12 @@ Każdy zasób definiuje własne pola uprawnień, które powinny być ustawione w
    - Wyłączenie Google Analytics
 2. Aktywacja modułu Autentykacji:
 
-   - `//TODO: Do sprawdzenia`
    - Authentication -> Get started
    - Sign-in method -> Email/Password -> Enable
-   - Sign-in method -> Google -> Enable `//TODO: Do sprawdzenia`
+   - Sign-in method -> Google -> Enable
    - Settings -> User actions -> Disable create and delete accounts
-   - Settings -> Templates `//TODO: Do opisania`
+   - Settings -> Authorized domains -> Add domain
+   - Templates -> SMTP settings -> Enable and configure
 
 3. Aktywacja modułu Storage:
 
@@ -55,7 +55,9 @@ Każdy zasób definiuje własne pola uprawnień, które powinny być ustawione w
 
 4. Pobranie klucza serwisowego:
    - Project settings -> Service accounts -> Generate new private key
-   - Plik z kluczem umieścić w pliku zdefiniowanym w zmiennej środowiskowej `GOOGLE_APPLICATION_CREDENTIALS` (patrz [env](../env.md#firebase))
-     lub w zmiennej środowiskowej `FIREBASE_SERVICE_ACCOUNT` (patrz [env](../env.md#firebase))
+   - Plik z kluczem umieścić w pliku zdefiniowanym w zmiennej środowiskowej `GOOGLE_APPLICATION_CREDENTIALS` (patrz [env](env.md#firebase))
+     lub w zmiennej środowiskowej `FIREBASE_SERVICE_ACCOUNT` (patrz [env](env.md#firebase))
 5. Dodanie aliasu do projektu:\
    `firebase use --add`
+6. Wgrywanie ustawień:\
+   `firebase deploy -P <nazwa_projektu>`
